@@ -26,31 +26,15 @@ const ProductCard = ({ product, onSelect }) => {
   };
 
   return (
-    <div
-      className="card"
-      style={{
-        padding: '1rem',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '0.75rem',
-        borderRadius: '12px',
-        background: '#ffffff',
-        border: '1px solid #e2e8f0',
-        transition: 'transform 0.2s ease, box-shadow 0.2s ease',
-        cursor: 'pointer',
-        position: 'relative'
-      }}
-      onClick={handleDetail}
-    >
-      <div style={{ position: 'relative', height: '180px', borderRadius: '10px', overflow: 'hidden', background: '#f1f5f9' }}>
+    <div className="product-card-item" onClick={handleDetail}>
+      <div className="product-img-wrapper">
         <img
           src={product.image}
           alt={product.name}
-          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+          className="product-img"
         />
         <span
-          className={`badge ${product.stock > 5 ? 'badge-success' : product.stock > 0 ? 'badge-warning' : 'badge-danger'}`}
-          style={{ position: 'absolute', top: '10px', right: '10px', boxShadow: '0 2px 8px rgba(0,0,0,0.15)' }}
+          className={`badge badge-stock ${product.stock > 5 ? 'badge-success' : product.stock > 0 ? 'badge-warning' : 'badge-danger'}`}
         >
           {product.stock > 0 ? `Stok: ${product.stock}` : 'Habis'}
         </span>
@@ -72,7 +56,7 @@ const ProductCard = ({ product, onSelect }) => {
         <button
           onClick={handleDetail}
           className="btn btn-secondary"
-          style={{ flex: 1, padding: '0.5rem 0.75rem', fontSize: '0.8rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.3rem' }}
+          style={{ flex: 1, padding: '0.5rem 0.75rem', fontSize: '0.8rem' }}
         >
           <Eye size={15} /> Detail
         </button>
@@ -80,21 +64,14 @@ const ProductCard = ({ product, onSelect }) => {
         <button
           onClick={handleAddToCart}
           disabled={product.stock <= 0}
+          className={`btn ${added ? 'btn-success' : 'btn-primary'}`}
           style={{
             flex: 1.2,
             padding: '0.5rem 0.75rem',
             fontSize: '0.8rem',
-            fontWeight: '600',
-            borderRadius: '8px',
-            border: 'none',
             background: added ? '#10b981' : product.stock > 0 ? '#00a896' : '#94a3b8',
             color: '#fff',
-            cursor: product.stock > 0 ? 'pointer' : 'not-allowed',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '0.38rem',
-            transition: 'background 0.2s'
+            cursor: product.stock > 0 ? 'pointer' : 'not-allowed'
           }}
         >
           {added ? (
