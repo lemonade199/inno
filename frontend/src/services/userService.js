@@ -1,0 +1,50 @@
+const initialUsers = [
+  {
+    id: 1,
+    name: 'Administrator Utama',
+    email: 'admin@berkahpancing.com',
+    role: 'Admin',
+    status: 'Aktif',
+    phone: '081122334455',
+    joined: '01 Jan 2026',
+    ordersCount: 0,
+    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+  },
+  {
+    id: 2,
+    name: 'Juli Anto',
+    email: 'julianto@gmail.com',
+    role: 'Customer',
+    status: 'Aktif',
+    phone: '081234567890',
+    joined: '10 Feb 2026',
+    ordersCount: 5,
+    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
+  },
+  {
+    id: 3,
+    name: 'Budi Santoso',
+    email: 'budi.santoso@yahoo.com',
+    role: 'Customer',
+    status: 'Aktif',
+    phone: '085711223344',
+    joined: '15 Mar 2026',
+    ordersCount: 3,
+    avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80',
+  },
+  {
+    id: 4,
+    name: 'Siti Rahma',
+    email: 'siti.rahma@gmail.com',
+    role: 'Customer',
+    status: 'Non-Aktif',
+    phone: '087899887766',
+    joined: '20 Apr 2026',
+    ordersCount: 1,
+    avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80',
+  },
+];
+
+export const userService = {
+  getUsers: () => Promise.resolve(initialUsers),
+};
