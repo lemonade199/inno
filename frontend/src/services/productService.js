@@ -1,102 +1,79 @@
-const initialProducts = [];
-
-const initialCategories = [];
-
-const getStoredProducts = () => {
-  const saved = localStorage.getItem('berkah_products');
-  if (saved) {
-    try {
-      return JSON.parse(saved);
-    } catch (e) {
-      return initialProducts;
-    }
-  }
-  localStorage.setItem('berkah_products', JSON.stringify(initialProducts));
-  return initialProducts;
-};
-
-const getStoredCategories = () => {
-  const saved = localStorage.getItem('berkah_categories');
-  if (saved) {
-    try {
-      return JSON.parse(saved);
-    } catch (e) {
-      return initialCategories;
-    }
-  }
-  localStorage.setItem('berkah_categories', JSON.stringify(initialCategories));
-  return initialCategories;
-};
-
 export const productService = {
-  getProducts: () => Promise.resolve(getStoredProducts()),
-  getProductById: (id) => Promise.resolve(getStoredProducts().find(p => p.id === Number(id))),
+  getProducts: async () => {
+    try {
+      const res = await fetch('/api/products');
+      return await res.json();
+    } catch (e) {
+      console.error(e);
+      return [];
+    }
+  },
+
+  getProductById: async (id) => {
+    try {
+      const res = await fetch(`/api/products/${id}`);
+      return await res.json();
+    } catch (e) {
+      console.error(e);
+      return null;
+    }
+  },
   
-  createProduct: (data) => {
-    const products = getStoredProducts();
-    const newProduct = {
-      id: Date.now(),
-      name: data.name,
-      category: data.category,
-      price: Number(data.price),
-      stock: Number(data.stock),
-      status: Number(data.stock) > 5 ? 'Tersedia' : Number(data.stock) > 0 ? 'Stok Menipis' : 'Habis',
-      image: data.image || 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=500&auto=format&fit=crop&q=80',
-      description: data.description || '',
-      createdAt: new Date().toISOString().split('T')[0],
-    };
-    const updated = [newProduct, ...products];
-    localStorage.setItem('berkah_products', JSON.stringify(updated));
-    return Promise.resolve(newProduct);
+  createProduct: async (data) => {
+    try {
+      const res = await fetch('/api/products', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify(data)
+      });
+      return await res.json();
+    } catch (e) {
+      console.error(e);
+      return null;
+    }
   },
 
-  updateProduct: (id, data) => {
-    const products = getStoredProducts();
-    const updated = products.map(p => {
-      if (p.id === Number(id)) {
-        const newStock = Number(data.stock !== undefined ? data.stock : p.stock);
-        return {
-          ...p,
-          ...data,
-          price: data.price !== undefined ? Number(data.price) : p.price,
-          stock: newStock,
-          status: newStock > 5 ? 'Tersedia' : newStock > 0 ? 'Stok Menipis' : 'Habis',
-        };
-      }
-      return p;
-    });
-    localStorage.setItem('berkah_products', JSON.stringify(updated));
-    return Promise.resolve(updated.find(p => p.id === Number(id)));
+  updateProduct: async (id, data) => {
+    try {
+      const res = await fetch(`/api/products/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify(data)
+      });
+      return await res.json();
+    } catch (e) {
+      console.error(e);
+      return null;
+    }
   },
 
-  deleteProduct: (id) => {
-    const products = getStoredProducts();
-    const updated = products.filter(p => p.id !== Number(id));
-    localStorage.setItem('berkah_products', JSON.stringify(updated));
-    return Promise.resolve({ success: true });
+  deleteProduct: async (id) => {
+    try {
+      const res = await fetch(`/api/products/${id}`, {
+        method: 'DELETE'
+      });
+      return await res.json();
+    } catch (e) {
+      console.error(e);
+      return { success: false };
+    }
   },
 
-  getCategories: () => Promise.resolve(getStoredCategories()),
-  
-  createCategory: (name) => {
-    const categories = getStoredCategories();
-    const newCat = {
-      id: Date.now(),
-      name,
-      slug: name.toLowerCase().replace(/\s+/g, '-'),
-      count: 0,
-      status: 'Aktif',
-    };
-    const updated = [...categories, newCat];
-    localStorage.setItem('berkah_categories', JSON.stringify(updated));
-    return Promise.resolve(newCat);
-  },
-
-  deleteCategory: (id) => {
-    const categories = getStoredCategories();
-    const updated = categories.filter(c => c.id !== Number(id));
-    localStorage.setItem('berkah_categories', JSON.stringify(updated));
-    return Promise.resolve({ success: true });
+  getCategories: async () => {
+    // For now, categories can be hardcoded or extracted from products
+    return [
+      { id: 1, name: 'Joran (Rod)' },
+      { id: 2, name: 'Reel (Gulungan)' },
+      { id: 3, name: 'Senar (Line)' },
+      { id: 4, name: 'Umpan (Bait/Lure)' },
+      { id: 5, name: 'Aksesoris' }
+    ];
   },
 
   formatIDR: (val) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(val),

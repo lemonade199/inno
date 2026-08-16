@@ -14,8 +14,9 @@ const AdminOrders = () => {
     orderService.getOrders().then(setOrders);
   }, []);
 
-  const handleStatusChange = (orderId, newStatus) => {
+  const handleStatusChange = async (orderId, newStatus) => {
     setOrders(orders.map(o => o.id === orderId ? { ...o, status: newStatus } : o));
+    await orderService.updateOrderStatus(orderId, newStatus, newStatus === 'Menunggu Pembayaran' ? 'Belum Bayar' : 'Lunas');
   };
 
   const tabs = ['Semua', 'Menunggu Pembayaran', 'Diproses', 'Dikirim', 'Selesai'];
@@ -23,8 +24,8 @@ const AdminOrders = () => {
   const filteredOrders = orders.filter(order => {
     const matchesTab = activeTab === 'Semua' ? true : order.status === activeTab;
     const matchesSearch =
-      order.id.toLowerCase().includes(search.toLowerCase()) ||
-      order.customerName.toLowerCase().includes(search.toLowerCase());
+      String(order.id).toLowerCase().includes(search.toLowerCase()) ||
+      String(order.customerName).toLowerCase().includes(search.toLowerCase());
     return matchesTab && matchesSearch;
   });
 

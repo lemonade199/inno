@@ -13,14 +13,18 @@ const OrderDetail = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchOrderDetail();
+    fetchOrderDetail(false);
+    const interval = setInterval(() => {
+      fetchOrderDetail(true);
+    }, 5000); // Poll every 5s silently for real-time tracking
+    return () => clearInterval(interval);
   }, [id]);
 
-  const fetchOrderDetail = async () => {
-    setLoading(true);
+  const fetchOrderDetail = async (isSilent = false) => {
+    if (!isSilent) setLoading(true);
     const data = await orderService.getOrderById(id);
     setOrder(data);
-    setLoading(false);
+    if (!isSilent) setLoading(false);
   };
 
   const handleUpdateStatus = async (newStatus, paymentStatus) => {
@@ -222,9 +226,29 @@ const OrderDetail = () => {
             </div>
 
             {/* Quick Action Button */}
-            {order.status === 'Menunggu Pembayaran' && (
+            {order.status === 'Menunggu Pembayaran' && order.snap_token && (
               <button
-                onClick={() => handleUpdateStatus('Diproses', 'Lunas')}
+                onClick={() => {
+                  window.snap.pay(order.snap_token, {
+                    onSuccess: async function(result){
+                      await fetch(`/api/payment/sync/${order.id}`);
+                      fetchOrderDetail();
+                    },
+                    onPending: async function(result){
+                      await fetch(`/api/payment/sync/${order.id}`);
+                      fetchOrderDetail();
+                    },
+                    onError: async function(result){
+                      await fetch(`/api/payment/sync/${order.id}`);
+                      fetchOrderDetail();
+                      alert('Pembayaran gagal/ditolak oleh bank.');
+                    },
+                    onClose: async function(){
+                      await fetch(`/api/payment/sync/${order.id}`);
+                      fetchOrderDetail();
+                    }
+                  })
+                }}
                 style={{
                   width: '100%',
                   padding: '0.8rem',
@@ -237,7 +261,7 @@ const OrderDetail = () => {
                   cursor: 'pointer'
                 }}
               >
-                Bayar Sekarang (Simulasi Lunas)
+                Bayar Sekarang
               </button>
             )}
 

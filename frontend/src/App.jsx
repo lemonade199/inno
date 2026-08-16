@@ -10,6 +10,8 @@ import AdminLayout from './layouts/AdminLayout';
 // Components
 import ProtectedRoute from './components/ProtectedRoute';
 
+import ErrorBoundary from './components/ErrorBoundary';
+
 // Auth Pages
 import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
@@ -40,7 +42,8 @@ function App() {
     <AuthProvider>
       <CartProvider>
         <Router>
-          <Routes>
+          <ErrorBoundary>
+            <Routes>
             {/* Public Auth Routes */}
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
@@ -89,6 +92,7 @@ function App() {
             {/* Fallback Redirect */}
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
+          </ErrorBoundary>
         </Router>
       </CartProvider>
     </AuthProvider>

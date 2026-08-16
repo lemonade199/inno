@@ -13,14 +13,18 @@ const Orders = () => {
   const [activeTab, setActiveTab] = useState('Semua');
 
   useEffect(() => {
-    fetchOrders();
+    fetchOrders(false);
+    const interval = setInterval(() => {
+      fetchOrders(true);
+    }, 5000); // Poll every 5 seconds for "real-time" updates
+    return () => clearInterval(interval);
   }, [user]);
 
-  const fetchOrders = async () => {
-    setLoading(true);
+  const fetchOrders = async (isSilent = false) => {
+    if (!isSilent) setLoading(true);
     const data = await orderService.getUserOrders(user?.email);
     setOrders(data || []);
-    setLoading(false);
+    if (!isSilent) setLoading(false);
   };
 
   const handleUpdateStatus = async (orderId, newStatus, paymentStatus) => {

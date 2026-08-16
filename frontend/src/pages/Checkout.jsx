@@ -19,7 +19,6 @@ const Checkout = () => {
     notes: ''
   });
 
-  const [paymentMethod, setPaymentMethod] = useState('Transfer Bank BCA');
   const [submitting, setSubmitting] = useState(false);
 
   const subtotal = getCartTotal();
@@ -61,17 +60,29 @@ const Checkout = () => {
       subtotal: subtotal,
       shippingFee: shippingFee,
       total: total,
-      paymentMethod: paymentMethod
+      paymentMethod: 'Midtrans'
     };
 
     try {
-      const createdOrder = await orderService.createOrder(orderPayload);
+      // 1. Simpan pesanan ke Backend Database
+      const createResponse = await fetch('/api/payment/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(orderPayload)
+      });
+      const createdOrder = await createResponse.json();
+
+      if (createdOrder.status === 'error') {
+        throw new Error(createdOrder.message);
+      }
+      
       clearCart();
       setSubmitting(false);
-      navigate(`/orders/${createdOrder.id}`);
+      navigate(`/orders/${createdOrder.order_id_db}`);
+
     } catch (err) {
       setSubmitting(false);
-      alert('Gagal membuat pesanan. Silakan coba lagi.');
+      alert('Gagal memproses pesanan. Silakan coba lagi.');
     }
   };
 
@@ -169,57 +180,7 @@ const Checkout = () => {
             </div>
           </div>
 
-          {/* Section 2: Metode Pembayaran */}
-          <div className="card" style={{ padding: '1.5rem', borderRadius: '14px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.25rem', color: '#0f4c81' }}>
-              <CreditCard size={22} />
-              <h3 style={{ fontSize: '1.1rem', fontWeight: '800', color: '#1e293b', margin: 0 }}>Metode Pembayaran</h3>
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              
-              {[
-                { id: 'Transfer Bank BCA', title: 'Transfer Bank BCA', desc: 'No. Rekening Otomatis Verifikasi', icon: Building2 },
-                { id: 'Transfer Bank Mandiri', title: 'Transfer Bank Mandiri', desc: 'No. Rekening Otomatis Verifikasi', icon: Building2 },
-                { id: 'QRIS', title: 'QRIS (Gopay, OVO, ShopeePay, Dana)', desc: 'Scan Instan Bebas Biaya Admin', icon: QrCode },
-                { id: 'COD', title: 'Bayar di Tempat (COD)', desc: 'Bayar tunai saat barang sampai', icon: Banknote },
-              ].map((option) => {
-                const IconComponent = option.icon;
-                const isSelected = paymentMethod === option.id;
-                return (
-                  <label
-                    key={option.id}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '1rem',
-                      padding: '1rem',
-                      borderRadius: '10px',
-                      border: isSelected ? '2px solid #00a896' : '1px solid #e2e8f0',
-                      background: isSelected ? '#f0fdf4' : '#fff',
-                      cursor: 'pointer',
-                      transition: 'all 0.2s'
-                    }}
-                  >
-                    <input
-                      type="radio"
-                      name="paymentMethod"
-                      value={option.id}
-                      checked={isSelected}
-                      onChange={(e) => setPaymentMethod(e.target.value)}
-                      style={{ width: '18px', height: '18px', accentColor: '#00a896' }}
-                    />
-                    <IconComponent size={24} color={isSelected ? '#00a896' : '#64748b'} />
-                    <div>
-                      <div style={{ fontSize: '0.9rem', fontWeight: '700', color: '#1e293b' }}>{option.title}</div>
-                      <div style={{ fontSize: '0.78rem', color: '#64748b' }}>{option.desc}</div>
-                    </div>
-                  </label>
-                );
-              })}
-
-            </div>
-          </div>
+          {/* removed payment selection */}
 
         </div>
 
