@@ -27,6 +27,8 @@ class PaymentController extends Controller
 
         $orderIdMidtrans = 'TRX-' . time() . '-' . rand(100, 999);
 
+        $paymentMethod = $request->paymentMethod ?? 'Midtrans';
+
         // Buat Order 
         $order = Order::create([
             'order_id_midtrans' => $orderIdMidtrans,
@@ -37,8 +39,8 @@ class PaymentController extends Controller
             'subtotal' => $request->subtotal ?? ($request->total - 20000),
             'shipping_fee' => $request->shippingFee ?? 20000,
             'total' => $request->total,
-            'payment_method' => $request->paymentMethod ?? 'Midtrans',
-            'status' => 'pending',
+            'payment_method' => $paymentMethod,
+            'status' => $paymentMethod === 'Cash' ? 'paid' : 'pending',
         ]);
 
         if ($request->items && is_array($request->items)) {
@@ -58,6 +60,24 @@ class PaymentController extends Controller
                     'image' => $item['image'] ?? null,
                 ]);
             }
+        }
+
+        if ($paymentMethod === 'Cash') {
+            Payment::create([
+                'order_id_db' => $order->id,
+                'order_id_midtrans' => $orderIdMidtrans,
+                'gross_amount' => $order->total,
+                'payment_status' => 'paid',
+                'snap_token' => null,
+            ]);
+
+            return response()->json([
+                'status' => 'success',
+                'token' => null,
+                'order_id_db' => $order->id, 
+                'order_id_midtrans' => $orderIdMidtrans,
+                'data' => $order
+            ]);
         }
 
         try {

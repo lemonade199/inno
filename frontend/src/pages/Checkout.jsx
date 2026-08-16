@@ -20,6 +20,7 @@ const Checkout = () => {
   });
 
   const [submitting, setSubmitting] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState('E-Wallet');
 
   const subtotal = getCartTotal();
   const shippingFee = cart.length > 0 ? 20000 : 0;
@@ -60,7 +61,7 @@ const Checkout = () => {
       subtotal: subtotal,
       shippingFee: shippingFee,
       total: total,
-      paymentMethod: 'Midtrans'
+      paymentMethod: paymentMethod === 'Cash' ? 'Cash' : 'Midtrans'
     };
 
     try {
@@ -180,7 +181,33 @@ const Checkout = () => {
             </div>
           </div>
 
-          {/* removed payment selection */}
+          {/* Section 2: Metode Pembayaran */}
+          <div className="card" style={{ padding: '1.5rem', borderRadius: '14px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.25rem', color: '#0f4c81' }}>
+              <Banknote size={22} />
+              <h3 style={{ fontSize: '1.1rem', fontWeight: '800', color: '#1e293b', margin: 0 }}>Metode Pembayaran</h3>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              
+              <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '1rem', border: `1px solid ${paymentMethod === 'E-Wallet' ? '#0f4c81' : '#cbd5e1'}`, borderRadius: '10px', background: paymentMethod === 'E-Wallet' ? '#f0f9ff' : '#fff', cursor: 'pointer', transition: 'all 0.2s' }}>
+                <input type="radio" name="payment" value="E-Wallet" checked={paymentMethod === 'E-Wallet'} onChange={() => setPaymentMethod('E-Wallet')} style={{ transform: 'scale(1.2)' }} />
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                  <span style={{ fontWeight: '700', color: '#0f172a' }}>E-Wallet / Transfer Bank</span>
+                  <span style={{ fontSize: '0.8rem', color: '#64748b' }}>Otomatis via Midtrans (Gopay, QRIS, dll)</span>
+                </div>
+              </label>
+
+              <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '1rem', border: `1px solid ${paymentMethod === 'Cash' ? '#0f4c81' : '#cbd5e1'}`, borderRadius: '10px', background: paymentMethod === 'Cash' ? '#f0f9ff' : '#fff', cursor: 'pointer', transition: 'all 0.2s' }}>
+                <input type="radio" name="payment" value="Cash" checked={paymentMethod === 'Cash'} onChange={() => setPaymentMethod('Cash')} style={{ transform: 'scale(1.2)' }} />
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                  <span style={{ fontWeight: '700', color: '#0f172a' }}>Tunai / Cash (Di Toko)</span>
+                  <span style={{ fontSize: '0.8rem', color: '#64748b' }}>Langsung diproses dan dibayar tunai</span>
+                </div>
+              </label>
+
+            </div>
+          </div>
 
         </div>
 
