@@ -29,8 +29,9 @@ const AdminProductEdit = () => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    await productService.updateProduct(id, formData);
     alert(`Perubahan produk "${formData.name}" berhasil disimpan!`);
     navigate('/admin/products');
   };
@@ -101,14 +102,27 @@ const AdminProductEdit = () => {
           </div>
 
           <div className="form-group">
-            <label className="form-label">URL Gambar Produk</label>
+            <label className="form-label">Ganti Gambar Produk (Opsional - JPG/PNG)</label>
             <input
-              type="text"
+              type="file"
+              accept="image/*"
               name="image"
               className="form-input"
-              value={formData.image}
-              onChange={handleChange}
+              style={{ padding: '0.45rem', background: '#f8fafc' }}
+              onChange={(e) => setFormData({ ...formData, image: e.target.files[0] })}
             />
+            {formData.image && typeof formData.image === 'string' && (
+              <div style={{ marginTop: '0.5rem' }}>
+                <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Gambar Saat Ini:</span>
+                <img src={formData.image.startsWith('http') ? formData.image : `http://localhost:8000${formData.image}`} alt="Preview" style={{ width: '90px', height: '90px', objectFit: 'cover', borderRadius: '8px', display: 'block', marginTop: '4px' }} />
+              </div>
+            )}
+            {formData.image && typeof formData.image === 'object' && (
+              <div style={{ marginTop: '0.5rem' }}>
+                <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Gambar Gambar Baru:</span>
+                <img src={URL.createObjectURL(formData.image)} alt="Preview" style={{ width: '90px', height: '90px', objectFit: 'cover', borderRadius: '8px', display: 'block', marginTop: '4px' }} />
+              </div>
+            )}
           </div>
 
           <div className="form-group">

@@ -127,6 +127,12 @@ const AdminOrderDetail = () => {
             <p style={{ fontSize: '0.88rem', color: '#334155', lineHeight: 1.5 }}>
               {order.address}
             </p>
+            {order.trackingNumber && (
+              <div style={{ marginTop: '0.75rem', padding: '0.5rem', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '6px' }}>
+                <span style={{ fontSize: '0.75rem', fontWeight: '700', color: '#166534', display: 'block' }}>NOMOR RESI KURIR:</span>
+                <span style={{ fontSize: '0.95rem', fontWeight: '800', color: '#15803d' }}>{order.trackingNumber}</span>
+              </div>
+            )}
           </div>
 
           {/* Payment */}

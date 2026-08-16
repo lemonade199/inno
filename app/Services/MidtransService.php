@@ -122,8 +122,12 @@ class MidtransService
         $order->update(['status' => $orderStatus]);
 
         if ($orderStatus === 'paid') {
-            // Kurangi stok produk dll
-            // (Mocking pengurangan stok, bisa ditaruh di sini atau via event)
+            foreach($order->items as $item) {
+                $product = \App\Models\Product::find($item->product_id);
+                if ($product) {
+                    $product->decrement('stock', $item->qty);
+                }
+            }
         }
 
         return ['status' => 'success', 'message' => "Payment status updated to $paymentStatus"];

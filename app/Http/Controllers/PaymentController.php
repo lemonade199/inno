@@ -71,6 +71,14 @@ class PaymentController extends Controller
                 'snap_token' => null,
             ]);
 
+            // Auto-decrement stock for cash
+            foreach ($order->items as $item) {
+                $product = \App\Models\Product::find($item->product_id);
+                if ($product) {
+                    $product->decrement('stock', $item->qty);
+                }
+            }
+
             return response()->json([
                 'status' => 'success',
                 'token' => null,
@@ -152,20 +160,10 @@ class PaymentController extends Controller
 
         $inputStatus = $request->status;
         
-        $dbStatusMap = [
-            'Menunggu Pembayaran' => 'pending',
-            'Diproses' => 'paid',
-            'Dikirim' => 'paid', // just keeping it paid in midtrans logic but maybe we should map frontent string back to db correctly
-            'Selesai' => 'paid',
-            'Dibatalkan' => 'cancelled'
-        ];
-
-        // Let's just directly store the string for now, but wait! The frontend relies on mapping!
-        // In getOrders: 
-        // $statusMap = ['pending' => 'Menunggu Pembayaran', 'paid' => 'Diproses', 'expired' => 'Dibatalkan', 'cancelled' => 'Dibatalkan', 'failed' => 'Dibatalkan'];
-        // If the admin sends 'Dikirim', we should probably just store it as 'Dikirim' and handle it if we want.
-        // Actually, we can add 'Dikirim', 'Selesai' to DB straight away!
         $order->status = $inputStatus;
+        if ($request->has('trackingNumber') && $request->trackingNumber != '') {
+            $order->tracking_number = $request->trackingNumber;
+        }
         $order->save();
 
         if ($request->paymentStatus && $order->payment) {
@@ -205,6 +203,7 @@ class PaymentController extends Controller
                 'paymentStatus' => $paymentStatus,
                 'paymentMethod' => $o->payment_method,
                 'snap_token' => $o->snap_token,
+                'trackingNumber' => $o->tracking_number,
                 'items' => $o->items->map(function($i) {
                     return [
                         'id' => $i->product_id,
@@ -242,6 +241,7 @@ class PaymentController extends Controller
             'paymentStatus' => $paymentStatus,
             'paymentMethod' => $o->payment_method,
             'snap_token' => $o->snap_token,
+            'trackingNumber' => $o->tracking_number,
             'items' => $o->items->map(function($i) {
                 return [
                     'id' => $i->product_id,

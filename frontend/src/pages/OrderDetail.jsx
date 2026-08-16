@@ -192,7 +192,7 @@ const OrderDetail = () => {
         {/* Right Column: Address & Payment Info */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
           
-          {/* Shipping Address */}
+          {/* Shipping Address & Tracking Info */}
           <div className="card" style={{ padding: '1.5rem', borderRadius: '14px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem', color: '#0f4c81' }}>
               <MapPin size={20} />
@@ -203,6 +203,30 @@ const OrderDetail = () => {
               <div style={{ color: '#64748b' }}>{order.customerPhone}</div>
               <div style={{ marginTop: '0.4rem', color: '#475569' }}>{order.address}</div>
             </div>
+            
+            {order.trackingNumber && (
+              <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px dashed #cbd5e1' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#15803d', marginBottom: '0.5rem' }}>
+                  <Truck size={18} />
+                  <span style={{ fontSize: '0.85rem', fontWeight: '700' }}>INFO PENGIRIMAN</span>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', background: '#f0fdf4', border: '1px solid #bbf7d0', padding: '0.75rem', borderRadius: '8px' }}>
+                  <span style={{ fontSize: '0.75rem', color: '#166534' }}>Nomor Resi / Pelacakan Kurir:</span>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '1rem', fontWeight: '800', color: '#15803d', letterSpacing: '0.5px' }}>{order.trackingNumber}</span>
+                    <button 
+                      onClick={() => {
+                        navigator.clipboard.writeText(order.trackingNumber);
+                        alert('Nomor Resi berhasil disalin!');
+                      }}
+                      style={{ background: '#fff', border: '1px solid #22c55e', color: '#166534', padding: '0.2rem 0.6rem', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 'bold', cursor: 'pointer' }}
+                    >
+                      Salin
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Payment Method & Actions */}

@@ -47,12 +47,18 @@ class ProductController extends Controller
 
     public function store(Request $request)
     {
+        $imagePath = null;
+        if ($request->hasFile('image')) {
+            $imagePath = $request->file('image')->store('products', 'public');
+            $imagePath = '/storage/' . $imagePath;
+        }
+
         $p = Product::create([
             'name' => $request->name,
             'category' => $request->category,
             'price' => $request->price,
             'stock' => $request->stock,
-            'image' => $request->image,
+            'image' => $imagePath,
             'description' => $request->description,
         ]);
         return response()->json(['id' => $p->id]);
@@ -62,7 +68,12 @@ class ProductController extends Controller
     {
         $p = Product::find($id);
         if ($p) {
-            $p->update($request->only(['name', 'category', 'price', 'stock', 'image', 'description']));
+            $data = $request->only(['name', 'category', 'price', 'stock', 'description']);
+            if ($request->hasFile('image')) {
+                $imagePath = $request->file('image')->store('products', 'public');
+                $data['image'] = '/storage/' . $imagePath;
+            }
+            $p->update($data);
         }
         return response()->json(['success' => true]);
     }

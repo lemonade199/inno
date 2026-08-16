@@ -21,9 +21,29 @@ const Checkout = () => {
 
   const [submitting, setSubmitting] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState('E-Wallet');
+  const [shippingRegion, setShippingRegion] = useState('bandung'); // 'bandung', 'luar_kota', 'luar_pulau'
+  const [deliveryMethod, setDeliveryMethod] = useState('pickup'); // 'pickup' atau 'delivery'
 
   const subtotal = getCartTotal();
-  const shippingFee = cart.length > 0 ? 20000 : 0;
+
+  const calculateShipping = () => {
+    if (cart.length === 0) return 0;
+    if (deliveryMethod === 'pickup') return 0; // Bebas ongkir jika ambil sendiri
+    if (paymentMethod === 'Cash') return 0; // Bebas ongkir jika COD
+    
+    
+    // Logic ongkir dinamis sesuai permintaan
+    if (shippingRegion === 'bandung') {
+      return subtotal >= 100000 ? 10000 : 5000; 
+    } else if (shippingRegion === 'luar_kota') {
+      return 15000;
+    } else if (shippingRegion === 'luar_pulau') {
+      return subtotal >= 300000 ? 50000 : 25000;
+    }
+    return 20000;
+  };
+
+  const shippingFee = calculateShipping();
   const total = subtotal + shippingFee;
 
   if (cart.length === 0) {
@@ -46,11 +66,17 @@ const Checkout = () => {
     e.preventDefault();
     setSubmitting(true);
 
+    let finalAddress = `[${shippingRegion === 'bandung' ? 'Dalam Kota Bandung' : shippingRegion === 'luar_kota' ? 'Luar Kota (P. Jawa)' : 'Luar Pulau'}] ${formData.address}`;
+    
+    const paymentStr = paymentMethod === 'Cash' ? 'COD' : 'E-Wallet';
+    const deliveryStr = deliveryMethod === 'pickup' ? 'Ambil di Toko' : 'Diantar Kurir';
+    finalAddress = `[${paymentStr} - ${deliveryStr}] ${finalAddress}`;
+
     const orderPayload = {
       customerName: formData.name,
       customerEmail: formData.email,
       customerPhone: formData.phone,
-      address: formData.address,
+      address: finalAddress,
       items: cart.map(item => ({
         id: item.product.id,
         name: item.product.name,
@@ -166,6 +192,21 @@ const Checkout = () => {
 
               <div>
                 <label style={{ fontSize: '0.85rem', fontWeight: '700', color: '#475569', display: 'block', marginBottom: '0.3rem' }}>
+                  Wilayah Pengiriman
+                </label>
+                <select
+                  value={shippingRegion}
+                  onChange={(e) => setShippingRegion(e.target.value)}
+                  style={{ width: '100%', padding: '0.65rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.9rem', cursor: 'pointer', background: '#fff' }}
+                >
+                  <option value="bandung">Dalam Kota (Bandung)</option>
+                  <option value="luar_kota">Luar Kota (Internal Pulau Jawa)</option>
+                  <option value="luar_pulau">Luar Pulau (Luar Pulau Jawa)</option>
+                </select>
+              </div>
+
+              <div>
+                <label style={{ fontSize: '0.85rem', fontWeight: '700', color: '#475569', display: 'block', marginBottom: '0.3rem' }}>
                   Alamat Lengkap (Jalan, RT/RW, Kecamatan, Kota/Kab, Kode Pos)
                 </label>
                 <textarea
@@ -202,9 +243,25 @@ const Checkout = () => {
                 <input type="radio" name="payment" value="Cash" checked={paymentMethod === 'Cash'} onChange={() => setPaymentMethod('Cash')} style={{ transform: 'scale(1.2)' }} />
                 <div style={{ display: 'flex', flexDirection: 'column' }}>
                   <span style={{ fontWeight: '700', color: '#0f172a' }}>Tunai / Cash (Di Toko)</span>
-                  <span style={{ fontSize: '0.8rem', color: '#64748b' }}>Langsung diproses dan dibayar tunai</span>
+                  <span style={{ fontSize: '0.8rem', color: '#64748b' }}>Bayar tunai di toko atau kurir COD.</span>
                 </div>
               </label>
+
+              <div style={{ padding: '1rem', background: '#f8fafc', borderRadius: '10px', border: '1px dashed #cbd5e1', animation: 'fadeIn 0.3s' }}>
+                <label style={{ fontSize: '0.85rem', fontWeight: '700', color: '#475569', display: 'block', marginBottom: '0.75rem' }}>
+                  Metode Penerimaan Barang
+                </label>
+                <div style={{ display: 'flex', gap: '1rem' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                    <input type="radio" name="delivery" checked={deliveryMethod === 'pickup'} onChange={() => setDeliveryMethod('pickup')} style={{ transform: 'scale(1.1)' }} />
+                    <span style={{ fontSize: '0.85rem', fontWeight: '600', color: '#1e293b' }}>Ambil di Toko (Gratis Ongkir)</span>
+                  </label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                    <input type="radio" name="delivery" checked={deliveryMethod === 'delivery'} onChange={() => setDeliveryMethod('delivery')} style={{ transform: 'scale(1.1)' }} />
+                    <span style={{ fontSize: '0.85rem', fontWeight: '600', color: '#1e293b' }}>Diantar ke Rumah</span>
+                  </label>
+                </div>
+              </div>
 
             </div>
           </div>

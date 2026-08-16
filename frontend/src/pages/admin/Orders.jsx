@@ -15,8 +15,14 @@ const AdminOrders = () => {
   }, []);
 
   const handleStatusChange = async (orderId, newStatus) => {
-    setOrders(orders.map(o => o.id === orderId ? { ...o, status: newStatus } : o));
-    await orderService.updateOrderStatus(orderId, newStatus, newStatus === 'Menunggu Pembayaran' ? 'Belum Bayar' : 'Lunas');
+    let trackingNumber = null;
+    if (newStatus === 'Dikirim') {
+      trackingNumber = prompt('Masukkan Nomor Resi Kurir (contoh: JNE - 12345678):');
+      if (trackingNumber === null) return; // User cancelled prompt
+    }
+
+    setOrders(orders.map(o => o.id === orderId ? { ...o, status: newStatus, trackingNumber: trackingNumber ?? o.trackingNumber } : o));
+    await orderService.updateOrderStatus(orderId, newStatus, newStatus === 'Menunggu Pembayaran' ? 'Belum Bayar' : 'Lunas', trackingNumber);
   };
 
   const tabs = ['Semua', 'Menunggu Pembayaran', 'Diproses', 'Dikirim', 'Selesai'];

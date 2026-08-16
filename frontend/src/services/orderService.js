@@ -31,12 +31,15 @@ export const orderService = {
     // We can keep this for compatibility if other components use it, but Checkout does it directly.
     return Promise.reject("Gunakan endpoint /api/payment/create langsung seperti di Checkout.jsx");
   },
-  updateOrderStatus: async (id, newStatus, paymentStatus) => {
+  updateOrderStatus: async (id, newStatus, paymentStatus, trackingNumber = null) => {
     try {
+      const payload = { status: newStatus, paymentStatus };
+      if (trackingNumber) payload.trackingNumber = trackingNumber;
+
       const res = await fetch(`/api/admin/orders/${id}/status`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: newStatus, paymentStatus })
+        body: JSON.stringify(payload)
       });
       return await res.json();
     } catch (e) {

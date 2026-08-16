@@ -18,8 +18,9 @@ const AdminProductCreate = () => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    await productService.createProduct(formData);
     alert(`Produk "${formData.name}" berhasil ditambahkan!`);
     navigate('/admin/products');
   };
@@ -92,19 +93,19 @@ const AdminProductCreate = () => {
           </div>
 
           <div className="form-group">
-            <label className="form-label">URL Gambar Produk</label>
+            <label className="form-label">Gambar Produk Asli (JPG/PNG)</label>
             <input
-              type="text"
+              type="file"
+              accept="image/*"
               name="image"
               className="form-input"
-              placeholder="https://..."
-              value={formData.image}
-              onChange={handleChange}
+              style={{ padding: '0.45rem', background: '#f8fafc' }}
+              onChange={(e) => setFormData({ ...formData, image: e.target.files[0] })}
             />
-            {formData.image && (
+            {formData.image && typeof formData.image === 'object' && (
               <div style={{ marginTop: '0.5rem' }}>
                 <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Preview Gambar:</span>
-                <img src={formData.image} alt="Preview" style={{ width: '90px', height: '90px', objectFit: 'cover', borderRadius: '8px', display: 'block', marginTop: '4px' }} />
+                <img src={URL.createObjectURL(formData.image)} alt="Preview" style={{ width: '90px', height: '90px', objectFit: 'cover', borderRadius: '8px', display: 'block', marginTop: '4px' }} />
               </div>
             )}
           </div>

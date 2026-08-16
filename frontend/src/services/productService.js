@@ -21,13 +21,12 @@ export const productService = {
   
   createProduct: async (data) => {
     try {
+      const formData = new FormData();
+      Object.keys(data).forEach(key => formData.append(key, data[key]));
+
       const res = await fetch('/api/products', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: JSON.stringify(data)
+        body: formData
       });
       return await res.json();
     } catch (e) {
@@ -38,13 +37,18 @@ export const productService = {
 
   updateProduct: async (id, data) => {
     try {
+      // For PUT simulating in Laravel via POST because of FormData limits
+      const formData = new FormData();
+      Object.keys(data).forEach(key => {
+        if (data[key] !== null && data[key] !== undefined) {
+           formData.append(key, data[key]);
+        }
+      });
+      formData.append('_method', 'PUT');
+
       const res = await fetch(`/api/products/${id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: JSON.stringify(data)
+        method: 'POST',
+        body: formData
       });
       return await res.json();
     } catch (e) {
