@@ -5,11 +5,9 @@ import {
   Package,
   FolderTree,
   ShoppingBag,
-  Users,
   User,
   LogOut,
   Fish,
-  ChevronLeft,
   ChevronRight,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -22,7 +20,6 @@ const Sidebar = ({ collapsed, toggleSidebar }) => {
     { title: 'Produk', path: '/admin/products', icon: Package, badge: '6' },
     { title: 'Kategori', path: '/admin/categories', icon: FolderTree },
     { title: 'Pesanan', path: '/admin/orders', icon: ShoppingBag, badge: '4', badgeColor: 'bg-amber-500' },
-    { title: 'Pengguna', path: '/admin/users', icon: Users },
     { title: 'Profil Admin', path: '/admin/profile', icon: User },
   ];
 
@@ -61,25 +58,6 @@ const Sidebar = ({ collapsed, toggleSidebar }) => {
             </div>
           )}
         </div>
-
-        <button 
-          onClick={toggleSidebar}
-          style={{
-            background: 'rgba(255,255,255,0.05)',
-            border: 'none',
-            color: '#94a3b8',
-            width: '28px',
-            height: '28px',
-            borderRadius: '6px',
-            display: collapsed ? 'none' : 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'pointer',
-            transition: 'all 0.2s'
-          }}
-        >
-          <ChevronLeft size={18} />
-        </button>
       </div>
 
       {/* Navigation Links */}

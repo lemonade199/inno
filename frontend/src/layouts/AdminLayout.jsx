@@ -14,7 +14,7 @@ const AdminLayout = () => {
     <div className="admin-layout">
       <Sidebar collapsed={collapsed} toggleSidebar={toggleSidebar} />
       <div className={`admin-main ${collapsed ? 'collapsed' : ''}`}>
-        <Navbar toggleSidebar={toggleSidebar} />
+        <Navbar isAdminView={true} toggleSidebar={toggleSidebar} />
         <main className="admin-content">
           <Outlet />
         </main>

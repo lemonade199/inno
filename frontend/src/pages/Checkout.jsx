@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { ShieldCheck, CreditCard, Truck, MapPin, CheckCircle2, ArrowLeft, Building2, QrCode, Banknote } from 'lucide-react';
-import { useCart } from '../../context/CartContext';
-import { useAuth } from '../../context/AuthContext';
-import { orderService } from '../../services/orderService';
-import { productService } from '../../services/productService';
+import { useCart } from '../context/CartContext';
+import { useAuth } from '../context/AuthContext';
+import { orderService } from '../services/orderService';
+import { productService } from '../services/productService';
 
 const Checkout = () => {
   const { cart, getCartTotal, clearCart } = useCart();
@@ -31,7 +31,7 @@ const Checkout = () => {
       <div className="card" style={{ padding: '3rem', textAlign: 'center', margin: '2rem 0', borderRadius: '14px' }}>
         <h2>Keranjang Belanja Kosong</h2>
         <p style={{ color: '#64748b', margin: '0.5rem 0 1.5rem' }}>Silakan tambahkan produk ke keranjang terlebih dahulu sebelum checkout.</p>
-        <Link to="/user/products" className="btn btn-primary" style={{ padding: '0.6rem 1.2rem' }}>
+        <Link to="/products" className="btn btn-primary" style={{ padding: '0.6rem 1.2rem' }}>
           Ke Katalog Produk
         </Link>
       </div>
@@ -68,7 +68,7 @@ const Checkout = () => {
       const createdOrder = await orderService.createOrder(orderPayload);
       clearCart();
       setSubmitting(false);
-      navigate(`/user/orders/${createdOrder.id}`);
+      navigate(`/orders/${createdOrder.id}`);
     } catch (err) {
       setSubmitting(false);
       alert('Gagal membuat pesanan. Silakan coba lagi.');
@@ -81,7 +81,7 @@ const Checkout = () => {
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
         <button
-          onClick={() => navigate('/user/cart')}
+          onClick={() => navigate('/cart')}
           style={{ background: 'none', border: 'none', color: '#0f4c81', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
         >
           <ArrowLeft size={22} />

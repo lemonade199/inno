@@ -18,7 +18,7 @@ const Register = () => {
   const handleSubmit = (e) => {
     e.preventDefault();
     register(formData);
-    navigate('/user/dashboard');
+    navigate('/');
   };
 
   return (

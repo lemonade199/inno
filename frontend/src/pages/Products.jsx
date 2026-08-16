@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Search, Filter, RefreshCw, ShoppingBag } from 'lucide-react';
-import { productService } from '../../services/productService';
-import ProductCard from '../../components/ProductCard';
-import Loading from '../../components/Loading';
+import { productService } from '../services/productService';
+import ProductCard from '../components/ProductCard';
+import Loading from '../components/Loading';
 
 const Products = () => {
   const [searchParams, setSearchParams] = useSearchParams();

@@ -4,6 +4,9 @@ const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(() => {
+    const isLoggedOut = localStorage.getItem('berkah_logged_out');
+    if (isLoggedOut === 'true') return null;
+
     const saved = localStorage.getItem('berkah_user');
     if (saved) return JSON.parse(saved);
     // Default logged in user (User role by default, can switch to Admin)
@@ -27,6 +30,7 @@ export const AuthProvider = ({ children }) => {
   }, [user]);
 
   const login = (email, password, role = 'user') => {
+    localStorage.removeItem('berkah_logged_out');
     if (email.includes('admin') || role === 'admin') {
       const adminUser = {
         id: 1,
@@ -53,6 +57,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   const register = (data) => {
+    localStorage.removeItem('berkah_logged_out');
     const newUser = {
       id: Date.now(),
       name: data.name || 'User Baru',
@@ -71,6 +76,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = () => {
+    localStorage.setItem('berkah_logged_out', 'true');
     setUser(null);
   };
 

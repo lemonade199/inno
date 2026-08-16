@@ -101,6 +101,7 @@ button, input, select, textarea {
 
 .admin-main {
   flex: 1;
+  width: calc(100% - 260px);
   margin-left: 260px;
   display: flex;
   flex-direction: column;
@@ -109,6 +110,7 @@ button, input, select, textarea {
 }
 
 .admin-main.collapsed {
+  width: calc(100% - 80px);
   margin-left: 80px;
 }
 
@@ -648,3 +650,22 @@ button, input, select, textarea {
   font-size: 0.9rem;
   color: #0f172a;
 }
+
+/* Animations & Admin Helpers */
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.spin-animation {
+  animation: spin 0.8s linear infinite;
+}
+
+.table-row-hover:hover {
+  background-color: #f8fafc !important;
+}
+

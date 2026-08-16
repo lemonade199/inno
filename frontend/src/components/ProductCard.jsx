@@ -1,89 +1,114 @@
-import React, { useState } from 'react';
-import { ShoppingCart, Eye, Check } from 'lucide-react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { productService } from '../services/productService';
-import { useCart } from '../context/CartContext';
 
 const ProductCard = ({ product, onSelect }) => {
   const navigate = useNavigate();
-  const { addToCart } = useCart();
-  const [added, setAdded] = useState(false);
-
-  const handleAddToCart = (e) => {
-    e.stopPropagation();
-    if (product.stock <= 0) return;
-    addToCart(product, 1);
-    setAdded(true);
-    setTimeout(() => setAdded(false), 1500);
-  };
 
   const handleDetail = () => {
     if (onSelect) {
       onSelect(product);
     } else {
-      navigate(`/user/products/${product.id}`);
+      navigate(`/products/${product.id}`);
     }
   };
 
+  // Mock dynamic metadata to match Shopee UI design
+  const discount = product.id % 2 === 0 ? '50%' : product.id % 3 === 0 ? '15%' : null;
+  const sales = ((product.id * 17) % 80) + 12;
+  const bonusText = product.id % 2 === 0 ? 'Hemat s.d 8% Pakai Bonus' : 'Hemat s.d 3% Pakai Bonus';
+  const rating = (4.5 + (product.id % 5) * 0.1).toFixed(1);
+  const location = product.id % 3 === 0 ? 'Kab. Indramayu' : product.id % 3 === 1 ? 'Kota Tangerang' : 'Kota Jakarta Barat';
+
   return (
-    <div className="product-card-item" onClick={handleDetail}>
-      <div className="product-img-wrapper">
+    <div
+      onClick={handleDetail}
+      style={{
+        background: '#fff',
+        border: '1px solid #f1f5f9',
+        borderRadius: '4px',
+        overflow: 'hidden',
+        cursor: 'pointer',
+        display: 'flex',
+        flexDirection: 'column',
+        position: 'relative',
+        transition: 'all 0.2s',
+        height: '100%'
+      }}
+      onMouseOver={(e) => { 
+        e.currentTarget.style.transform = 'translateY(-2px)'; 
+        e.currentTarget.style.boxShadow = '0 4px 15px rgba(0,0,0,0.06)'; 
+      }}
+      onMouseOut={(e) => { 
+        e.currentTarget.style.transform = 'translateY(0)'; 
+        e.currentTarget.style.boxShadow = 'none'; 
+      }}
+    >
+      {/* Discount Tag Badge */}
+      {discount && (
+        <span style={{
+          position: 'absolute',
+          top: '5px',
+          left: '5px',
+          background: '#ef4444',
+          color: '#fff',
+          fontSize: '0.68rem',
+          fontWeight: '800',
+          padding: '2px 6px',
+          borderRadius: '2px',
+          zIndex: 10
+        }}>
+          {discount} OFF
+        </span>
+      )}
+
+      {/* Product Image */}
+      <div style={{ width: '100%', height: '170px', background: '#f8fafc', overflow: 'hidden' }}>
         <img
           src={product.image}
           alt={product.name}
-          className="product-img"
+          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
         />
-        <span
-          className={`badge badge-stock ${product.stock > 5 ? 'badge-success' : product.stock > 0 ? 'badge-warning' : 'badge-danger'}`}
-        >
-          {product.stock > 0 ? `Stok: ${product.stock}` : 'Habis'}
-        </span>
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', flex: 1 }}>
-        <span style={{ fontSize: '0.75rem', fontWeight: '700', color: '#00a896', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-          {product.category}
-        </span>
-        <h4 style={{ fontSize: '0.95rem', fontWeight: '700', color: '#1e293b', lineHeight: 1.3, height: '2.6em', overflow: 'hidden' }}>
+      {/* Product Meta Info */}
+      <div style={{ padding: '8px', display: 'flex', flexDirection: 'column', gap: '4px', flex: 1 }}>
+        {/* Title */}
+        <h4 style={{
+          fontSize: '0.82rem',
+          fontWeight: '600',
+          color: '#1e293b',
+          lineHeight: 1.3,
+          height: '2.6em',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          margin: 0
+        }}>
           {product.name}
         </h4>
-        <p style={{ fontSize: '1.1rem', fontWeight: '800', color: '#0f4c81', marginTop: 'auto' }}>
+
+        {/* Price in Bold */}
+        <div style={{ fontSize: '1.05rem', fontWeight: '800', color: '#1e293b', marginTop: '2px' }}>
           {productService.formatIDR(product.price)}
-        </p>
-      </div>
+        </div>
 
-      <div style={{ display: 'flex', gap: '0.5rem', paddingTop: '0.5rem' }} onClick={(e) => e.stopPropagation()}>
-        <button
-          onClick={handleDetail}
-          className="btn btn-secondary"
-          style={{ flex: 1, padding: '0.5rem 0.75rem', fontSize: '0.8rem' }}
-        >
-          <Eye size={15} /> Detail
-        </button>
+        {/* Orange Bonus tag */}
+        <div style={{ fontSize: '0.68rem', color: '#f77f00', fontWeight: '700', marginTop: '2px' }}>
+          {bonusText}
+        </div>
 
-        <button
-          onClick={handleAddToCart}
-          disabled={product.stock <= 0}
-          className={`btn ${added ? 'btn-success' : 'btn-primary'}`}
-          style={{
-            flex: 1.2,
-            padding: '0.5rem 0.75rem',
-            fontSize: '0.8rem',
-            background: added ? '#10b981' : product.stock > 0 ? '#00a896' : '#94a3b8',
-            color: '#fff',
-            cursor: product.stock > 0 ? 'pointer' : 'not-allowed'
-          }}
-        >
-          {added ? (
-            <>
-              <Check size={15} /> Ditambah
-            </>
-          ) : (
-            <>
-              <ShoppingCart size={15} /> + Keranjang
-            </>
-          )}
-        </button>
+        {/* Stars & Sales */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.72rem', color: '#64748b', marginTop: 'auto', paddingTop: '4px' }}>
+          <span style={{ color: '#f59e0b' }}>★</span>
+          <span style={{ fontWeight: '700', color: '#1e293b' }}>{rating}</span>
+          <span>·</span>
+          <span>{sales} terjual</span>
+        </div>
+
+        {/* Location or Seller Name */}
+        <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '4px', borderTop: '1px solid #f1f5f9', paddingTop: '4px' }}>
+          {location}
+        </div>
       </div>
     </div>
   );

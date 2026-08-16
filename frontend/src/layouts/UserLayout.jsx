@@ -33,10 +33,10 @@ const UserLayout = () => {
           <div>
             <h4 className="footer-heading">Navigasi Cepat</h4>
             <ul className="footer-links-list">
-              <li><Link to="/user/dashboard" style={{ color: '#cbd5e1' }}>Dashboard</Link></li>
-              <li><Link to="/user/products" style={{ color: '#cbd5e1' }}>Katalog Produk</Link></li>
-              <li><Link to="/user/cart" style={{ color: '#cbd5e1' }}>Keranjang Belanja</Link></li>
-              <li><Link to="/user/orders" style={{ color: '#cbd5e1' }}>Riwayat Pesanan</Link></li>
+              <li><Link to="/" style={{ color: '#cbd5e1' }}>Dashboard</Link></li>
+              <li><Link to="/products" style={{ color: '#cbd5e1' }}>Katalog Produk</Link></li>
+              <li><Link to="/cart" style={{ color: '#cbd5e1' }}>Keranjang Belanja</Link></li>
+              <li><Link to="/orders" style={{ color: '#cbd5e1' }}>Riwayat Pesanan</Link></li>
             </ul>
           </div>
 

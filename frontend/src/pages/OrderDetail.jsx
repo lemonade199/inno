@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { ArrowLeft, Package, MapPin, CreditCard, Clock, CheckCircle2, Truck, ShieldCheck } from 'lucide-react';
-import { orderService } from '../../services/orderService';
-import { productService } from '../../services/productService';
-import Loading from '../../components/Loading';
+import { orderService } from '../services/orderService';
+import { productService } from '../services/productService';
+import Loading from '../components/Loading';
 
 const OrderDetail = () => {
   const { id } = useParams();
@@ -35,7 +35,7 @@ const OrderDetail = () => {
       <div className="card" style={{ padding: '3rem', textAlign: 'center', margin: '2rem 0', borderRadius: '14px' }}>
         <h2>Pesanan Tidak Ditemukan</h2>
         <p style={{ color: '#64748b', margin: '0.5rem 0 1.5rem' }}>Pesanan dengan ID {id} tidak ditemukan.</p>
-        <Link to="/user/orders" className="btn btn-primary">Kembali ke Pesanan Saya</Link>
+        <Link to="/orders" className="btn btn-primary">Kembali ke Pesanan Saya</Link>
       </div>
     );
   }
@@ -49,7 +49,7 @@ const OrderDetail = () => {
       
       {/* Back CTA */}
       <button
-        onClick={() => navigate('/user/orders')}
+        onClick={() => navigate('/orders')}
         style={{
           display: 'inline-flex',
           alignItems: 'center',

@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ShoppingBag, Clock, CheckCircle2, Package, ArrowRight, Compass, ShieldCheck, Flame, ChevronRight } from 'lucide-react';
-import { useAuth } from '../../context/AuthContext';
-import { orderService } from '../../services/orderService';
-import { productService } from '../../services/productService';
-import ProductCard from '../../components/ProductCard';
-import Loading from '../../components/Loading';
+import { useAuth } from '../context/AuthContext';
+import { orderService } from '../services/orderService';
+import { productService } from '../services/productService';
+import ProductCard from '../components/ProductCard';
+import Loading from '../components/Loading';
 
 const Dashboard = () => {
   const { user } = useAuth();
@@ -67,7 +67,7 @@ const Dashboard = () => {
           </p>
           <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
             <Link
-              to="/user/products"
+              to="/products"
               style={{
                 background: '#fff',
                 color: '#0f4c81',
@@ -85,7 +85,7 @@ const Dashboard = () => {
               Belanja Sekarang <ArrowRight size={18} />
             </Link>
             <Link
-              to="/user/orders"
+              to="/orders"
               style={{
                 background: 'rgba(255,255,255,0.15)',
                 color: '#fff',
@@ -154,7 +154,7 @@ const Dashboard = () => {
             <h3 style={{ fontSize: '1.1rem', fontWeight: '800', color: '#1e293b' }}>Pesanan Terbaru Saya</h3>
             <p style={{ fontSize: '0.82rem', color: '#64748b' }}>Pantau status pengiriman dan transaksi kamu</p>
           </div>
-          <Link to="/user/orders" style={{ fontSize: '0.85rem', fontWeight: '700', color: '#00a896', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
+          <Link to="/orders" style={{ fontSize: '0.85rem', fontWeight: '700', color: '#00a896', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
             Lihat Semua <ChevronRight size={16} />
           </Link>
         </div>
@@ -163,7 +163,7 @@ const Dashboard = () => {
           <div style={{ textAlign: 'center', padding: '2.5rem 1rem', background: '#f8fafc', borderRadius: '12px' }}>
             <ShoppingBag size={40} color="#cbd5e1" style={{ marginBottom: '0.5rem' }} />
             <p style={{ fontSize: '0.9rem', color: '#64748b', fontWeight: '600' }}>Belum ada pesanan aktif</p>
-            <Link to="/user/products" style={{ display: 'inline-block', marginTop: '0.75rem', color: '#0f4c81', fontWeight: '700', fontSize: '0.85rem' }}>
+            <Link to="/products" style={{ display: 'inline-block', marginTop: '0.75rem', color: '#0f4c81', fontWeight: '700', fontSize: '0.85rem' }}>
               Mulai Belanja Sekarang →
             </Link>
           </div>
@@ -214,7 +214,7 @@ const Dashboard = () => {
                   </div>
 
                   <Link
-                    to={`/user/orders/${order.id}`}
+                    to={`/orders/${order.id}`}
                     className="btn btn-secondary"
                     style={{ padding: '0.45rem 0.9rem', fontSize: '0.8rem', whiteSpace: 'nowrap' }}
                   >
@@ -237,7 +237,7 @@ const Dashboard = () => {
             </div>
             <p style={{ fontSize: '0.82rem', color: '#64748b' }}>Peralatan mancing terlaris dengan kualitas terbaik</p>
           </div>
-          <Link to="/user/products" style={{ fontSize: '0.85rem', fontWeight: '700', color: '#00a896', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
+          <Link to="/products" style={{ fontSize: '0.85rem', fontWeight: '700', color: '#00a896', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
             Lihat Semua Produk <ChevronRight size={16} />
           </Link>
         </div>

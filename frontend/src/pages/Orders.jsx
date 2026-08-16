@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Package, Clock, CheckCircle2, Truck, AlertCircle, ArrowRight, Eye, ChevronRight } from 'lucide-react';
-import { useAuth } from '../../context/AuthContext';
-import { orderService } from '../../services/orderService';
-import { productService } from '../../services/productService';
-import Loading from '../../components/Loading';
+import { useAuth } from '../context/AuthContext';
+import { orderService } from '../services/orderService';
+import { productService } from '../services/productService';
+import Loading from '../components/Loading';
 
 const Orders = () => {
   const { user } = useAuth();
@@ -96,7 +96,7 @@ const Orders = () => {
           <p style={{ fontSize: '0.85rem', color: '#94a3b8', marginTop: '0.25rem' }}>
             Tidak ada transaksi dalam kategori "{activeTab}" saat ini.
           </p>
-          <Link to="/user/products" className="btn btn-primary" style={{ marginTop: '1.25rem', padding: '0.6rem 1.25rem', fontSize: '0.85rem' }}>
+          <Link to="/products" className="btn btn-primary" style={{ marginTop: '1.25rem', padding: '0.6rem 1.25rem', fontSize: '0.85rem' }}>
             Mulai Belanja
           </Link>
         </div>
@@ -172,7 +172,7 @@ const Orders = () => {
                   )}
 
                   <Link
-                    to={`/user/orders/${order.id}`}
+                    to={`/orders/${order.id}`}
                     className="btn btn-secondary"
                     style={{ padding: '0.5rem 1rem', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}
                   >
