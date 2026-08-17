@@ -1,6 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { productService } from '../services/productService';
+import { reviewService } from '../services/reviewService';
 
 const ProductCard = ({ product, onSelect }) => {
   const navigate = useNavigate();
@@ -13,12 +14,16 @@ const ProductCard = ({ product, onSelect }) => {
     }
   };
 
-  // Mock dynamic metadata to match Shopee UI design
+  // Shopee style dynamic rating & sales meta
+  const summary = reviewService.getProductRatingSummary(product.id);
+  const ratingScore = summary.average;
+  const ratingCount = summary.totalCount;
   const discount = product.id % 2 === 0 ? '50%' : product.id % 3 === 0 ? '15%' : null;
   const sales = ((product.id * 17) % 80) + 12;
   const bonusText = product.id % 2 === 0 ? 'Hemat s.d 8% Pakai Bonus' : 'Hemat s.d 3% Pakai Bonus';
   const rating = (4.5 + (product.id % 5) * 0.1).toFixed(1);
-  const location = 'Toko Berkah Pancing';
+  const location = product.id % 3 === 0 ? 'Kab. Indramayu' : product.id % 3 === 1 ? 'Kota Tangerang' : 'Kota Jakarta Barat';
+
 
   return (
     <div
@@ -99,8 +104,9 @@ const ProductCard = ({ product, onSelect }) => {
 
         {/* Stars & Sales */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.72rem', color: '#64748b', marginTop: 'auto', paddingTop: '4px' }}>
-          <span style={{ color: '#f59e0b' }}>★</span>
-          <span style={{ fontWeight: '700', color: '#1e293b' }}>{rating}</span>
+          <span style={{ color: '#f77f00' }}>★</span>
+          <span style={{ fontWeight: '700', color: '#1e293b' }}>{ratingScore}</span>
+          <span>({ratingCount})</span>
           <span>·</span>
           <span>{sales} terjual</span>
         </div>

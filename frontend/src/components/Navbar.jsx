@@ -1,6 +1,21 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Search, ShoppingBag, User, Menu, ShieldCheck, LogOut, Anchor, History, TrendingUp, X, Trash2 } from 'lucide-react';
+import { 
+  Search, 
+  ShoppingBag, 
+  User, 
+  Menu, 
+  ShieldCheck, 
+  LogOut, 
+  Anchor, 
+  History, 
+  TrendingUp, 
+  X, 
+  Trash2,
+  Package,
+  Star,
+  Heart
+} from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import { 
@@ -23,6 +38,7 @@ const Navbar = ({ isAdminView = false, toggleSidebar }) => {
   const [historyList, setHistoryList] = useState([]);
   const [popularList, setPopularList] = useState([]);
 
+  const dropdownRef = useRef(null);
   const searchContainerRef = useRef(null);
   const cartCount = getCartCount();
   const isCartPage = location.pathname === '/cart';
@@ -40,6 +56,9 @@ const Navbar = ({ isAdminView = false, toggleSidebar }) => {
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setShowDropdown(false);
+      }
       if (searchContainerRef.current && !searchContainerRef.current.contains(e.target)) {
         setIsSearchFocused(false);
       }
@@ -54,7 +73,7 @@ const Navbar = ({ isAdminView = false, toggleSidebar }) => {
     addSearchHistory(trimmed);
     refreshSearchData();
     setIsSearchFocused(false);
-    navigate(`/search?q=${encodeURIComponent(trimmed)}`);
+    navigate(`/products?search=${encodeURIComponent(trimmed)}`);
   };
 
   const handleSearchSubmit = (e) => {
@@ -76,67 +95,36 @@ const Navbar = ({ isAdminView = false, toggleSidebar }) => {
 
   const handleLogout = () => {
     logout();
+    setShowDropdown(false);
     navigate('/login');
   };
 
-  // Tags under search bar: Show user's search history first, or popular store products if empty
-  const tagsUnderSearch = historyList.length > 0 ? historyList.slice(0, 6) : popularList.slice(0, 6);
-
+  // Admin View Navbar
   if (isAdminView) {
     return (
-      <header className="admin-navbar">
+      <header style={{ background: '#fff', borderBottom: '1px solid #e2e8f0', padding: '0.8rem 1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', sticky: 'top', top: 0, zIndex: 100 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <button onClick={toggleSidebar} className="navbar-action-btn">
-            <Menu size={20} />
+          <button onClick={toggleSidebar} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', display: 'flex', alignItems: 'center' }}>
+            <Menu size={22} />
           </button>
-
-          <form onSubmit={handleSearchSubmit} className="user-search-form" style={{ maxWidth: '280px' }}>
-            <Search size={18} color="#94a3b8" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Cari di admin..."
-              className="user-search-input"
-              style={{ background: '#f8fafc', color: '#1e293b', border: '1px solid #e2e8f0', borderRadius: '20px' }}
-            />
-          </form>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <ShieldCheck size={20} color="#00a896" />
+            <h2 style={{ fontSize: '1.1rem', fontWeight: '800', color: '#0f172a', margin: 0 }}>Panel Admin</h2>
+          </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
-          <div style={{ position: 'relative' }}>
-            <div
-              onClick={() => setShowDropdown(!showDropdown)}
-              className="user-profile-trigger"
-            >
-              <img
-                src={user?.avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80"}
-                alt="Admin Profile"
-                className="avatar-circle"
-                style={{ borderColor: '#0f4c81' }}
-              />
-              <div style={{ display: 'flex', flexDirection: 'column' }}>
-                <span style={{ fontSize: '0.88rem', fontWeight: '700', color: '#1e293b', lineHeight: 1.2 }}>
-                  {user?.name || 'Admin'}
-                </span>
-                <span style={{ fontSize: '0.72rem', color: '#00a896', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '2px' }}>
-                  <ShieldCheck size={12} /> Administrator
-                </span>
-              </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <Link to="/" style={{ color: '#00a896', textDecoration: 'none', fontSize: '0.85rem', fontWeight: '700' }}>
+            ← Ke Toko Utama
+          </Link>
+          <div style={{ position: 'relative' }} ref={dropdownRef}>
+            <div onClick={() => setShowDropdown(!showDropdown)} style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+              <img src={user?.avatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80"} alt="" style={{ width: '32px', height: '32px', borderRadius: '50%', objectFit: 'cover' }} />
+              <span style={{ fontSize: '0.85rem', fontWeight: '600', color: '#334155' }}>{user?.name}</span>
             </div>
-
             {showDropdown && (
-              <div className="profile-dropdown-menu">
-                <button
-                  onClick={() => { navigate('/admin/profile'); setShowDropdown(false); }}
-                  className="dropdown-item-btn"
-                >
-                  <User size={16} /> Profil Admin
-                </button>
-                <button
-                  onClick={handleLogout}
-                  className="dropdown-item-btn danger"
-                >
+              <div style={{ position: 'absolute', right: 0, top: '40px', background: '#fff', borderRadius: '8px', boxShadow: '0 4px 20px rgba(0,0,0,0.1)', padding: '0.5rem', width: '150px', zIndex: 10 }}>
+                <button onClick={handleLogout} style={{ width: '100%', background: 'none', border: 'none', padding: '0.5rem', textAlign: 'left', cursor: 'pointer', color: '#ef4444', fontSize: '0.85rem', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <LogOut size={16} /> Keluar
                 </button>
               </div>
@@ -205,8 +193,22 @@ const Navbar = ({ isAdminView = false, toggleSidebar }) => {
                 border: '1px solid #e2e8f0'
               }}
             >
-              {/* 1. Riwayat Pencarian (Search History Items) */}
+              {/* 1. Riwayat Pencarian */}
               <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                  <span style={{ fontSize: '0.82rem', fontWeight: '800', color: '#475569', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <History size={14} color="#0f4c81" /> Riwayat Pencarian
+                  </span>
+                  {historyList.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={handleClearAllHistory}
+                      style={{ background: 'none', border: 'none', color: '#ef4444', fontSize: '0.75rem', cursor: 'pointer', fontWeight: '700' }}
+                    >
+                      Hapus Semua
+                    </button>
+                  )}
+                </div>
 
                 {historyList.length === 0 ? (
                   <div style={{ fontSize: '0.78rem', color: '#94a3b8', padding: '4px 0' }}>
@@ -249,7 +251,7 @@ const Navbar = ({ isAdminView = false, toggleSidebar }) => {
                 )}
               </div>
 
-              {/* 2. Pencarian Populer / Sering Dicari (Popular Searches) */}
+              {/* 2. Pencarian Populer */}
               <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '0.75rem' }}>
                 <span style={{ fontSize: '0.82rem', fontWeight: '800', color: '#475569', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '0.5rem' }}>
                   <TrendingUp size={14} color="#00a896" /> Pencarian Populer
@@ -281,7 +283,6 @@ const Navbar = ({ isAdminView = false, toggleSidebar }) => {
 
             </div>
           )}
-
         </div>
 
         {/* Cart Icon & User Actions */}
@@ -299,8 +300,8 @@ const Navbar = ({ isAdminView = false, toggleSidebar }) => {
             <span style={{ color: 'rgba(255,255,255,0.3)', flexShrink: 0 }}>|</span>
 
             {user ? (
-              <div style={{ position: 'relative', flexShrink: 0 }}>
-                <div 
+              <div style={{ position: 'relative', flexShrink: 0 }} ref={dropdownRef}>
+                <div
                   onClick={() => setShowDropdown(!showDropdown)}
                   style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}
                 >
@@ -315,24 +316,53 @@ const Navbar = ({ isAdminView = false, toggleSidebar }) => {
                 </div>
 
                 {showDropdown && (
-                  <div style={{ position: 'absolute', right: 0, top: '120%', background: '#fff', color: '#334155', borderRadius: '8px', boxShadow: '0 10px 25px rgba(0,0,0,0.15)', width: '180px', padding: '0.5rem', display: 'flex', flexDirection: 'column', gap: '4px', zIndex: 100 }}>
+                  <div style={{ position: 'absolute', right: 0, top: '42px', background: '#fff', color: '#334155', borderRadius: '8px', boxShadow: '0 10px 25px rgba(0,0,0,0.18)', minWidth: '180px', padding: '6px', zIndex: 1000, border: '1px solid #e2e8f0' }}>
                     <button
-                      onClick={() => { navigate('/profile'); setShowDropdown(false); }}
-                      style={{ background: 'none', border: 'none', padding: '0.5rem', textAlign: 'left', cursor: 'pointer', fontSize: '0.85rem', color: '#334155', fontWeight: '600', borderRadius: '4px', display: 'flex', alignItems: 'center', gap: '8px' }}
+                      onClick={() => { navigate('/profile?tab=biodata'); setShowDropdown(false); }}
+                      style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', background: 'transparent', border: 'none', borderRadius: '6px', fontSize: '0.84rem', fontWeight: '600', color: '#334155', cursor: 'pointer', textAlign: 'left' }}
+                      onMouseOver={(e) => e.currentTarget.style.background = '#f8fafc'}
+                      onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
                     >
-                      <User size={16} /> Profil Saya
+                      <User size={16} color="#0f4c81" /> Profil Saya
+                    </button>
+                    <button
+                      onClick={() => { navigate('/orders'); setShowDropdown(false); }}
+                      style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', background: 'transparent', border: 'none', borderRadius: '6px', fontSize: '0.84rem', fontWeight: '600', color: '#334155', cursor: 'pointer', textAlign: 'left' }}
+                      onMouseOver={(e) => e.currentTarget.style.background = '#f8fafc'}
+                      onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
+                    >
+                      <Package size={16} color="#0f4c81" /> Pesanan Saya
+                    </button>
+                    <button
+                      onClick={() => { navigate('/profile?tab=ulasan'); setShowDropdown(false); }}
+                      style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', background: 'transparent', border: 'none', borderRadius: '6px', fontSize: '0.84rem', fontWeight: '600', color: '#334155', cursor: 'pointer', textAlign: 'left' }}
+                      onMouseOver={(e) => e.currentTarget.style.background = '#f8fafc'}
+                      onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
+                    >
+                      <Star size={16} color="#f77f00" /> Ulasan Saya
+                    </button>
+                    <button
+                      onClick={() => { navigate('/profile?tab=wishlist'); setShowDropdown(false); }}
+                      style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', background: 'transparent', border: 'none', borderRadius: '6px', fontSize: '0.84rem', fontWeight: '600', color: '#334155', cursor: 'pointer', textAlign: 'left' }}
+                      onMouseOver={(e) => e.currentTarget.style.background = '#f8fafc'}
+                      onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
+                    >
+                      <Heart size={16} color="#ef4444" /> Wishlist Saya
                     </button>
                     {isAdmin && (
                       <button
                         onClick={() => { navigate('/admin/dashboard'); setShowDropdown(false); }}
-                        style={{ background: 'none', border: 'none', padding: '0.5rem', textAlign: 'left', cursor: 'pointer', fontSize: '0.85rem', color: '#00a896', fontWeight: '700', borderRadius: '4px', display: 'flex', alignItems: 'center', gap: '8px' }}
+                        style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', background: '#f0f9ff', border: 'none', borderRadius: '6px', fontSize: '0.84rem', fontWeight: '700', color: '#0f4c81', cursor: 'pointer', textAlign: 'left', marginTop: '4px' }}
                       >
-                        <ShieldCheck size={16} /> Panel Admin
+                        <ShieldCheck size={16} color="#0f4c81" /> Panel Admin
                       </button>
                     )}
+                    <div style={{ height: '1px', background: '#f1f5f9', margin: '6px 0' }} />
                     <button
                       onClick={handleLogout}
-                      style={{ background: 'none', border: 'none', padding: '0.5rem', textAlign: 'left', cursor: 'pointer', fontSize: '0.85rem', color: '#ef4444', fontWeight: '600', borderRadius: '4px', display: 'flex', alignItems: 'center', gap: '8px' }}
+                      style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', background: 'transparent', border: 'none', borderRadius: '6px', fontSize: '0.84rem', fontWeight: '600', color: '#ef4444', cursor: 'pointer', textAlign: 'left' }}
+                      onMouseOver={(e) => e.currentTarget.style.background = '#fee2e2'}
+                      onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
                     >
                       <LogOut size={16} /> Keluar
                     </button>

@@ -13,9 +13,17 @@ import {
   Store,
   Share2,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Star,
+  ThumbsUp,
+  X,
+  Upload,
+  CheckCircle2,
+  Edit3
 } from 'lucide-react';
 import { productService } from '../services/productService';
+import { reviewService } from '../services/reviewService';
+import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import Loading from '../components/Loading';
 
@@ -23,6 +31,7 @@ const ProductDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { addToCart } = useCart();
+  const { user } = useAuth();
 
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -31,6 +40,75 @@ const ProductDetail = () => {
   const [isFavorite, setIsFavorite] = useState(false);
   const [selectedVariant, setSelectedVariant] = useState('Standard');
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+
+  // Shopee Reviews state
+  const [reviews, setReviews] = useState([]);
+  const [ratingSummary, setRatingSummary] = useState({ average: 5, totalCount: 0, breakdown: {}, withPhotoCount: 0, withCommentCount: 0 });
+  const [activeStarFilter, setActiveStarFilter] = useState('all');
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [modalRating, setModalRating] = useState(5);
+  const [modalComment, setModalComment] = useState('');
+  const [modalImageInput, setModalImageInput] = useState('');
+  const [modalImages, setModalImages] = useState([]);
+  const [reviewSubmitted, setReviewSubmitted] = useState(false);
+
+  // Lock background body scroll when review modal is open
+  useEffect(() => {
+    if (showReviewModal) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [showReviewModal]);
+
+  const fetchReviews = () => {
+    if (!id) return;
+    const revs = reviewService.getReviewsByProductId(id);
+    const summary = reviewService.getProductRatingSummary(id);
+    setReviews(revs);
+    setRatingSummary(summary);
+  };
+
+  const handleSubmitReview = (e) => {
+    e.preventDefault();
+    reviewService.addReview({
+      productId: id,
+      userEmail: user?.email || 'julianto@gmail.com',
+      userName: user?.name || 'Juli Anto',
+      userAvatar: user?.avatar || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
+      rating: modalRating,
+      variant: selectedVariant,
+      comment: modalComment,
+      images: modalImages.length > 0 ? modalImages : ['https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=500&auto=format&fit=crop&q=80']
+    });
+    fetchReviews();
+    setShowReviewModal(false);
+    setReviewSubmitted(true);
+    setModalComment('');
+    setModalImages([]);
+    setTimeout(() => setReviewSubmitted(false), 3000);
+  };
+
+  const handleToggleHelpful = (reviewId) => {
+    reviewService.toggleHelpful(reviewId);
+    fetchReviews();
+  };
+
+  const filteredReviews = reviews.filter((r) => {
+    if (activeStarFilter === 'all') return true;
+    if (activeStarFilter === 'photo') return r.images && r.images.length > 0;
+    if (activeStarFilter === 'comment') return r.comment && r.comment.trim().length > 0;
+    return r.rating === Number(activeStarFilter);
+  });
+
+  useEffect(() => {
+    fetchReviews();
+  }, [id]);
+
+
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -609,8 +687,344 @@ const ProductDetail = () => {
         </div>
       </div>
 
+      {/* ================= SHOPEE-STYLE PENILAIAN PRODUK / REVIEWS ================= */}
+      <div style={{ 
+        background: '#fff', 
+        borderRadius: '3px', 
+        padding: '1.5rem', 
+        boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '1.5rem'
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.75rem' }}>
+          <h3 style={{ fontSize: '1.1rem', fontWeight: '800', color: '#1e293b', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+            PENILAIAN PRODUK
+          </h3>
+          <button 
+            onClick={() => setShowReviewModal(true)}
+            style={{ 
+              background: '#f77f00', 
+              color: '#fff', 
+              border: 'none', 
+              padding: '8px 16px', 
+              borderRadius: '4px', 
+              fontSize: '0.82rem', 
+              fontWeight: '700', 
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              boxShadow: '0 2px 6px rgba(247,127,0,0.2)'
+            }}
+          >
+            <Edit3 size={15} /> Tulis Ulasan
+          </button>
+        </div>
+
+        {reviewSubmitted && (
+          <div style={{ background: '#dcfce7', color: '#15803d', padding: '0.75rem 1rem', borderRadius: '4px', fontSize: '0.85rem', fontWeight: '700' }}>
+            ✓ Terima kasih! Ulasan produk Anda telah berhasil dipublikasikan.
+          </div>
+        )}
+
+        {/* Shopee Rating Summary Banner */}
+        <div style={{ 
+          background: '#fffbf8', 
+          border: '1px solid #fce3d2', 
+          borderRadius: '4px', 
+          padding: '1.5rem', 
+          display: 'grid', 
+          gridTemplateColumns: '180px 1fr', 
+          gap: '2rem', 
+          alignItems: 'center' 
+        }}>
+          {/* Big Score Box */}
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+            <div style={{ fontSize: '2.5rem', fontWeight: '800', color: '#f77f00', lineHeight: 1 }}>
+              {ratingSummary.average} <span style={{ fontSize: '1.2rem', color: '#64748b' }}>dari 5</span>
+            </div>
+            <div style={{ color: '#f77f00', fontSize: '1.25rem' }}>
+              ★★★★★
+            </div>
+            <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: '600' }}>
+              {ratingSummary.totalCount} Penilaian
+            </span>
+          </div>
+
+          {/* Filter Chips */}
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+            {[
+              { key: 'all', label: `Semua (${ratingSummary.totalCount})` },
+              { key: '5', label: `5 Bintang (${ratingSummary.breakdown[5] || 0})` },
+              { key: '4', label: `4 Bintang (${ratingSummary.breakdown[4] || 0})` },
+              { key: '3', label: `3 Bintang (${ratingSummary.breakdown[3] || 0})` },
+              { key: 'comment', label: `Dengan Komentar (${ratingSummary.withCommentCount})` },
+              { key: 'photo', label: `Dengan Foto (${ratingSummary.withPhotoCount})` }
+            ].map((filter) => {
+              const isActive = activeStarFilter === filter.key;
+              return (
+                <button
+                  key={filter.key}
+                  onClick={() => setActiveStarFilter(filter.key)}
+                  style={{
+                    background: isActive ? '#fff' : '#fff',
+                    color: isActive ? '#f77f00' : '#334155',
+                    border: isActive ? '1.5px solid #f77f00' : '1px solid #cbd5e1',
+                    padding: '6px 14px',
+                    borderRadius: '2px',
+                    fontSize: '0.8rem',
+                    fontWeight: isActive ? '700' : '500',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s'
+                  }}
+                >
+                  {filter.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Reviews List */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          {filteredReviews.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '2rem', color: '#64748b', fontSize: '0.88rem' }}>
+              Belum ada ulasan untuk filter ini. Jadilah yang pertama memberikan ulasan!
+            </div>
+          ) : (
+            filteredReviews.map((rev) => (
+              <div 
+                key={rev.id} 
+                style={{ 
+                  borderBottom: '1px solid #f1f5f9', 
+                  paddingBottom: '1.5rem', 
+                  display: 'grid', 
+                  gridTemplateColumns: '44px 1fr', 
+                  gap: '12px' 
+                }}
+              >
+                {/* User Avatar */}
+                <img 
+                  src={rev.userAvatar} 
+                  alt={rev.userName} 
+                  style={{ width: '42px', height: '42px', borderRadius: '50%', objectFit: 'cover' }}
+                />
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  {/* User Name & Stars */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ fontSize: '0.85rem', fontWeight: '700', color: '#1e293b' }}>
+                        {rev.userName}
+                      </span>
+                      <span style={{ fontSize: '0.68rem', background: '#dcfce7', color: '#15803d', padding: '1px 6px', borderRadius: '2px', fontWeight: '700' }}>
+                        Pembeli Terverifikasi
+                      </span>
+                    </div>
+                    <div style={{ color: '#f77f00', fontSize: '0.85rem' }}>
+                      {'★'.repeat(rev.rating)}{'☆'.repeat(5 - rev.rating)}
+                    </div>
+                  </div>
+
+                  {/* Date & Variant */}
+                  <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+                    {rev.date} | Variasi: {rev.variant}
+                  </div>
+
+                  {/* Comment */}
+                  <p style={{ fontSize: '0.88rem', color: '#334155', lineHeight: 1.5, margin: '4px 0' }}>
+                    {rev.comment}
+                  </p>
+
+                  {/* Review Photos */}
+                  {rev.images && rev.images.length > 0 && (
+                    <div style={{ display: 'flex', gap: '8px', marginTop: '4px', flexWrap: 'wrap' }}>
+                      {rev.images.map((imgUrl, imgIdx) => (
+                        <div key={imgIdx} style={{ width: '72px', height: '72px', borderRadius: '4px', overflow: 'hidden', border: '1px solid #e2e8f0', background: '#f8fafc' }}>
+                          <img src={imgUrl} alt="Foto Ulasan" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Seller Response Box */}
+                  {rev.sellerResponse && (
+                    <div style={{ background: '#f8fafc', borderLeft: '3px solid #00a896', padding: '10px 12px', borderRadius: '0 4px 4px 0', marginTop: '8px', fontSize: '0.8rem', color: '#475569' }}>
+                      <strong style={{ color: '#00a896', display: 'block', marginBottom: '2px' }}>Respon Penjual:</strong>
+                      {rev.sellerResponse}
+                    </div>
+                  )}
+
+                  {/* Helpful Button */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '8px' }}>
+                    <button 
+                      onClick={() => handleToggleHelpful(rev.id)}
+                      style={{ 
+                        background: 'none', 
+                        border: 'none', 
+                        color: '#64748b', 
+                        fontSize: '0.78rem', 
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px'
+                      }}
+                    >
+                      <ThumbsUp size={14} /> Membantu ({rev.helpfulCount || 0})
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+
+      {/* ================= WRITE REVIEW MODAL ================= */}
+      {showReviewModal && (
+        <div style={{ 
+          position: 'fixed', 
+          inset: 0, 
+          background: 'rgba(0,0,0,0.5)', 
+          zIndex: 1000, 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'center', 
+          padding: '1rem' 
+        }}>
+          <div style={{ 
+            background: '#fff', 
+            borderRadius: '8px', 
+            maxWidth: '520px', 
+            width: '100%', 
+            padding: '1.5rem', 
+            boxShadow: '0 20px 40px rgba(0,0,0,0.2)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '1.25rem'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.75rem' }}>
+              <h3 style={{ fontSize: '1.1rem', fontWeight: '800', color: '#1e293b', margin: 0 }}>
+                Tulis Ulasan Produk
+              </h3>
+              <button 
+                onClick={() => setShowReviewModal(false)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8' }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmitReview} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              {/* Product recap */}
+              <div style={{ display: 'flex', gap: '10px', alignItems: 'center', background: '#fafafa', padding: '10px', borderRadius: '6px' }}>
+                <img src={product.image} alt={product.name} style={{ width: '48px', height: '48px', borderRadius: '4px', objectFit: 'cover' }} />
+                <div>
+                  <h4 style={{ fontSize: '0.85rem', fontWeight: '700', color: '#1e293b', margin: 0 }}>{product.name}</h4>
+                  <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Variasi: {selectedVariant}</span>
+                </div>
+              </div>
+
+              {/* Star Rating Picker */}
+              <div>
+                <label style={{ fontSize: '0.82rem', fontWeight: '700', color: '#1e293b', display: 'block', marginBottom: '6px' }}>
+                  Kualitas Produk
+                </label>
+                <div style={{ display: 'flex', gap: '6px', cursor: 'pointer' }}>
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <span 
+                      key={star} 
+                      onClick={() => setModalRating(star)}
+                      style={{ fontSize: '1.8rem', color: star <= modalRating ? '#f77f00' : '#cbd5e1', transition: 'all 0.1s' }}
+                    >
+                      ★
+                    </span>
+                  ))}
+                  <span style={{ fontSize: '0.88rem', fontWeight: '700', color: '#f77f00', marginLeft: '8px', alignSelf: 'center' }}>
+                    {modalRating === 5 ? 'Sangat Memuaskan' : modalRating === 4 ? 'Memuaskan' : modalRating === 3 ? 'Biasa Saja' : 'Cukup Baik'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Review Comment Textarea */}
+              <div>
+                <label style={{ fontSize: '0.82rem', fontWeight: '700', color: '#1e293b', display: 'block', marginBottom: '6px' }}>
+                  Ulasan Lengkap
+                </label>
+                <textarea 
+                  required
+                  rows={4}
+                  value={modalComment}
+                  onChange={(e) => setModalComment(e.target.value)}
+                  placeholder="Bagikan pengalaman mancing Anda memakai produk ini (contoh: kekuatan joran, kelancaran reel, packing toko)..."
+                  style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem', outline: 'none', resize: 'vertical' }}
+                />
+              </div>
+
+              {/* Photo Attachment URL Picker */}
+              <div>
+                <label style={{ fontSize: '0.82rem', fontWeight: '700', color: '#1e293b', display: 'block', marginBottom: '6px' }}>
+                  Tambah URL Foto Produk (Opsional)
+                </label>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <input 
+                    type="text" 
+                    value={modalImageInput} 
+                    onChange={(e) => setModalImageInput(e.target.value)} 
+                    placeholder="https://..."
+                    style={{ flex: 1, padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.82rem' }}
+                  />
+                  <button 
+                    type="button"
+                    onClick={() => {
+                      if (modalImageInput.trim()) {
+                        setModalImages([...modalImages, modalImageInput.trim()]);
+                        setModalImageInput('');
+                      }
+                    }}
+                    style={{ background: '#0f4c81', color: '#fff', border: 'none', padding: '0 12px', borderRadius: '4px', fontSize: '0.8rem', fontWeight: '700', cursor: 'pointer' }}
+                  >
+                    Tambah
+                  </button>
+                </div>
+                
+                {/* Photo Previews */}
+                {modalImages.length > 0 && (
+                  <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
+                    {modalImages.map((img, idx) => (
+                      <div key={idx} style={{ position: 'relative', width: '50px', height: '50px', borderRadius: '4px', overflow: 'hidden', border: '1px solid #cbd5e1' }}>
+                        <img src={img} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Actions */}
+              <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
+                <button 
+                  type="button" 
+                  onClick={() => setShowReviewModal(false)}
+                  style={{ background: '#f1f5f9', color: '#475569', border: 'none', padding: '10px 16px', borderRadius: '6px', fontSize: '0.85rem', fontWeight: '700', cursor: 'pointer' }}
+                >
+                  Batal
+                </button>
+                <button 
+                  type="submit" 
+                  style={{ background: '#f77f00', color: '#fff', border: 'none', padding: '10px 20px', borderRadius: '6px', fontSize: '0.85rem', fontWeight: '700', cursor: 'pointer', boxShadow: '0 4px 12px rgba(247,127,0,0.3)' }}
+                >
+                  Kirim Ulasan
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };
 
 export default ProductDetail;
+
