@@ -18,7 +18,7 @@ const ProductCard = ({ product, onSelect }) => {
   const sales = ((product.id * 17) % 80) + 12;
   const bonusText = product.id % 2 === 0 ? 'Hemat s.d 8% Pakai Bonus' : 'Hemat s.d 3% Pakai Bonus';
   const rating = (4.5 + (product.id % 5) * 0.1).toFixed(1);
-  const location = product.id % 3 === 0 ? 'Kab. Indramayu' : product.id % 3 === 1 ? 'Kota Tangerang' : 'Kota Jakarta Barat';
+  const location = 'Toko Berkah Pancing';
 
   return (
     <div
@@ -63,7 +63,7 @@ const ProductCard = ({ product, onSelect }) => {
       )}
 
       {/* Product Image */}
-      <div style={{ width: '100%', height: '170px', background: '#f8fafc', overflow: 'hidden' }}>
+      <div className="product-card-img-wrapper" style={{ width: '100%', height: '170px', background: '#f8fafc', overflow: 'hidden' }}>
         <img
           src={product.image}
           alt={product.name}

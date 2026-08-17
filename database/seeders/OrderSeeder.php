@@ -19,12 +19,12 @@ class OrderSeeder extends Seeder
         $budi = User::where('email', 'budi.santoso@yahoo.com')->first();
         $andi = User::where('email', 'andi.w@gmail.com')->first();
 
-        $shimanoRod = Product::where('name', 'like', '%Shimano SpeedMaster%')->first();
-        $daiwaReel = Product::where('name', 'like', '%Daiwa BG%')->first();
-        $peLine = Product::where('name', 'like', '%Braided PE%')->first();
-        $lureMinnow = Product::where('name', 'like', '%Minnow Popper%')->first();
-        $hooks = Product::where('name', 'like', '%Mustad%')->first();
-        $bag = Product::where('name', 'like', '%Tas Joran%')->first();
+        $pakanAyam = Product::where('name', 'like', '%Pakan Ayam 511%')->first();
+        $peletApung = Product::where('name', 'like', '%Pelet Apung%')->first();
+        $umpanJitu = Product::where('name', 'like', '%Umpan Jitu Merah%')->first();
+        $essenUdang = Product::where('name', 'like', '%Essen Udang%')->first();
+        $joranAnak = Product::where('name', 'like', '%Joran Pancing Anak%')->first();
+        $kojaJaring = Product::where('name', 'like', '%Koja Jaring%')->first();
 
         // Order 1
         $order1 = Order::create([
@@ -40,24 +40,24 @@ class OrderSeeder extends Seeder
             'status' => 'Diproses',
         ]);
 
-        if ($shimanoRod) {
+        if ($pakanAyam) {
             OrderItem::create([
                 'order_id' => $order1->id,
-                'product_id' => $shimanoRod->id,
-                'name' => $shimanoRod->name,
-                'price' => $shimanoRod->price,
-                'qty' => 1,
-                'image' => $shimanoRod->image,
+                'product_id' => $pakanAyam->id,
+                'name' => $pakanAyam->name,
+                'price' => $pakanAyam->price,
+                'qty' => 2,
+                'image' => $pakanAyam->image,
             ]);
         }
-        if ($hooks) {
+        if ($peletApung) {
             OrderItem::create([
                 'order_id' => $order1->id,
-                'product_id' => $hooks->id,
-                'name' => $hooks->name,
-                'price' => $hooks->price,
-                'qty' => 2,
-                'image' => $hooks->image,
+                'product_id' => $peletApung->id,
+                'name' => $peletApung->name,
+                'price' => $peletApung->price,
+                'qty' => 1,
+                'image' => $peletApung->image,
             ]);
         }
 
@@ -68,21 +68,21 @@ class OrderSeeder extends Seeder
             'customer_email' => 'budi.santoso@yahoo.com',
             'customer_phone' => '085711223344',
             'address' => 'Jl. Anggrek No. 12, Bandung',
-            'subtotal' => 1850000,
-            'shipping_fee' => 30000,
-            'total' => 1880000,
+            'subtotal' => 50000,
+            'shipping_fee' => 10000,
+            'total' => 60000,
             'payment_method' => 'QRIS',
             'status' => 'Selesai',
         ]);
 
-        if ($daiwaReel) {
+        if ($kojaJaring) {
             OrderItem::create([
                 'order_id' => $order2->id,
-                'product_id' => $daiwaReel->id,
-                'name' => $daiwaReel->name,
-                'price' => $daiwaReel->price,
-                'qty' => 1,
-                'image' => $daiwaReel->image,
+                'product_id' => $kojaJaring->id,
+                'name' => $kojaJaring->name,
+                'price' => $kojaJaring->price,
+                'qty' => 2,
+                'image' => $kojaJaring->image,
             ]);
         }
 
@@ -93,31 +93,31 @@ class OrderSeeder extends Seeder
             'customer_email' => 'julianto@gmail.com',
             'customer_phone' => '081234567890',
             'address' => 'Jl. Merdeka No. 45, Jakarta Selatan',
-            'subtotal' => 685000,
-            'shipping_fee' => 20000,
-            'total' => 705000,
+            'subtotal' => 18000,
+            'shipping_fee' => 10000,
+            'total' => 28000,
             'payment_method' => 'Transfer Bank Mandiri',
             'status' => 'Menunggu Pembayaran',
         ]);
 
-        if ($peLine) {
+        if ($umpanJitu) {
             OrderItem::create([
                 'order_id' => $order3->id,
-                'product_id' => $peLine->id,
-                'name' => $peLine->name,
-                'price' => $peLine->price,
-                'qty' => 3,
-                'image' => $peLine->image,
+                'product_id' => $umpanJitu->id,
+                'name' => $umpanJitu->name,
+                'price' => $umpanJitu->price,
+                'qty' => 2,
+                'image' => $umpanJitu->image,
             ]);
         }
-        if ($lureMinnow) {
+        if ($essenUdang) {
             OrderItem::create([
                 'order_id' => $order3->id,
-                'product_id' => $lureMinnow->id,
-                'name' => $lureMinnow->name,
-                'price' => $lureMinnow->price,
-                'qty' => 2,
-                'image' => $lureMinnow->image,
+                'product_id' => $essenUdang->id,
+                'name' => $essenUdang->name,
+                'price' => $essenUdang->price,
+                'qty' => 1,
+                'image' => $essenUdang->image,
             ]);
         }
 
@@ -128,21 +128,21 @@ class OrderSeeder extends Seeder
             'customer_email' => 'andi.w@gmail.com',
             'customer_phone' => '081344556677',
             'address' => 'Jl. Gajah Mada No. 101, Semarang',
-            'subtotal' => 240000,
-            'shipping_fee' => 15000,
-            'total' => 255000,
+            'subtotal' => 15000,
+            'shipping_fee' => 10000,
+            'total' => 25000,
             'payment_method' => 'COD',
             'status' => 'Dikirim',
         ]);
 
-        if ($bag) {
+        if ($joranAnak) {
             OrderItem::create([
                 'order_id' => $order4->id,
-                'product_id' => $bag->id,
-                'name' => $bag->name,
-                'price' => $bag->price,
+                'product_id' => $joranAnak->id,
+                'name' => $joranAnak->name,
+                'price' => $joranAnak->price,
                 'qty' => 1,
-                'image' => $bag->image,
+                'image' => $joranAnak->image,
             ]);
         }
     }

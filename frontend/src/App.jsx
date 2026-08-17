@@ -26,6 +26,7 @@ import UserCheckout from './pages/Checkout';
 import UserOrders from './pages/Orders';
 import UserOrderDetail from './pages/OrderDetail';
 import UserProfile from './pages/Profile';
+import UserSearch from './pages/Search';
 
 // Admin Pages
 import AdminDashboard from './pages/admin/Dashboard';
@@ -58,6 +59,7 @@ function App() {
               <Route path="orders" element={<UserOrders />} />
               <Route path="orders/:id" element={<UserOrderDetail />} />
               <Route path="profile" element={<UserProfile />} />
+              <Route path="search" element={<UserSearch />} />
 
               {/* Backward compatibility redirects */}
               <Route path="user/dashboard" element={<Navigate to="/" replace />} />

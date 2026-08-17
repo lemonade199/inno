@@ -70,13 +70,13 @@ export const productService = {
   },
 
   getCategories: async () => {
-    // For now, categories can be hardcoded or extracted from products
     return [
-      { id: 1, name: 'Joran (Rod)' },
-      { id: 2, name: 'Reel (Gulungan)' },
-      { id: 3, name: 'Senar (Line)' },
-      { id: 4, name: 'Umpan (Bait/Lure)' },
-      { id: 5, name: 'Aksesoris' }
+      { id: 1, name: 'Pakan Ayam & Unggas' },
+      { id: 2, name: 'Pakan Ikan' },
+      { id: 3, name: 'Pakan Burung & Hewan' },
+      { id: 4, name: 'Umpan Pancing' },
+      { id: 5, name: 'Essen Pancing' },
+      { id: 6, name: 'Alat & Aksesoris Pancing' }
     ];
   },
 
