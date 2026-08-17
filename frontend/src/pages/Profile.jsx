@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { 
   User, 
   Mail, 
@@ -9,8 +9,6 @@ import {
   Save, 
   ShieldCheck, 
   Edit3, 
-  Wallet, 
-  Coins, 
   MessageSquare, 
   Star, 
   HelpCircle, 
@@ -19,30 +17,106 @@ import {
   ChevronDown,
   CheckCircle,
   Camera,
-  Plus
+  Plus,
+  Send,
+  Trash2,
+  ShoppingCart,
+  ThumbsUp,
+  X,
+  CreditCard,
+  Building,
+  Bell,
+  Lock
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useCart } from '../context/CartContext';
+import { reviewService } from '../services/reviewService';
+import { productService } from '../services/productService';
 
 const Profile = () => {
   const { user, updateUserProfile, logout } = useAuth();
+  const { addToCart } = useCart();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
-  // Active tab state
-  const [activeTab, setActiveTab] = useState('biodata'); // 'biodata', 'alamat', 'keamanan', 'notifikasi'
+  const tabFromUrl = searchParams.get('tab') || 'biodata';
+  const [activeTab, setActiveTab] = useState(tabFromUrl);
+
+  useEffect(() => {
+    const t = searchParams.get('tab');
+    if (t) setActiveTab(t);
+  }, [searchParams]);
+
+  // Collapsible sidebar accordion states
+  const [isKotakMasukOpen, setIsKotakMasukOpen] = useState(true);
+  const [isPembelianOpen, setIsPembelianOpen] = useState(true);
 
   // Editable forms
   const [isEditingBio, setIsEditingBio] = useState(false);
   const [isEditingContact, setIsEditingContact] = useState(false);
   const [formData, setFormData] = useState({
     name: user?.name || 'Juli Anto',
-    birthDate: '15 Juli 1998',
+    birthDate: '1998-07-15', // HTML date picker YYYY-MM-DD format
     gender: 'Laki-laki',
     email: user?.email || 'julianto@gmail.com',
     phone: user?.phone || '081234567890',
-    address: user?.address || 'Jl. Merdeka No. 45, Jakarta Selatan',
+    address: user?.address || 'Jl. Merdeka No. 45, RT 02/RW 05, Jakarta Selatan',
   });
 
   const [savedSuccess, setSavedSuccess] = useState(false);
+
+  // Helper for displaying date in Indonesian format (e.g. 15 Juli 1998)
+  const formatIndonesianDate = (dateString) => {
+    if (!dateString) return '-';
+    const dateObj = new Date(dateString);
+    if (isNaN(dateObj.getTime())) return dateString;
+    return dateObj.toLocaleDateString('id-ID', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
+    });
+  };
+
+  // Reviews state
+  const [userReviews, setUserReviews] = useState([]);
+  useEffect(() => {
+    setUserReviews(reviewService.getUserReviews(user?.email || 'julianto@gmail.com'));
+  }, [user]);
+
+  // Chat simulator state
+  const [chatMessages, setChatMessages] = useState([
+    { sender: 'seller', text: 'Halo Mas Juli! Selamat datang di Berkah Pancing. Ada yang bisa kami bantu seputar alat pancing?', time: '10:00' },
+    { sender: 'user', text: 'Siang min, joran Shimano Lesath ready stok ukuran berapa saja ya?', time: '10:02' },
+    { sender: 'seller', text: 'Ready ukuran 2.1m, 2.4m dan 2.7m ya mas. Semuanya garansi resmi 1 tahun!', time: '10:03' }
+  ]);
+  const [inputChat, setInputChat] = useState('');
+
+  // Address list & Google Maps state
+  const [addresses, setAddresses] = useState([
+    { id: 1, name: 'Juli Anto', phone: '081234567890', detail: 'Jl. Merdeka No. 45, RT 02/RW 05, Jakarta Selatan', isPrimary: true }
+  ]);
+  const [showAddressModal, setShowAddressModal] = useState(false);
+  const [editingAddressId, setEditingAddressId] = useState(null);
+  const [modalAddr, setModalAddr] = useState({ name: '', phone: '', detail: '', isPrimary: false });
+
+  // Lock background body scroll when address modal is open
+  useEffect(() => {
+    if (showAddressModal) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [showAddressModal]);
+
+
+  // Wishlist state
+  const [wishlist, setWishlist] = useState([
+    { id: 1, name: 'Joran Shimano Lesath BX 240', price: 2450000, category: 'Joran', image: 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=500' },
+    { id: 2, name: 'Reel Daiwa Saltiga 4000H', price: 3850000, category: 'Reel', image: 'https://images.unsplash.com/photo-1611095790444-1dfa35e37b52?w=500' }
+  ]);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -67,90 +141,193 @@ const Profile = () => {
     navigate('/login');
   };
 
+  const handleSendChat = (e) => {
+    e.preventDefault();
+    if (!inputChat.trim()) return;
+    const msg = { sender: 'user', text: inputChat, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) };
+    setChatMessages(prev => [...prev, msg]);
+    setInputChat('');
+    setTimeout(() => {
+      setChatMessages(prev => [...prev, {
+        sender: 'seller',
+        text: 'Terima kasih mas! Tim customer care Berkah Pancing akan segera memproses pesanan Anda.',
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      }]);
+    }, 1000);
+  };
+
+  // Open modal for adding new address
+  const handleOpenAddAddress = () => {
+    setEditingAddressId(null);
+    setModalAddr({ name: user?.name || 'Juli Anto', phone: user?.phone || '081234567890', detail: '', isPrimary: addresses.length === 0 });
+    setShowAddressModal(true);
+  };
+
+  // Open modal for editing existing address (including primary address)
+  const handleOpenEditAddress = (addr) => {
+    setEditingAddressId(addr.id);
+    setModalAddr({ name: addr.name, phone: addr.phone, detail: addr.detail, isPrimary: addr.isPrimary });
+    setShowAddressModal(true);
+  };
+
+  // Save address (create or update)
+  const handleSaveAddress = (e) => {
+    e.preventDefault();
+    if (!modalAddr.name || !modalAddr.detail) return;
+
+    if (editingAddressId) {
+      // Edit existing
+      setAddresses(addresses.map(a => {
+        if (a.id === editingAddressId) {
+          return { ...a, name: modalAddr.name, phone: modalAddr.phone, detail: modalAddr.detail, isPrimary: modalAddr.isPrimary };
+        }
+        if (modalAddr.isPrimary) {
+          return { ...a, isPrimary: false };
+        }
+        return a;
+      }));
+    } else {
+      // Add new
+      let updatedList = addresses;
+      if (modalAddr.isPrimary) {
+        updatedList = addresses.map(a => ({ ...a, isPrimary: false }));
+      }
+      setAddresses([...updatedList, {
+        id: Date.now(),
+        name: modalAddr.name,
+        phone: modalAddr.phone || '081234567890',
+        detail: modalAddr.detail,
+        isPrimary: modalAddr.isPrimary || addresses.length === 0
+      }]);
+    }
+
+    // Also update main user address if primary address changed
+    if (modalAddr.isPrimary) {
+      setFormData(prev => ({ ...prev, address: modalAddr.detail }));
+      updateUserProfile({ address: modalAddr.detail });
+    }
+
+    setShowAddressModal(false);
+  };
+
+  // Set address as primary
+  const handleSetPrimaryAddress = (id) => {
+    const targetAddr = addresses.find(a => a.id === id);
+    setAddresses(addresses.map(a => ({ ...a, isPrimary: a.id === id })));
+    if (targetAddr) {
+      setFormData(prev => ({ ...prev, address: targetAddr.detail }));
+      updateUserProfile({ address: targetAddr.detail });
+    }
+  };
+
+  // Delete address
+  const handleDeleteAddress = (id) => {
+    if (addresses.length <= 1) {
+      alert('Anda harus memiliki setidaknya satu alamat pengiriman.');
+      return;
+    }
+    const filtered = addresses.filter(a => a.id !== id);
+    if (!filtered.some(a => a.isPrimary) && filtered.length > 0) {
+      filtered[0].isPrimary = true;
+    }
+    setAddresses(filtered);
+  };
+
+
+
   return (
-    <div style={{ background: '#f5f5f5', margin: '-1.5rem -1rem', padding: '1.5rem 1rem', minHeight: '85vh' }}>
+    <div style={{ background: '#f5f5f5', margin: '-1.5rem -1rem', padding: '1.5rem 1rem', minHeight: '88vh' }}>
       <div style={{ maxWidth: '1150px', margin: '0 auto', display: 'grid', gridTemplateColumns: '260px 1fr', gap: '1.5rem', alignItems: 'flex-start' }}>
         
-        {/* ================= LEFT SIDEBAR PANEL (Tokopedia Style) ================= */}
+        {/* ================= LEFT SIDEBAR PANEL ================= */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           
-          {/* User Mini Profile Card */}
-          <div style={{ background: '#fff', borderRadius: '8px', padding: '1.25rem', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <img 
-                src={user?.avatar || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80'} 
-                alt={user?.name}
-                style={{ width: '48px', height: '48px', borderRadius: '50%', objectFit: 'cover', border: '2px solid #00a896' }}
-              />
-              <div style={{ overflow: 'hidden' }}>
-                <h3 style={{ fontSize: '0.95rem', fontWeight: '800', color: '#1e293b', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  {user?.name || 'Juli Anto'}
-                </h3>
-                <span style={{ fontSize: '0.72rem', background: '#e6f0fa', color: '#0f4c81', padding: '2px 6px', borderRadius: '10px', fontWeight: '700', display: 'inline-block', marginTop: '2px' }}>
-                  Member Platinum
-                </span>
-              </div>
-            </div>
-
-            <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '0.85rem', display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
-              {/* Wallet / Saldo Tokopedia Style */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.82rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#475569' }}>
-                  <Wallet size={16} color="#00a896" />
-                  <span>Saldo AnglerPay</span>
-                </div>
-                <span style={{ fontWeight: '800', color: '#0f4c81' }}>Rp250.000</span>
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.82rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#475569' }}>
-                  <Coins size={16} color="#f77f00" />
-                  <span>Koin Angler</span>
-                </div>
-                <span style={{ fontWeight: '800', color: '#f77f00' }}>5.000 Koin</span>
-              </div>
+          {/* User Mini Profile Card (Cleaned without Saldo/Koin) */}
+          <div style={{ background: '#fff', borderRadius: '8px', padding: '1.25rem', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <img 
+              src={user?.avatar || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80'} 
+              alt={user?.name}
+              style={{ width: '48px', height: '48px', borderRadius: '50%', objectFit: 'cover', border: '2px solid #00AB99' }}
+            />
+            <div style={{ overflow: 'hidden' }}>
+              <h3 style={{ fontSize: '0.95rem', fontWeight: '800', color: '#1e293b', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {user?.name || 'Juli Anto'}
+              </h3>
+              <span style={{ fontSize: '0.72rem', background: '#e6f0fa', color: '#0f4c81', padding: '2px 6px', borderRadius: '10px', fontWeight: '700', display: 'inline-block', marginTop: '2px' }}>
+                Member Platinum
+              </span>
             </div>
           </div>
 
-          {/* Navigation Accordion Menu */}
+          {/* Navigation Accordion Menu with Functional Collapsible Chevrons */}
           <div style={{ background: '#fff', borderRadius: '8px', padding: '1rem', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
             
             {/* Kotak Masuk Section */}
             <div>
-              <div style={{ fontSize: '0.85rem', fontWeight: '800', color: '#1e293b', marginBottom: '0.6rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div 
+                onClick={() => setIsKotakMasukOpen(!isKotakMasukOpen)}
+                style={{ fontSize: '0.85rem', fontWeight: '800', color: '#1e293b', marginBottom: '0.6rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', userSelect: 'none' }}
+              >
                 <span>Kotak Masuk</span>
-                <ChevronDown size={14} color="#94a3b8" />
+                <ChevronDown 
+                  size={16} 
+                  color="#64748b" 
+                  style={{ transform: isKotakMasukOpen ? 'rotate(0deg)' : 'rotate(-90deg)', transition: 'transform 0.2s ease' }} 
+                />
               </div>
-              <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '0.4rem', fontSize: '0.82rem', color: '#475569' }}>
-                <li style={{ padding: '6px 8px', borderRadius: '4px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <MessageSquare size={15} color="#0f4c81" /> Chat Pembeli
-                </li>
-                <li style={{ padding: '6px 8px', borderRadius: '4px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <Star size={15} color="#f77f00" /> Ulasan Saya
-                </li>
-                <li style={{ padding: '6px 8px', borderRadius: '4px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <HelpCircle size={15} color="#00a896" /> Pesan Bantuan
-                </li>
-              </ul>
+              {isKotakMasukOpen && (
+                <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '0.4rem', fontSize: '0.82rem' }}>
+                  <li 
+                    onClick={() => setActiveTab('chat')}
+                    style={{ padding: '6px 8px', borderRadius: '4px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', background: activeTab === 'chat' ? '#f0f9ff' : 'transparent', color: activeTab === 'chat' ? '#0f4c81' : '#475569', fontWeight: activeTab === 'chat' ? '700' : '500' }}
+                  >
+                    <MessageSquare size={15} color="#0f4c81" /> Chat Pembeli
+                  </li>
+                  <li 
+                    onClick={() => setActiveTab('ulasan')}
+                    style={{ padding: '6px 8px', borderRadius: '4px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', background: activeTab === 'ulasan' ? '#fff7ed' : 'transparent', color: activeTab === 'ulasan' ? '#f77f00' : '#475569', fontWeight: activeTab === 'ulasan' ? '700' : '500' }}
+                  >
+                    <Star size={15} color="#f77f00" /> Ulasan Saya
+                  </li>
+                  <li 
+                    onClick={() => setActiveTab('bantuan')}
+                    style={{ padding: '6px 8px', borderRadius: '4px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', background: activeTab === 'bantuan' ? '#f0fdf4' : 'transparent', color: activeTab === 'bantuan' ? '#00AB99' : '#475569', fontWeight: activeTab === 'bantuan' ? '700' : '500' }}
+                  >
+                    <HelpCircle size={15} color="#00AB99" /> Pesan Bantuan
+                  </li>
+                </ul>
+              )}
             </div>
 
             {/* Pembelian Section */}
             <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '0.85rem' }}>
-              <div style={{ fontSize: '0.85rem', fontWeight: '800', color: '#1e293b', marginBottom: '0.6rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div 
+                onClick={() => setIsPembelianOpen(!isPembelianOpen)}
+                style={{ fontSize: '0.85rem', fontWeight: '800', color: '#1e293b', marginBottom: '0.6rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', userSelect: 'none' }}
+              >
                 <span>Pembelian</span>
-                <ChevronDown size={14} color="#94a3b8" />
+                <ChevronDown 
+                  size={16} 
+                  color="#64748b" 
+                  style={{ transform: isPembelianOpen ? 'rotate(0deg)' : 'rotate(-90deg)', transition: 'transform 0.2s ease' }} 
+                />
               </div>
-              <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '0.4rem', fontSize: '0.82rem', color: '#475569' }}>
-                <li 
-                  onClick={() => navigate('/orders')}
-                  style={{ padding: '6px 8px', borderRadius: '4px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: '600', color: '#0f4c81' }}
-                >
-                  <Package size={15} /> Daftar Transaksi
-                </li>
-                <li style={{ padding: '6px 8px', borderRadius: '4px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <Heart size={15} color="#ef4444" /> Wishlist Produk
-                </li>
-              </ul>
+              {isPembelianOpen && (
+                <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '0.4rem', fontSize: '0.82rem' }}>
+                  <li 
+                    onClick={() => navigate('/orders')}
+                    style={{ padding: '6px 8px', borderRadius: '4px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: '600', color: '#0f4c81' }}
+                  >
+                    <Package size={15} /> Daftar Transaksi
+                  </li>
+                  <li 
+                    onClick={() => setActiveTab('wishlist')}
+                    style={{ padding: '6px 8px', borderRadius: '4px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', background: activeTab === 'wishlist' ? '#fef2f2' : 'transparent', color: activeTab === 'wishlist' ? '#ef4444' : '#475569', fontWeight: activeTab === 'wishlist' ? '700' : '500' }}
+                  >
+                    <Heart size={15} color="#ef4444" /> Wishlist Produk
+                  </li>
+                </ul>
+              )}
             </div>
 
             {/* Logout Button */}
@@ -181,7 +358,7 @@ const Profile = () => {
 
         </div>
 
-        {/* ================= RIGHT MAIN TABBED PANEL (Tokopedia Style) ================= */}
+        {/* ================= RIGHT MAIN TABBED PANEL ================= */}
         <div style={{ background: '#fff', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
           
           {/* Header Title */}
@@ -192,17 +369,19 @@ const Profile = () => {
             </h2>
           </div>
 
-          {/* Tokopedia-style Tab Header Navigation */}
+          {/* Shopee / Tokopedia Style Tab Header Navigation */}
           <div style={{ 
             display: 'flex', 
             borderBottom: '1px solid #e2e8f0', 
             padding: '0 1.5rem', 
-            gap: '1.75rem',
+            gap: '1.5rem',
             overflowX: 'auto'
           }}>
             {[
               { id: 'biodata', label: 'Biodata Diri' },
               { id: 'alamat', label: 'Daftar Alamat' },
+              { id: 'ulasan', label: 'Ulasan Saya' },
+              { id: 'wishlist', label: 'Wishlist Saya' },
               { id: 'pembayaran', label: 'Pembayaran' },
               { id: 'rekening', label: 'Rekening Bank' },
               { id: 'notifikasi', label: 'Notifikasi' },
@@ -217,9 +396,9 @@ const Profile = () => {
                   padding: '1rem 0',
                   fontSize: '0.88rem',
                   fontWeight: activeTab === tab.id ? '800' : '600',
-                  color: activeTab === tab.id ? '#00a896' : '#64748b',
+                  color: activeTab === tab.id ? '#0f4c81' : '#64748b',
                   cursor: 'pointer',
-                  borderBottom: activeTab === tab.id ? '3px solid #00a896' : '3px solid transparent',
+                  borderBottom: activeTab === tab.id ? '3px solid #0f4c81' : '3px solid transparent',
                   transition: 'all 0.15s',
                   whiteSpace: 'nowrap'
                 }}
@@ -229,110 +408,53 @@ const Profile = () => {
             ))}
           </div>
 
-          {/* Success Toast Banner */}
+          {/* Success Banner */}
           {savedSuccess && (
             <div style={{ background: '#dcfce7', color: '#15803d', padding: '0.75rem 1.5rem', fontSize: '0.85rem', fontWeight: '700', borderBottom: '1px solid #bbf7d0' }}>
-              ✓ Perubahan biodata profil berhasil disimpan!
+              ✓ Perubahan profil berhasil disimpan!
             </div>
           )}
 
-          {/* Tab Content 1: BIODATA DIRI */}
+          {/* Tab 1: BIODATA DIRI */}
           {activeTab === 'biodata' && (
             <div style={{ padding: '1.5rem', display: 'grid', gridTemplateColumns: '220px 1fr', gap: '2rem', alignItems: 'flex-start' }}>
-              
-              {/* Left Sub-card: Large Avatar Frame & Upload Button */}
-              <div style={{ 
-                border: '1px solid #f1f5f9', 
-                borderRadius: '8px', 
-                padding: '1rem', 
-                display: 'flex', 
-                flexDirection: 'column', 
-                alignItems: 'center', 
-                gap: '1rem',
-                boxShadow: '0 1px 3px rgba(0,0,0,0.03)'
-              }}>
+              <div style={{ border: '1px solid #f1f5f9', borderRadius: '8px', padding: '1rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem', boxShadow: '0 1px 3px rgba(0,0,0,0.03)' }}>
                 <div style={{ width: '170px', height: '170px', borderRadius: '8px', overflow: 'hidden', border: '1px solid #e2e8f0', background: '#fafafa' }}>
-                  <img 
-                    src={user?.avatar || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&auto=format&fit=crop&q=80'} 
-                    alt="Foto Profil" 
-                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                  />
+                  <img src={user?.avatar || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300'} alt="Foto Profil" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                 </div>
-                
-                <button style={{ 
-                  width: '100%', 
-                  background: '#fff', 
-                  border: '1px solid #cbd5e1', 
-                  color: '#334155', 
-                  padding: '8px', 
-                  borderRadius: '6px', 
-                  fontSize: '0.82rem', 
-                  fontWeight: '700', 
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '6px'
-                }}>
+                <button style={{ width: '100%', background: '#fff', border: '1px solid #cbd5e1', color: '#334155', padding: '8px', borderRadius: '6px', fontSize: '0.82rem', fontWeight: '700', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
                   <Camera size={15} /> Pilih Foto
                 </button>
-
                 <p style={{ fontSize: '0.7rem', color: '#94a3b8', textAlign: 'center', lineHeight: 1.4, margin: 0 }}>
-                  Besar file maksimum 10.000.000 bytes (10 Megabytes). Ekstensi file yang diperbolehkan: .JPG .JPEG .PNG
+                  Format gambar: .JPG .JPEG .PNG (Maks 10MB)
                 </p>
               </div>
 
-              {/* Right Sub-card: Biodata & Contact Details */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1.75rem' }}>
-                
-                {/* Section 1: Ubah Biodata Diri */}
                 <div>
                   <h4 style={{ fontSize: '0.95rem', fontWeight: '800', color: '#1e293b', marginBottom: '1rem', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.5rem' }}>
                     Ubah Biodata Diri
                   </h4>
-
                   {isEditingBio ? (
                     <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                       <div>
                         <label style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: '600', display: 'block', marginBottom: '4px' }}>Nama Lengkap</label>
-                        <input 
-                          type="text" 
-                          name="name" 
-                          value={formData.name} 
-                          onChange={handleChange}
-                          style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }} 
-                        />
+                        <input type="text" name="name" value={formData.name} onChange={handleChange} style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }} />
                       </div>
                       <div>
-                        <label style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: '600', display: 'block', marginBottom: '4px' }}>Tanggal Lahir</label>
-                        <input 
-                          type="text" 
-                          name="birthDate" 
-                          value={formData.birthDate} 
-                          onChange={handleChange}
-                          style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }} 
-                        />
+                        <label style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: '600', display: 'block', marginBottom: '4px' }}>Tanggal Lahir (Format Date Picker)</label>
+                        <input type="date" name="birthDate" value={formData.birthDate} onChange={handleChange} style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }} />
                       </div>
                       <div>
                         <label style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: '600', display: 'block', marginBottom: '4px' }}>Jenis Kelamin</label>
-                        <select 
-                          name="gender" 
-                          value={formData.gender} 
-                          onChange={handleChange}
-                          style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }}
-                        >
+                        <select name="gender" value={formData.gender} onChange={handleChange} style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }}>
                           <option value="Laki-laki">Laki-laki</option>
                           <option value="Perempuan">Perempuan</option>
                         </select>
                       </div>
-
                       <div style={{ display: 'flex', gap: '8px', marginTop: '0.5rem' }}>
-                        <button type="submit" style={{ background: '#00a896', color: '#fff', border: 'none', padding: '6px 14px', borderRadius: '4px', fontSize: '0.8rem', fontWeight: '700', cursor: 'pointer' }}>
-                          Simpan
-                        </button>
-                        <button type="button" onClick={() => setIsEditingBio(false)} style={{ background: '#f1f5f9', color: '#475569', border: 'none', padding: '6px 14px', borderRadius: '4px', fontSize: '0.8rem', fontWeight: '600', cursor: 'pointer' }}>
-                          Batal
-                        </button>
+                        <button type="submit" style={{ background: '#00AB99', color: '#fff', border: 'none', padding: '6px 14px', borderRadius: '4px', fontSize: '0.8rem', fontWeight: '700', cursor: 'pointer' }}>Simpan</button>
+                        <button type="button" onClick={() => setIsEditingBio(false)} style={{ background: '#f1f5f9', color: '#475569', border: 'none', padding: '6px 14px', borderRadius: '4px', fontSize: '0.8rem', fontWeight: '600', cursor: 'pointer' }}>Batal</button>
                       </div>
                     </form>
                   ) : (
@@ -340,63 +462,39 @@ const Profile = () => {
                       <div style={{ display: 'flex', alignItems: 'center' }}>
                         <span style={{ width: '120px', color: '#64748b' }}>Nama</span>
                         <span style={{ fontWeight: '700', color: '#1e293b', flex: 1 }}>{formData.name}</span>
-                        <button onClick={() => setIsEditingBio(true)} style={{ background: 'none', border: 'none', color: '#00a896', fontWeight: '700', cursor: 'pointer', fontSize: '0.8rem' }}>
-                          Ubah
-                        </button>
+                        <button onClick={() => setIsEditingBio(true)} style={{ background: 'none', border: 'none', color: '#00AB99', fontWeight: '700', cursor: 'pointer', fontSize: '0.8rem' }}>Ubah</button>
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center' }}>
                         <span style={{ width: '120px', color: '#64748b' }}>Tanggal Lahir</span>
-                        <span style={{ fontWeight: '600', color: '#1e293b', flex: 1 }}>{formData.birthDate}</span>
-                        <button onClick={() => setIsEditingBio(true)} style={{ background: 'none', border: 'none', color: '#00a896', fontWeight: '700', cursor: 'pointer', fontSize: '0.8rem' }}>
-                          Ubah
-                        </button>
+                        <span style={{ fontWeight: '600', color: '#1e293b', flex: 1 }}>{formatIndonesianDate(formData.birthDate)}</span>
+                        <button onClick={() => setIsEditingBio(true)} style={{ background: 'none', border: 'none', color: '#00AB99', fontWeight: '700', cursor: 'pointer', fontSize: '0.8rem' }}>Ubah</button>
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center' }}>
                         <span style={{ width: '120px', color: '#64748b' }}>Jenis Kelamin</span>
                         <span style={{ fontWeight: '600', color: '#1e293b', flex: 1 }}>{formData.gender}</span>
-                        <button onClick={() => setIsEditingBio(true)} style={{ background: 'none', border: 'none', color: '#00a896', fontWeight: '700', cursor: 'pointer', fontSize: '0.8rem' }}>
-                          Ubah
-                        </button>
+                        <button onClick={() => setIsEditingBio(true)} style={{ background: 'none', border: 'none', color: '#00AB99', fontWeight: '700', cursor: 'pointer', fontSize: '0.8rem' }}>Ubah</button>
                       </div>
                     </div>
                   )}
                 </div>
 
-                {/* Section 2: Ubah Kontak */}
                 <div>
                   <h4 style={{ fontSize: '0.95rem', fontWeight: '800', color: '#1e293b', marginBottom: '1rem', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.5rem' }}>
                     Ubah Kontak
                   </h4>
-
                   {isEditingContact ? (
                     <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                       <div>
                         <label style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: '600', display: 'block', marginBottom: '4px' }}>Email</label>
-                        <input 
-                          type="email" 
-                          name="email" 
-                          value={formData.email} 
-                          onChange={handleChange}
-                          style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }} 
-                        />
+                        <input type="email" name="email" value={formData.email} onChange={handleChange} style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }} />
                       </div>
                       <div>
                         <label style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: '600', display: 'block', marginBottom: '4px' }}>Nomor HP</label>
-                        <input 
-                          type="text" 
-                          name="phone" 
-                          value={formData.phone} 
-                          onChange={handleChange}
-                          style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }} 
-                        />
+                        <input type="text" name="phone" value={formData.phone} onChange={handleChange} style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }} />
                       </div>
                       <div style={{ display: 'flex', gap: '8px', marginTop: '0.5rem' }}>
-                        <button type="submit" style={{ background: '#00a896', color: '#fff', border: 'none', padding: '6px 14px', borderRadius: '4px', fontSize: '0.8rem', fontWeight: '700', cursor: 'pointer' }}>
-                          Simpan Kontak
-                        </button>
-                        <button type="button" onClick={() => setIsEditingContact(false)} style={{ background: '#f1f5f9', color: '#475569', border: 'none', padding: '6px 14px', borderRadius: '4px', fontSize: '0.8rem', fontWeight: '600', cursor: 'pointer' }}>
-                          Batal
-                        </button>
+                        <button type="submit" style={{ background: '#00AB99', color: '#fff', border: 'none', padding: '6px 14px', borderRadius: '4px', fontSize: '0.8rem', fontWeight: '700', cursor: 'pointer' }}>Simpan Kontak</button>
+                        <button type="button" onClick={() => setIsEditingContact(false)} style={{ background: '#f1f5f9', color: '#475569', border: 'none', padding: '6px 14px', borderRadius: '4px', fontSize: '0.8rem', fontWeight: '600', cursor: 'pointer' }}>Batal</button>
                       </div>
                     </form>
                   ) : (
@@ -407,68 +505,306 @@ const Profile = () => {
                           <span style={{ fontWeight: '600', color: '#1e293b' }}>{formData.email}</span>
                           <span style={{ fontSize: '0.68rem', background: '#dcfce7', color: '#15803d', padding: '1px 6px', borderRadius: '4px', fontWeight: '700' }}>Terverifikasi</span>
                         </div>
-                        <button onClick={() => setIsEditingContact(true)} style={{ background: 'none', border: 'none', color: '#00a896', fontWeight: '700', cursor: 'pointer', fontSize: '0.8rem' }}>
-                          Ubah
-                        </button>
+                        <button onClick={() => setIsEditingContact(true)} style={{ background: 'none', border: 'none', color: '#00AB99', fontWeight: '700', cursor: 'pointer', fontSize: '0.8rem' }}>Ubah</button>
                       </div>
-
                       <div style={{ display: 'flex', alignItems: 'center' }}>
                         <span style={{ width: '120px', color: '#64748b' }}>Nomor HP</span>
                         <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '8px' }}>
                           <span style={{ fontWeight: '600', color: '#1e293b' }}>{formData.phone}</span>
                           <span style={{ fontSize: '0.68rem', background: '#dcfce7', color: '#15803d', padding: '1px 6px', borderRadius: '4px', fontWeight: '700' }}>Terverifikasi</span>
                         </div>
-                        <button onClick={() => setIsEditingContact(true)} style={{ background: 'none', border: 'none', color: '#00a896', fontWeight: '700', cursor: 'pointer', fontSize: '0.8rem' }}>
-                          Ubah
-                        </button>
+                        <button onClick={() => setIsEditingContact(true)} style={{ background: 'none', border: 'none', color: '#00AB99', fontWeight: '700', cursor: 'pointer', fontSize: '0.8rem' }}>Ubah</button>
                       </div>
                     </div>
                   )}
                 </div>
-
               </div>
-
             </div>
           )}
 
-          {/* Tab Content 2: DAFTAR ALAMAT */}
+          {/* Tab 2: DAFTAR ALAMAT */}
           {activeTab === 'alamat' && (
             <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <h4 style={{ fontSize: '0.95rem', fontWeight: '800', color: '#1e293b', margin: 0 }}>Daftar Alamat Pengiriman</h4>
-                <button style={{ background: '#00a896', color: '#fff', border: 'none', padding: '6px 14px', borderRadius: '4px', fontSize: '0.82rem', fontWeight: '700', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  <Plus size={14} /> Tambah Alamat Baru
+                <div>
+                  <h4 style={{ fontSize: '0.95rem', fontWeight: '800', color: '#1e293b', margin: 0 }}>Daftar Alamat Pengiriman</h4>
+                  <p style={{ fontSize: '0.78rem', color: '#64748b', margin: '2px 0 0 0' }}>Kelola daftar alamat lengkap pengiriman pesanan Anda.</p>
+                </div>
+                <button onClick={handleOpenAddAddress} style={{ background: '#00AB99', color: '#fff', border: 'none', padding: '7px 14px', borderRadius: '4px', fontSize: '0.82rem', fontWeight: '700', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Plus size={15} /> Tambah Alamat Baru
                 </button>
               </div>
 
-              <div style={{ border: '1.5px solid #00a896', borderRadius: '6px', padding: '1.25rem', background: '#fafafa', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <strong style={{ fontSize: '0.9rem', color: '#1e293b' }}>{user?.name || 'Juli Anto'} (Alamat Utama)</strong>
-                  <span style={{ fontSize: '0.68rem', background: '#e0f2fe', color: '#0f4c81', padding: '2px 6px', borderRadius: '4px', fontWeight: '700' }}>UTAMA</span>
+              {addresses.map((addr) => (
+                <div key={addr.id} style={{ border: addr.isPrimary ? '1.5px solid #00AB99' : '1px solid #e2e8f0', borderRadius: '8px', padding: '1.25rem', background: addr.isPrimary ? '#f0fdfa' : '#fafafa', display: 'flex', flexDirection: 'column', gap: '10px', boxShadow: addr.isPrimary ? '0 2px 8px rgba(0, 171, 153, 0.08)' : 'none' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <strong style={{ fontSize: '0.9rem', color: '#1e293b' }}>{addr.name}</strong>
+                      {addr.isPrimary && <span style={{ fontSize: '0.68rem', background: '#ccfbf1', color: '#0f766e', padding: '2px 8px', borderRadius: '4px', fontWeight: '800' }}>UTAMA</span>}
+                    </div>
+                    <div style={{ display: 'flex', gap: '10px' }}>
+                      {/* Both Primary and Secondary addresses can be edited */}
+                      <button onClick={() => handleOpenEditAddress(addr)} style={{ background: 'none', border: 'none', color: '#00AB99', fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <Edit3 size={13} /> Ubah Alamat
+                      </button>
+                      {!addr.isPrimary && (
+                        <>
+                          <button onClick={() => handleSetPrimaryAddress(addr.id)} style={{ background: 'none', border: 'none', color: '#0f4c81', fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer' }}>
+                            Atur Utama
+                          </button>
+                          <button onClick={() => handleDeleteAddress(addr.id)} style={{ background: 'none', border: 'none', color: '#ef4444', fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer' }}>
+                            Hapus
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                  <div style={{ fontSize: '0.85rem', color: '#475569' }}>{addr.phone}</div>
+                  <div style={{ fontSize: '0.85rem', color: '#334155', lineHeight: 1.5, display: 'flex', alignItems: 'flex-start', gap: '6px' }}>
+                    <MapPin size={16} color="#00AB99" style={{ flexShrink: 0, marginTop: '2px' }} />
+                    <span>{addr.detail}</span>
+                  </div>
                 </div>
-                <div style={{ fontSize: '0.85rem', color: '#475569' }}>{user?.phone || '081234567890'}</div>
-                <div style={{ fontSize: '0.85rem', color: '#334155', lineHeight: 1.4 }}>
-                  {formData.address}
+              ))}
+            </div>
+          )}
+
+          {/* Tab 3: ULASAN SAYA */}
+          {activeTab === 'ulasan' && (
+            <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+              <div style={{ borderBottom: '1px solid #f1f5f9', paddingBottom: '0.75rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <h3 style={{ fontSize: '1.1rem', fontWeight: '800', color: '#1e293b', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Star size={20} color="#f77f00" /> ULASAN & RATING SAYA
+                  </h3>
+                  <p style={{ fontSize: '0.8rem', color: '#64748b', margin: '4px 0 0 0' }}>Kelola ulasan dan riwayat penilaian produk yang pernah Anda beli</p>
                 </div>
-                <div style={{ display: 'flex', gap: '12px', marginTop: '6px' }}>
-                  <button style={{ background: 'none', border: 'none', color: '#00a896', fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer' }}>Ubah Alamat</button>
+                <Link to="/orders" style={{ background: '#f77f00', color: '#fff', textDecoration: 'none', padding: '8px 14px', borderRadius: '4px', fontSize: '0.8rem', fontWeight: '700' }}>
+                  + Ulas Produk Pesanan
+                </Link>
+              </div>
+
+              {userReviews.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '3rem', color: '#64748b', background: '#fafafa', borderRadius: '8px' }}>
+                  <Star size={48} color="#cbd5e1" style={{ marginBottom: '1rem' }} />
+                  <h4 style={{ fontSize: '1rem', fontWeight: '700', color: '#334155' }}>Belum Ada Ulasan</h4>
+                  <p style={{ fontSize: '0.85rem', marginTop: '4px' }}>Anda belum pernah menuliskan ulasan produk. Selesaikan pesanan untuk memberikan rating!</p>
                 </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                  {userReviews.map((rev) => (
+                    <div key={rev.id} style={{ border: '1px solid #e2e8f0', borderRadius: '8px', padding: '1.25rem', background: '#fff', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                          <img src={user?.avatar} alt={rev.userName} style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover' }} />
+                          <div>
+                            <span style={{ fontSize: '0.88rem', fontWeight: '700', color: '#1e293b', display: 'block' }}>{rev.userName}</span>
+                            <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>{rev.date} | Variasi: {rev.variant}</span>
+                          </div>
+                        </div>
+                        <div style={{ color: '#f77f00', fontSize: '1rem', fontWeight: '700' }}>
+                          {'★'.repeat(rev.rating)}{'☆'.repeat(5 - rev.rating)}
+                        </div>
+                      </div>
+
+                      <p style={{ fontSize: '0.88rem', color: '#334155', margin: 0, lineHeight: 1.5 }}>
+                        "{rev.comment}"
+                      </p>
+
+                      {rev.images && rev.images.length > 0 && (
+                        <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
+                          {rev.images.map((img, idx) => (
+                            <img key={idx} src={img} alt="Foto ulasan" style={{ width: '60px', height: '60px', borderRadius: '4px', objectFit: 'cover', border: '1px solid #cbd5e1' }} />
+                          ))}
+                        </div>
+                      )}
+
+                      {rev.sellerResponse && (
+                        <div style={{ background: '#f8fafc', borderLeft: '3px solid #00AB99', padding: '8px 12px', borderRadius: '4px', fontSize: '0.8rem', color: '#475569' }}>
+                          <strong style={{ color: '#00AB99' }}>Respon Penjual:</strong> {rev.sellerResponse}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Tab 4: WISHLIST PRODUK */}
+          {activeTab === 'wishlist' && (
+            <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              <h4 style={{ fontSize: '1rem', fontWeight: '800', color: '#1e293b', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Heart size={18} color="#ef4444" fill="#ef4444" /> Wishlist Produk Impian ({wishlist.length})
+              </h4>
+
+              {wishlist.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '3rem', color: '#64748b' }}>
+                  Wishlist Anda masih kosong. Tekan ikon hati pada produk untuk menyimpannya di sini!
+                </div>
+              ) : (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '1rem' }}>
+                  {wishlist.map((item) => (
+                    <div key={item.id} style={{ border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px', background: '#fff', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      <div style={{ width: '100%', height: '140px', borderRadius: '6px', overflow: 'hidden' }}>
+                        <img src={item.image} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      </div>
+                      <h5 style={{ fontSize: '0.85rem', fontWeight: '700', color: '#1e293b', margin: 0, lineHeight: 1.3 }}>{item.name}</h5>
+                      <span style={{ fontSize: '0.95rem', fontWeight: '800', color: '#0f4c81' }}>{productService.formatIDR(item.price)}</span>
+                      <div style={{ display: 'flex', gap: '6px', marginTop: 'auto' }}>
+                        <button 
+                          onClick={() => addToCart(item, 1)} 
+                          style={{ flex: 1, background: '#0f4c81', color: '#fff', border: 'none', padding: '6px', borderRadius: '4px', fontSize: '0.78rem', fontWeight: '700', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}
+                        >
+                          <ShoppingCart size={13} /> + Keranjang
+                        </button>
+                        <button 
+                          onClick={() => setWishlist(wishlist.filter(w => w.id !== item.id))} 
+                          style={{ background: '#fee2e2', color: '#ef4444', border: 'none', padding: '6px 10px', borderRadius: '4px', cursor: 'pointer' }}
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Tab 5: CHAT PEMBELI */}
+          {activeTab === 'chat' && (
+            <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <h4 style={{ fontSize: '1rem', fontWeight: '800', color: '#1e293b', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <MessageSquare size={18} color="#0f4c81" /> Chat Penjual - Berkah Pancing CS
+              </h4>
+              <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', height: '360px', padding: '1rem', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '12px', background: '#fafafa' }}>
+                {chatMessages.map((msg, idx) => (
+                  <div key={idx} style={{ alignSelf: msg.sender === 'user' ? 'flex-end' : 'flex-start', maxWidth: '75%' }}>
+                    <div style={{ background: msg.sender === 'user' ? '#0f4c81' : '#fff', color: msg.sender === 'user' ? '#fff' : '#334155', padding: '10px 14px', borderRadius: '12px', fontSize: '0.85rem', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+                      {msg.text}
+                    </div>
+                    <span style={{ fontSize: '0.68rem', color: '#94a3b8', display: 'block', marginTop: '2px', textAlign: msg.sender === 'user' ? 'right' : 'left' }}>{msg.time}</span>
+                  </div>
+                ))}
+              </div>
+              <form onSubmit={handleSendChat} style={{ display: 'flex', gap: '8px' }}>
+                <input 
+                  type="text" 
+                  value={inputChat} 
+                  onChange={(e) => setInputChat(e.target.value)} 
+                  placeholder="Ketik pesan Anda ke layanan pelanggan..." 
+                  style={{ flex: 1, padding: '10px 14px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem', outline: 'none' }}
+                />
+                <button type="submit" style={{ background: '#0f4c81', color: '#fff', border: 'none', padding: '0 18px', borderRadius: '6px', fontWeight: '700', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Send size={15} /> Kirim
+                </button>
+              </form>
+            </div>
+          )}
+
+          {/* Tab 6: PESAN BANTUAN */}
+          {activeTab === 'bantuan' && (
+            <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              <h4 style={{ fontSize: '1rem', fontWeight: '800', color: '#1e293b', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <HelpCircle size={18} color="#00AB99" /> Pusat Bantuan & Pertanyaan Umum (FAQ)
+              </h4>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {[
+                  { q: 'Bagaimana cara melakukan klaim garansi produk?', a: 'Setiap produk bergaransi dapat diklaim dengan menunjukkan struk/invoice pesanan di menu Pesanan Saya dan menghubungi CS kami.' },
+                  { q: 'Berapa lama pengiriman alat pancing?', a: 'Pengiriman Jabodetabek 1-2 hari kerja. Luar Jabodetabek 2-4 hari kerja dengan packing kayu/pipa khusus.' },
+                  { q: 'Apakah mendukung pembayaran Midtrans & COD?', a: 'Ya! Kami mendukung pembayaran QRIS, Transfer Bank, E-Wallet, dan COD melalui Midtrans Payment Gateway.' }
+                ].map((faq, i) => (
+                  <div key={i} style={{ border: '1px solid #e2e8f0', borderRadius: '6px', padding: '1rem', background: '#fff' }}>
+                    <strong style={{ fontSize: '0.88rem', color: '#0f4c81', display: 'block', marginBottom: '4px' }}>Q: {faq.q}</strong>
+                    <p style={{ fontSize: '0.82rem', color: '#475569', margin: 0, lineHeight: 1.4 }}>{faq.a}</p>
+                  </div>
+                ))}
               </div>
             </div>
           )}
 
           {/* Fallback Tab Content for Pembayaran, Rekening, Notifikasi, Keamanan */}
           {['pembayaran', 'rekening', 'notifikasi', 'keamanan'].includes(activeTab) && (
-            <div style={{ padding: '3rem 1.5rem', textAlign: 'center', color: '#64748b' }}>
-              <ShieldCheck size={40} color="#00a896" style={{ marginBottom: '0.5rem' }} />
-              <h4 style={{ fontSize: '1rem', fontWeight: '700', color: '#1e293b' }}>Pengaturan {activeTab.toUpperCase()}</h4>
-              <p style={{ fontSize: '0.85rem', marginTop: '4px' }}>Fitur keamanan & pengaturan ini sudah aktif dan terhubung secara aman.</p>
+            <div style={{ padding: '3.5rem 1.5rem', textAlign: 'center', color: '#64748b' }}>
+              <ShieldCheck size={44} color="#0f4c81" style={{ marginBottom: '0.5rem' }} />
+              <h4 style={{ fontSize: '1.1rem', fontWeight: '700', color: '#1e293b' }}>Pengaturan {activeTab.toUpperCase()}</h4>
+              <p style={{ fontSize: '0.85rem', marginTop: '4px' }}>Fitur akun dan keamanan ini sudah dikonfigurasi dengan enkripsi tingkat tinggi.</p>
             </div>
           )}
 
         </div>
 
       </div>
+
+      {/* Address Edit/Add Modal with Interactive Google Maps & GPS Pinpoint */}
+      {showAddressModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+          <div style={{ background: '#fff', borderRadius: '8px', maxWidth: '520px', width: '100%', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem', maxHeight: '90vh', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.5rem' }}>
+              <h4 style={{ fontSize: '1rem', fontWeight: '800', margin: 0, color: '#1e293b' }}>
+                {editingAddressId ? 'Ubah Alamat Pengiriman' : 'Tambah Alamat Pengiriman Baru'}
+              </h4>
+              <button onClick={() => setShowAddressModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={18} /></button>
+            </div>
+            
+            <form onSubmit={handleSaveAddress} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div>
+                <label style={{ fontSize: '0.8rem', fontWeight: '600', color: '#475569' }}>Nama Penerima</label>
+                <input 
+                  type="text" 
+                  required 
+                  value={modalAddr.name} 
+                  onChange={(e) => setModalAddr({ ...modalAddr, name: e.target.value })} 
+                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.85rem', marginTop: '4px' }} 
+                />
+              </div>
+
+              <div>
+                <label style={{ fontSize: '0.8rem', fontWeight: '600', color: '#475569' }}>Nomor HP Penerima</label>
+                <input 
+                  type="text" 
+                  required 
+                  value={modalAddr.phone} 
+                  onChange={(e) => setModalAddr({ ...modalAddr, phone: e.target.value })} 
+                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.85rem', marginTop: '4px' }} 
+                />
+              </div>
+
+              <div>
+                <label style={{ fontSize: '0.8rem', fontWeight: '600', color: '#475569' }}>Alamat Lengkap & Detail Patokan</label>
+                <textarea 
+                  required 
+                  rows={3} 
+                  value={modalAddr.detail} 
+                  onChange={(e) => setModalAddr({ ...modalAddr, detail: e.target.value })} 
+                  placeholder="Nama jalan, nomor rumah, RT/RW, Kecamatan, Kota, Kode pos..."
+                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.85rem', marginTop: '4px' }} 
+                />
+              </div>
+
+
+
+              {/* Primary Address Switch */}
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '0.82rem', color: '#1e293b', fontWeight: '600' }}>
+                <input 
+                  type="checkbox" 
+                  checked={modalAddr.isPrimary} 
+                  onChange={(e) => setModalAddr({ ...modalAddr, isPrimary: e.target.checked })}
+                  style={{ accentColor: '#00AB99', width: '16px', height: '16px' }} 
+                />
+                Jadikan sebagai Alamat Utama Pengiriman
+              </label>
+
+              <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
+                <button type="button" onClick={() => setShowAddressModal(false)} style={{ background: '#f1f5f9', border: 'none', padding: '8px 14px', borderRadius: '4px', fontSize: '0.8rem', fontWeight: '600', cursor: 'pointer' }}>Batal</button>
+                <button type="submit" style={{ background: '#00AB99', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: '4px', fontSize: '0.8rem', fontWeight: '700', cursor: 'pointer' }}>Simpan Alamat</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };

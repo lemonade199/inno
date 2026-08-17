@@ -7,7 +7,7 @@
   --color-primary: #0f4c81;
   --color-primary-hover: #0a3760;
   --color-primary-light: #e6f0fa;
-  --color-secondary: #00a896;
+  --color-secondary: #00AB99;
   --color-accent: #f77f00;
   
   --bg-app: #f8fafc;
@@ -194,14 +194,14 @@ button, input, select, textarea {
 }
 
 .brand-icon-box {
-  background: #00a896;
+  background: #00AB99;
   width: 38px;
   height: 38px;
   border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4px 12px rgba(0, 168, 150, 0.4);
+  box-shadow: 0 4px 12px rgba(0, 171, 153, 0.4);
 }
 
 .brand-title {

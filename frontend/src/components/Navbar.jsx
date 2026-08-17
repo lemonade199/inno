@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Search, ShoppingBag, User, Menu, ShieldCheck, LogOut, Anchor, Package, Compass } from 'lucide-react';
+import { Search, ShoppingBag, User, Menu, ShieldCheck, LogOut, Anchor, Package, Compass, Star, Heart } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 
@@ -11,18 +11,31 @@ const Navbar = ({ isAdminView = false, toggleSidebar }) => {
   const location = useLocation();
   const [showDropdown, setShowDropdown] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const dropdownRef = useRef(null);
 
   const cartCount = getCartCount();
   const isCartPage = location.pathname === '/cart';
 
+  // Handle click outside to close user dropdown
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setShowDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   const handleSearchSubmit = (e) => {
     e.preventDefault();
     if (searchQuery.trim()) {
-      navigate(`/produk?search=${encodeURIComponent(searchQuery.trim())}`);
+      navigate(`/products?search=${encodeURIComponent(searchQuery.trim())}`);
     }
   };
 
   const handleLogout = () => {
+    setShowDropdown(false);
     logout();
     navigate('/login');
   };
@@ -48,10 +61,8 @@ const Navbar = ({ isAdminView = false, toggleSidebar }) => {
           </form>
         </div>
 
-
-
         <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
-          <div style={{ position: 'relative' }}>
+          <div style={{ position: 'relative' }} ref={dropdownRef}>
             <div
               onClick={() => setShowDropdown(!showDropdown)}
               className="user-profile-trigger"
@@ -94,14 +105,14 @@ const Navbar = ({ isAdminView = false, toggleSidebar }) => {
     );
   }
 
-  // User View Navbar (Shopee Style - Top Bar Removed, Profile Next to Cart)
+  // User View Navbar
   return (
     <header style={{ display: 'flex', flexDirection: 'column', background: 'linear-gradient(135deg, #0b2545 0%, #0f4c81 100%)', color: '#fff', boxShadow: '0 4px 20px rgba(0,0,0,0.15)', position: 'sticky', top: 0, zIndex: 999 }}>
       {/* Main Header Bar */}
       <div style={{ maxWidth: '1200px', width: '100%', margin: '0 auto', padding: '0.9rem 2rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '2rem' }}>
         {/* Brand/Logo */}
         <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: '8px', textDecoration: 'none', color: '#fff' }}>
-          <div style={{ background: '#f77f00', width: '40px', height: '40px', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContents: 'center', boxShadow: '0 4px 10px rgba(247,127,0,0.3)', flexShrink: 0, justifyContent: 'center' }}>
+          <div style={{ background: '#00AB99', width: '40px', height: '40px', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 10px rgba(0,171,153,0.4)', flexShrink: 0 }}>
             <Anchor size={22} color="#fff" />
           </div>
           <div>
@@ -110,7 +121,7 @@ const Navbar = ({ isAdminView = false, toggleSidebar }) => {
           </div>
         </Link>
 
-        {/* Large Shopee-style Search Engine */}
+        {/* Search Bar */}
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '4px' }}>
           <form onSubmit={handleSearchSubmit} style={{ display: 'flex', background: '#fff', borderRadius: '4px', padding: '3px', position: 'relative' }}>
             <input
@@ -133,7 +144,7 @@ const Navbar = ({ isAdminView = false, toggleSidebar }) => {
               <span 
                 key={i} 
                 onClick={() => { setSearchQuery(keyword); navigate(`/products?search=${encodeURIComponent(keyword)}`); }}
-                style={{ cursor: 'pointer', hover: { textDecoration: 'underline' } }}
+                style={{ cursor: 'pointer' }}
               >
                 {keyword}
               </span>
@@ -157,7 +168,7 @@ const Navbar = ({ isAdminView = false, toggleSidebar }) => {
 
             {/* User Session Info */}
             {user ? (
-              <div style={{ position: 'relative' }}>
+              <div style={{ position: 'relative' }} ref={dropdownRef}>
                 <div
                   onClick={() => setShowDropdown(!showDropdown)}
                   style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}
@@ -165,7 +176,7 @@ const Navbar = ({ isAdminView = false, toggleSidebar }) => {
                   <img
                     src={user.avatar || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80'}
                     alt={user.name}
-                    style={{ width: '32px', height: '32px', borderRadius: '50%', border: '2px solid rgba(255,255,255,0.3)' }}
+                    style={{ width: '32px', height: '32px', borderRadius: '50%', border: '2px solid rgba(255,255,255,0.3)', objectFit: 'cover' }}
                   />
                   <span style={{ fontWeight: '700', color: '#f8fafc', fontSize: '0.88rem' }}>
                     {user.name.split(' ')[0]}
@@ -173,33 +184,55 @@ const Navbar = ({ isAdminView = false, toggleSidebar }) => {
                 </div>
 
                 {showDropdown && (
-                  <div style={{ position: 'absolute', right: 0, top: '40px', background: '#fff', color: '#334155', borderRadius: '8px', boxShadow: '0 10px 25px rgba(0,0,0,0.15)', minWidth: '160px', padding: '6px', zIndex: 1000, border: '1px solid #f1f5f9' }}>
+                  <div style={{ position: 'absolute', right: 0, top: '42px', background: '#fff', color: '#334155', borderRadius: '8px', boxShadow: '0 10px 25px rgba(0,0,0,0.18)', minWidth: '180px', padding: '6px', zIndex: 1000, border: '1px solid #e2e8f0' }}>
                     <button
-                      onClick={() => { navigate('/profile'); setShowDropdown(false); }}
-                      style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 12px', background: 'transparent', border: 'none', borderRadius: '6px', fontSize: '0.82rem', fontWeight: '600', color: '#334155', cursor: 'pointer', textAlign: 'left' }}
+                      onClick={() => { navigate('/profile?tab=biodata'); setShowDropdown(false); }}
+                      style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', background: 'transparent', border: 'none', borderRadius: '6px', fontSize: '0.84rem', fontWeight: '600', color: '#334155', cursor: 'pointer', textAlign: 'left' }}
+                      onMouseOver={(e) => e.currentTarget.style.background = '#f8fafc'}
+                      onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
                     >
-                      <User size={15} color="#0f4c81" /> Profil Saya
+                      <User size={16} color="#0f4c81" /> Profil Saya
                     </button>
                     <button
                       onClick={() => { navigate('/orders'); setShowDropdown(false); }}
-                      style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 12px', background: 'transparent', border: 'none', borderRadius: '6px', fontSize: '0.82rem', fontWeight: '600', color: '#334155', cursor: 'pointer', textAlign: 'left' }}
+                      style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', background: 'transparent', border: 'none', borderRadius: '6px', fontSize: '0.84rem', fontWeight: '600', color: '#334155', cursor: 'pointer', textAlign: 'left' }}
+                      onMouseOver={(e) => e.currentTarget.style.background = '#f8fafc'}
+                      onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
                     >
-                      <Package size={15} color="#0f4c81" /> Pesanan Saya
+                      <Package size={16} color="#0f4c81" /> Pesanan Saya
+                    </button>
+                    <button
+                      onClick={() => { navigate('/profile?tab=ulasan'); setShowDropdown(false); }}
+                      style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', background: 'transparent', border: 'none', borderRadius: '6px', fontSize: '0.84rem', fontWeight: '600', color: '#334155', cursor: 'pointer', textAlign: 'left' }}
+                      onMouseOver={(e) => e.currentTarget.style.background = '#f8fafc'}
+                      onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
+                    >
+                      <Star size={16} color="#f77f00" /> Ulasan Saya
+                    </button>
+                    <button
+                      onClick={() => { navigate('/profile?tab=wishlist'); setShowDropdown(false); }}
+                      style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', background: 'transparent', border: 'none', borderRadius: '6px', fontSize: '0.84rem', fontWeight: '600', color: '#334155', cursor: 'pointer', textAlign: 'left' }}
+                      onMouseOver={(e) => e.currentTarget.style.background = '#f8fafc'}
+                      onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
+                    >
+                      <Heart size={16} color="#ef4444" /> Wishlist Saya
                     </button>
                     {isAdmin && (
                       <button
                         onClick={() => { navigate('/admin/dashboard'); setShowDropdown(false); }}
-                        style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 12px', background: '#f0f9ff', border: 'none', borderRadius: '6px', fontSize: '0.82rem', fontWeight: '700', color: '#0f4c81', cursor: 'pointer', textAlign: 'left' }}
+                        style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', background: '#f0f9ff', border: 'none', borderRadius: '6px', fontSize: '0.84rem', fontWeight: '700', color: '#0f4c81', cursor: 'pointer', textAlign: 'left', marginTop: '4px' }}
                       >
-                        <ShieldCheck size={15} color="#0f4c81" /> Panel Admin
+                        <ShieldCheck size={16} color="#0f4c81" /> Panel Admin
                       </button>
                     )}
-                    <div style={{ height: '1px', background: '#f1f5f9', margin: '4px 0' }} />
+                    <div style={{ height: '1px', background: '#f1f5f9', margin: '6px 0' }} />
                     <button
                       onClick={handleLogout}
-                      style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 12px', background: 'transparent', border: 'none', borderRadius: '6px', fontSize: '0.82rem', fontWeight: '600', color: '#ef4444', cursor: 'pointer', textAlign: 'left' }}
+                      style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', background: 'transparent', border: 'none', borderRadius: '6px', fontSize: '0.84rem', fontWeight: '600', color: '#ef4444', cursor: 'pointer', textAlign: 'left' }}
+                      onMouseOver={(e) => e.currentTarget.style.background = '#fee2e2'}
+                      onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
                     >
-                      <LogOut size={15} /> Keluar
+                      <LogOut size={16} /> Keluar
                     </button>
                   </div>
                 )}
@@ -219,3 +252,5 @@ const Navbar = ({ isAdminView = false, toggleSidebar }) => {
 };
 
 export default Navbar;
+
+

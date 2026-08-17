@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Package, Clock, CheckCircle2, Truck, AlertCircle, ArrowRight, Eye, ChevronRight } from 'lucide-react';
+import { Package, Clock, CheckCircle2, Truck, AlertCircle, ArrowRight, Eye, ChevronRight, Star } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { orderService } from '../services/orderService';
 import { productService } from '../services/productService';
@@ -173,6 +173,15 @@ const Orders = () => {
                     >
                       Konfirmasi Selesai
                     </button>
+                  )}
+
+                  {order.status === 'Selesai' && (
+                    <Link
+                      to={`/products/${order.items?.[0]?.id || 1}`}
+                      style={{ padding: '0.5rem 1rem', borderRadius: '8px', border: 'none', background: '#f77f00', color: '#fff', fontSize: '0.8rem', fontWeight: '700', cursor: 'pointer', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}
+                    >
+                      <Star size={14} /> Beri Ulasan
+                    </Link>
                   )}
 
                   <Link
