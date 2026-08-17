@@ -4,6 +4,7 @@ import {
   ShoppingBag, 
   Flame, 
   ChevronRight, 
+  ChevronLeft, 
   Gift, 
   ShieldCheck, 
   Anchor, 
@@ -26,6 +27,30 @@ const Home = () => {
   const [loading, setLoading] = useState(true);
   const [currentSlide, setCurrentSlide] = useState(0);
   const [activeProductTab, setActiveProductTab] = useState('🌟 Rekomendasi Toko');
+
+  const catContainerRef = React.useRef(null);
+  const [scrollProgress, setScrollProgress] = useState(0);
+  const [canScroll, setCanScroll] = useState(false);
+
+  const updateScrollProgress = () => {
+    if (catContainerRef.current) {
+      const { scrollLeft, scrollWidth, clientWidth } = catContainerRef.current;
+      const maxScroll = scrollWidth - clientWidth;
+      if (maxScroll > 5) {
+        setCanScroll(true);
+        setScrollProgress(Math.min(1, Math.max(0, scrollLeft / maxScroll)));
+      } else {
+        setCanScroll(false);
+        setScrollProgress(0);
+      }
+    }
+  };
+
+  useEffect(() => {
+    updateScrollProgress();
+    window.addEventListener('resize', updateScrollProgress);
+    return () => window.removeEventListener('resize', updateScrollProgress);
+  }, [categories]);
 
   // Slides for Shopee-style carousel
   const slides = [
@@ -234,7 +259,11 @@ const Home = () => {
         </div>
 
         {/* Responsive Desktop 6-Grid / Mobile Swipeable Category Container */}
-        <div className="category-container-responsive">
+        <div 
+          className="category-container-responsive" 
+          ref={catContainerRef}
+          onScroll={updateScrollProgress}
+        >
           {categories.map((cat) => (
             <div 
               key={cat.id}
@@ -250,6 +279,36 @@ const Home = () => {
             </div>
           ))}
         </div>
+
+        {/* Custom Shopee-Style Horizontal Scrollbar Indicator Pill */}
+        {canScroll && (
+          <div style={{ display: 'flex', justifyContent: 'center', marginTop: '0.35rem' }}>
+            <div 
+              style={{
+                width: '46px',
+                height: '5px',
+                backgroundColor: '#e2e8f0',
+                borderRadius: '10px',
+                position: 'relative',
+                overflow: 'hidden'
+              }}
+            >
+              <div 
+                style={{
+                  width: '18px',
+                  height: '100%',
+                  backgroundColor: '#00a896',
+                  borderRadius: '10px',
+                  position: 'absolute',
+                  left: 0,
+                  top: 0,
+                  transform: `translateX(${scrollProgress * 28}px)`,
+                  transition: 'transform 0.05s ease-out'
+                }}
+              />
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Flash Sale Section */}
@@ -336,7 +395,9 @@ const Home = () => {
           if (filteredProducts.length === 0) {
             return (
               <div style={{ textAlign: 'center', padding: '3rem 1rem', color: '#64748b' }}>
-                Belum ada produk untuk filter "{activeProductTab}".
+                {regularProducts.length === 0 
+                  ? 'Belum ada produk tersedia.' 
+                  : `Belum ada produk untuk "${activeProductTab}".`}
               </div>
             );
           }

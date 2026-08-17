@@ -104,18 +104,7 @@ const Cart = () => {
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', paddingBottom: '5rem', background: '#f5f5f5', margin: '-1.5rem -1rem', padding: '1.5rem 1rem' }}>
       
       {/* Table Headers */}
-      <div style={{
-        background: '#fff',
-        borderRadius: '3px',
-        padding: '1rem',
-        boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
-        display: 'grid',
-        gridTemplateColumns: '50px 3fr 1.25fr 1.25fr 1.25fr 1fr',
-        alignItems: 'center',
-        fontSize: '0.85rem',
-        color: '#64748b',
-        fontWeight: '600'
-      }}>
+      <div className="cart-header-row">
         <div>
           <input 
             type="checkbox" 
@@ -169,32 +158,22 @@ const Cart = () => {
         {cart.map(({ product, qty }) => (
           <div 
             key={product.id} 
-            style={{
-              display: 'grid',
-              gridTemplateColumns: '50px 3fr 1.25fr 1.25fr 1.25fr 1fr',
-              alignItems: 'center',
-              padding: '1.25rem 1rem',
-              borderBottom: '1px solid #f8fafc'
-            }}
+            className="cart-item-row"
           >
-            {/* Selection Checkbox */}
-            <div>
+            {/* Selection Checkbox & Product Meta */}
+            <div className="cart-item-top">
               <input 
                 type="checkbox"
                 checked={selectedIds.includes(product.id)}
                 onChange={() => toggleSelect(product.id)}
-                style={{ cursor: 'pointer', transform: 'scale(1.2)', accentColor: '#f77f00' }}
+                style={{ cursor: 'pointer', transform: 'scale(1.2)', accentColor: '#f77f00', marginTop: '4px' }}
               />
-            </div>
-
-            {/* Product Meta */}
-            <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
               <img 
                 src={product.image} 
                 alt={product.name} 
-                style={{ width: '80px', height: '80px', objectFit: 'cover', borderRadius: '4px', border: '1px solid #e2e8f0' }}
+                style={{ width: '75px', height: '75px', objectFit: 'cover', borderRadius: '4px', border: '1px solid #e2e8f0', flexShrink: 0 }}
               />
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1 }}>
                 <h4 style={{ fontSize: '0.88rem', fontWeight: '700', color: '#1e293b', lineHeight: 1.3, margin: 0 }}>
                   {product.name}
                 </h4>
@@ -206,16 +185,15 @@ const Cart = () => {
                     Garansi Ori
                   </span>
                 </div>
+                <div style={{ fontSize: '0.85rem', color: '#f77f00', fontWeight: '700', marginTop: '2px' }}>
+                  {productService.formatIDR(product.price)}
+                </div>
               </div>
             </div>
 
-            {/* Unit Price */}
-            <div style={{ textAlign: 'center', fontSize: '0.9rem', color: '#1e293b', fontWeight: '600' }}>
-              {productService.formatIDR(product.price)}
-            </div>
-
-            {/* Quantity Selector */}
-            <div style={{ display: 'flex', justifyContent: 'center' }}>
+            {/* Quantity Selector, Subtotal & Actions */}
+            <div className="cart-item-bottom">
+              {/* Quantity Selector */}
               <div style={{ display: 'flex', alignItems: 'center', border: '1px solid #cbd5e1', borderRadius: '2px' }}>
                 <button
                   onClick={() => updateQuantity(product.id, qty - 1)}
@@ -234,20 +212,11 @@ const Cart = () => {
                   <Plus size={12} />
                 </button>
               </div>
-            </div>
 
-            {/* Total Price */}
-            <div style={{ textAlign: 'center', fontSize: '0.95rem', fontWeight: '800', color: '#f77f00' }}>
-              {productService.formatIDR(product.price * qty)}
-            </div>
-
-            {/* Action Buttons */}
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+              {/* Action Delete */}
               <button
                 onClick={() => removeFromCart(product.id)}
-                style={{ background: 'none', border: 'none', color: '#475569', fontSize: '0.82rem', cursor: 'pointer', fontWeight: '600' }}
-                onMouseOver={(e) => e.currentTarget.style.color = '#ef4444'}
-                onMouseOut={(e) => e.currentTarget.style.color = '#475569'}
+                style={{ background: 'none', border: 'none', color: '#ef4444', fontSize: '0.82rem', cursor: 'pointer', fontWeight: '600' }}
               >
                 Hapus
               </button>
@@ -256,8 +225,6 @@ const Cart = () => {
           </div>
         ))}
       </div>
-
-
 
       {/* Shopee-style Sticky Footer Navigation */}
       <div style={{
@@ -270,26 +237,17 @@ const Cart = () => {
         zIndex: 900,
         padding: '0'
       }}>
-        <div style={{
-          maxWidth: '1200px',
-          margin: '0 auto',
-          padding: '0.75rem 2rem',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: '1rem'
-        }}>
+        <div className="cart-sticky-footer-inner">
           {/* Left Footer Actions */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', fontSize: '0.88rem', color: '#334155' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', fontSize: '0.85rem', color: '#334155', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <input 
                 type="checkbox" 
                 checked={selectedIds.length === cart.length && cart.length > 0}
                 onChange={toggleSelectAll}
                 style={{ cursor: 'pointer', transform: 'scale(1.2)', accentColor: '#f77f00' }}
               />
-              <span style={{ fontWeight: '600' }}>Pilih Semua ({cart.length})</span>
+              <span style={{ fontWeight: '600' }}>Semua ({cart.length})</span>
             </div>
             <button 
               onClick={deleteSelected}
@@ -302,21 +260,15 @@ const Cart = () => {
               onClick={clearCart}
               style={{ background: 'none', border: 'none', color: '#00a896', fontWeight: '700', cursor: 'pointer' }}
             >
-              Kosongkan Keranjang
+              Kosongkan
             </button>
           </div>
 
           {/* Right Footer Calculations & CTA */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '2rem' }}>
+          <div className="cart-footer-right">
             <div style={{ textAlign: 'right' }}>
-              <div style={{ fontSize: '0.9rem', color: '#1e293b', fontWeight: '600' }}>
-                Total ({selectedProductsCount} produk):{' '}
-                <span style={{ fontSize: '1.5rem', fontWeight: '800', color: '#f77f00' }}>
-                  {productService.formatIDR(grandTotal)}
-                </span>
-              </div>
-              <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '2px' }}>
-                Sudah termasuk Estimasi Ongkir {productService.formatIDR(shippingFee)}
+              <div style={{ fontSize: '0.88rem', color: '#1e293b', fontWeight: '600' }}>
+                Total: <span style={{ fontSize: '1.25rem', fontWeight: '800', color: '#f77f00' }}>{productService.formatIDR(grandTotal)}</span>
               </div>
             </div>
 
@@ -327,8 +279,8 @@ const Cart = () => {
                 background: selectedIds.length > 0 ? 'linear-gradient(135deg, #f77f00 0%, #e85d04 100%)' : '#cbd5e1',
                 color: '#fff',
                 border: 'none',
-                padding: '1rem 2.5rem',
-                fontSize: '1rem',
+                padding: '0.75rem 1.75rem',
+                fontSize: '0.95rem',
                 fontWeight: '800',
                 cursor: selectedIds.length > 0 ? 'pointer' : 'not-allowed',
                 borderRadius: '4px',
@@ -336,7 +288,7 @@ const Cart = () => {
                 boxShadow: selectedIds.length > 0 ? '0 4px 14px rgba(247,127,0,0.3)' : 'none'
               }}
             >
-              Checkout
+              Checkout ({selectedProductsCount})
             </button>
           </div>
         </div>

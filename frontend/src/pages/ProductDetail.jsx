@@ -131,15 +131,15 @@ const ProductDetail = () => {
       </div>
 
       {/* Main Container */}
-      <div style={{ 
-        background: '#fff', 
-        borderRadius: '3px', 
-        padding: '1.5rem', 
-        boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))',
-        gap: '2.5rem'
-      }}>
+      <div 
+        className="product-detail-grid"
+        style={{ 
+          background: '#fff', 
+          borderRadius: '3px', 
+          padding: '1.5rem', 
+          boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
+        }}
+      >
         
         {/* Left Column: Image Gallery & Social */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -471,19 +471,17 @@ const ProductDetail = () => {
       </div>
 
       {/* Shopee-style Merchant Card Section */}
-      <div style={{ 
-        background: '#fff', 
-        borderRadius: '3px', 
-        padding: '1.5rem', 
-        boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
-        display: 'grid',
-        gridTemplateColumns: '1.25fr 2.5fr',
-        gap: '2rem',
-        alignItems: 'center',
-        flexWrap: 'wrap'
-      }}>
+      <div 
+        className="merchant-card-grid"
+        style={{ 
+          background: '#fff', 
+          borderRadius: '3px', 
+          padding: '1.5rem', 
+          boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
+        }}
+      >
         {/* Left Side: Merchant Info */}
-        <div style={{ display: 'flex', gap: '16px', alignItems: 'center', borderRight: '1px solid #f1f5f9', paddingRight: '2rem' }}>
+        <div className="merchant-card-left" style={{ display: 'flex', gap: '16px', alignItems: 'center', borderRight: '1px solid #f1f5f9', paddingRight: '2rem' }}>
           <div style={{ 
             width: '64px', 
             height: '64px', 
