@@ -944,10 +944,22 @@ button, input, select, textarea {
 
 /* Responsive Layout Utilities for Product Detail, Cart, and Catalog */
 
+.product-detail-page-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  width: 100%;
+}
+
 .product-detail-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 420px 1fr;
   gap: 2.5rem;
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 2rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+  border: 1px solid #e2e8f0;
 }
 
 .merchant-card-grid {
@@ -955,6 +967,22 @@ button, input, select, textarea {
   grid-template-columns: 1.25fr 2.5fr;
   gap: 2rem;
   align-items: center;
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 1.5rem;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+}
+
+.product-detail-desc-box {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 1.5rem;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
 }
 
 .cart-header-row {
@@ -995,18 +1023,85 @@ button, input, select, textarea {
   gap: 1.25rem;
 }
 
+.mobile-tokopedia-header {
+  display: none;
+}
+
+.tokopedia-mobile-bottom-bar {
+  display: none;
+}
+
+.shopee-info-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.85rem 0;
+  border-bottom: 1px solid #f8fafc;
+  font-size: 0.82rem;
+  color: #334155;
+  cursor: pointer;
+}
+
 /* Mobile Responsiveness (<= 768px) */
 @media (max-width: 768px) {
+  body:has(.product-detail-page-wrapper) header {
+    display: none !important;
+  }
+
+  body:has(.product-detail-page-wrapper) .user-layout-main {
+    padding: 0 !important;
+    margin: 0 !important;
+    max-width: 100% !important;
+    width: 100% !important;
+  }
+
+  .product-detail-page-wrapper {
+    margin: 0 !important;
+    padding: 0 0 4.5rem 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    overflow-x: hidden !important;
+    gap: 0 !important;
+    background: #f1f5f9 !important;
+  }
+
+  .product-detail-breadcrumb {
+    display: none !important;
+  }
+
   .product-detail-grid {
     grid-template-columns: 1fr !important;
-    gap: 1.5rem !important;
+    border-radius: 0 !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+    border: none !important;
+    gap: 0 !important;
+    background: transparent !important;
+  }
+
+  .product-detail-image-box {
+    border-radius: 0 !important;
+    border: none !important;
+    width: 100% !important;
+    aspect-ratio: 1 !important;
+    background: #ffffff !important;
+  }
+
+  .product-detail-info-box {
     padding: 1rem !important;
+    background: #fff !important;
+    margin-top: 0.5rem;
   }
 
   .merchant-card-grid {
     grid-template-columns: 1fr !important;
-    gap: 1.25rem !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    border: none !important;
+    margin-top: 0.5rem !important;
     padding: 1rem !important;
+    background: #fff !important;
   }
 
   .merchant-card-left {
@@ -1014,6 +1109,15 @@ button, input, select, textarea {
     padding-right: 0 !important;
     border-bottom: 1px solid #f1f5f9;
     padding-bottom: 1rem;
+  }
+
+  .product-detail-desc-box {
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    border: none !important;
+    margin-top: 0.5rem !important;
+    padding: 1rem !important;
+    background: #fff !important;
   }
 
   .cart-header-row {
@@ -1067,6 +1171,289 @@ button, input, select, textarea {
   .product-detail-label {
     width: auto !important;
     min-width: 80px;
+  }
+
+  .mobile-tokopedia-header {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    height: 52px !important;
+    padding: 0 1rem !important;
+    background: #ffffff !important;
+    border-bottom: 1px solid #e2e8f0 !important;
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 1000 !important;
+  }
+
+  .mobile-header-btn {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px;
+  }
+
+  .mobile-header-cart-badge {
+    position: absolute;
+    top: -2px;
+    right: -4px;
+    background: #ee4d2d;
+    color: #ffffff;
+    font-size: 0.6rem;
+    font-weight: 800;
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .tokopedia-mobile-bottom-bar {
+    display: flex !important;
+    align-items: center !important;
+    gap: 10px !important;
+    padding: 8px 12px !important;
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    background: #ffffff !important;
+    box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.08) !important;
+    z-index: 1000 !important;
+  }
+
+  .tokopedia-btn-chat {
+    width: 44px;
+    height: 40px;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    background: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+
+  .tokopedia-btn-cart {
+    flex: 1;
+    height: 40px;
+    border: 1.5px solid #00a896;
+    border-radius: 8px;
+    background: #ffffff;
+    color: #00a896;
+    font-size: 0.88rem;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  .tokopedia-btn-buy {
+    flex: 1;
+    height: 40px;
+    border: none;
+    border-radius: 8px;
+    background: #f77f00;
+    color: #ffffff;
+    font-size: 0.88rem;
+    font-weight: 800;
+    cursor: pointer;
+  }
+}
+
+/* Shopee Mobile Product Detail CSS Rules */
+.mobile-top-overlay {
+  display: none;
+}
+
+.mobile-image-badge {
+  display: none;
+}
+
+.mobile-bottom-bar {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .mobile-top-overlay {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    right: 12px;
+    z-index: 50;
+  }
+
+  .mobile-float-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(4px);
+    color: #ffffff;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  }
+
+  .mobile-cart-badge {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    background: #ee4d2d;
+    color: #fff;
+    font-size: 0.6rem;
+    font-weight: 800;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .mobile-image-badge {
+    display: block;
+    position: absolute;
+    bottom: 12px;
+    right: 12px;
+    background: rgba(0, 0, 0, 0.45);
+    backdrop-filter: blur(2px);
+    color: #ffffff;
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 12px;
+    z-index: 10;
+  }
+
+  .mobile-bottom-bar {
+    display: flex;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 54px;
+    background: #ffffff;
+    z-index: 1000;
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.08);
+  }
+
+  .mobile-bottom-btn-chat,
+  .mobile-bottom-btn-cart {
+    width: 65px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: #00a896;
+    color: #ffffff;
+    border: none;
+    border-right: 1px solid rgba(255, 255, 255, 0.2);
+    cursor: pointer;
+  }
+
+  .mobile-bottom-btn-buy {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f77f00;
+    color: #ffffff;
+    font-size: 0.95rem;
+    font-weight: 800;
+    border: none;
+    cursor: pointer;
+  }
+
+  .desktop-action-buttons {
+    display: none !important;
+  }
+
+  .desktop-only-thumbnails {
+    display: none !important;
+  }
+
+  .tokopedia-btn-cart {
+    flex: 1;
+    height: 40px;
+    border: 1.5px solid #00a896;
+    border-radius: 8px;
+    background: #ffffff;
+    color: #00a896;
+    font-size: 0.88rem;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  .tokopedia-btn-buy {
+    flex: 1;
+    height: 40px;
+    border: none;
+    border-radius: 8px;
+    background: #f77f00;
+    color: #ffffff;
+    font-size: 0.88rem;
+    font-weight: 800;
+    cursor: pointer;
+  }
+}
+
+/* Mobile Profile Page Responsive Layout */
+.profile-page-grid {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  gap: 1.5rem;
+  align-items: flex-start;
+  max-width: 1150px;
+  margin: 0 auto;
+}
+
+@media (max-width: 768px) {
+  .profile-page-grid {
+    grid-template-columns: 1fr !important;
+    gap: 1rem !important;
+  }
+
+  .profile-tabs-scroll-mobile {
+    display: flex !important;
+    gap: 8px !important;
+    overflow-x: auto !important;
+    padding: 8px 4px !important;
+    margin-bottom: 12px !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .profile-tabs-scroll-mobile::-webkit-scrollbar {
+    display: none;
+  }
+
+  .profile-tab-chip {
+    flex-shrink: 0 !important;
+    padding: 8px 16px !important;
+    border-radius: 20px !important;
+    font-size: 0.82rem !important;
+    font-weight: 700 !important;
+    cursor: pointer !important;
+    border: 1px solid #e2e8f0 !important;
+    background: #ffffff !important;
+    color: #475569 !important;
+    white-space: nowrap !important;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  }
+
+  .profile-tab-chip.active {
+    background: #00a896 !important;
+    color: #ffffff !important;
+    border-color: #00a896 !important;
   }
 }
 

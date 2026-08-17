@@ -236,8 +236,49 @@ const Profile = () => {
 
 
   return (
-    <div style={{ background: '#f5f5f5', margin: '-1.5rem -1rem', padding: '1.5rem 1rem', minHeight: '88vh' }}>
-      <div style={{ maxWidth: '1150px', margin: '0 auto', display: 'grid', gridTemplateColumns: '260px 1fr', gap: '1.5rem', alignItems: 'flex-start' }}>
+    <div style={{ background: '#f5f5f5', margin: '-1.5rem -1rem', padding: '1.25rem 1rem', minHeight: '88vh' }}>
+      
+      {/* Mobile Top Horizontal Scrollable Tab Bar */}
+      <div className="profile-tabs-scroll-mobile" style={{ display: 'none' }}>
+        <button 
+          onClick={() => setActiveTab('biodata')} 
+          className={`profile-tab-chip ${activeTab === 'biodata' ? 'active' : ''}`}
+        >
+          👤 Biodata
+        </button>
+        <button 
+          onClick={() => navigate('/orders')} 
+          className="profile-tab-chip"
+        >
+          📦 Transaksi
+        </button>
+        <button 
+          onClick={() => setActiveTab('chat')} 
+          className={`profile-tab-chip ${activeTab === 'chat' ? 'active' : ''}`}
+        >
+          💬 Chat
+        </button>
+        <button 
+          onClick={() => setActiveTab('ulasan')} 
+          className={`profile-tab-chip ${activeTab === 'ulasan' ? 'active' : ''}`}
+        >
+          ⭐ Ulasan
+        </button>
+        <button 
+          onClick={() => setActiveTab('wishlist')} 
+          className={`profile-tab-chip ${activeTab === 'wishlist' ? 'active' : ''}`}
+        >
+          ❤️ Wishlist
+        </button>
+        <button 
+          onClick={() => setActiveTab('bantuan')} 
+          className={`profile-tab-chip ${activeTab === 'bantuan' ? 'active' : ''}`}
+        >
+          ❓ Bantuan
+        </button>
+      </div>
+
+      <div className="profile-page-grid">
         
         {/* ================= LEFT SIDEBAR PANEL ================= */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>

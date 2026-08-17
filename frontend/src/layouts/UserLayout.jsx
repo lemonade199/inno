@@ -8,7 +8,7 @@ const UserLayout = () => {
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', background: '#f8fafc' }}>
       <Navbar isAdminView={false} />
       
-      <main style={{ flex: 1, maxWidth: '1200px', width: '100%', margin: '0 auto', padding: '1.5rem 1rem' }}>
+      <main className="user-layout-main" style={{ flex: 1, maxWidth: '1200px', width: '100%', margin: '0 auto', padding: '1.5rem 1rem' }}>
         <Outlet />
       </main>
 
