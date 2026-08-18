@@ -1,59 +1,237 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+<div align="center">
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+  <img src="frontend/public/logo.png" alt="Berkah Pancing Logo" width="120" height="120" style="border-radius: 50%; object-fit: contain;" />
 
-## About Laravel
+  # 🎣 BERKAH PANCING E-COMMERCE PLATFORM
+  **Solusi Terlengkap Kebutuhan Pakan Ternak, Pelet Ikan, Umpan Racikan & Piranti Pancing Indonesia**
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+  [![Laravel](https://img.shields.io/badge/Laravel-11.x-FF2D20?style=for-the-badge&logo=laravel&logoColor=white)](https://laravel.com)
+  [![React](https://img.shields.io/badge/React-18.x-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://react.dev)
+  [![Vite](https://img.shields.io/badge/Vite-5.x-646CFF?style=for-the-badge&logo=vite&logoColor=white)](https://vitejs.dev)
+  [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)](https://tailwindcss.com)
+  [![MySQL](https://img.shields.io/badge/MySQL-4479A1?style=for-the-badge&logo=mysql&logoColor=white)](https://mysql.com)
+  [![Midtrans](https://img.shields.io/badge/Payment-Midtrans_Snap-002855?style=for-the-badge&logo=mastercard&logoColor=white)](https://midtrans.com)
+  [![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](LICENSE)
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+  <p align="center">
+    <a href="#-tentang-proyek">Tentang Proyek</a> •
+    <a href="#-fitur-utama">Fitur Utama</a> •
+    <a href="#-teknologi--stack">Teknologi</a> •
+    <a href="#-struktur-direktori">Struktur Direktori</a> •
+    <a href="#-panduan-instalasi">Instalasi & Menjalankan</a> •
+    <a href="#-akun-demo">Akun Demo</a> •
+    <a href="#-kontribusi--lisensi">Lisensi</a>
+  </p>
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+</div>
 
-## Learning Laravel
+---
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+## 📖 Tentang Proyek
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+**Berkah Pancing** adalah platform e-commerce terintegrasi dan modern yang dirancang khusus untuk memenuhi kebutuhan peternak unggas, pembudidaya ikan, serta pemancing profesional di seluruh Indonesia. 
 
-## Laravel Sponsors
+Dibangun dengan arsitektur **Decoupled (Headless API)** menggunakan backend **Laravel** yang tangguh dan frontend **React + Vite** yang responsif, cepat, serta mobile-friendly dengan mengadopsi standar pengalaman belanja terdepan (*Shopee / Tokopedia inspired UI/UX*).
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+---
 
-### Premium Partners
+## ✨ Fitur Utama
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+### 🛍️ 1. Customer & Pembeli Portal
+- 🔍 **Pencarian Cerdas & Cepat**: Auto-suggest, histori pencarian lokal, filter kategori, dan sortir harga/terbaru.
+- 📦 **Katalog Produk Lengkap**: Galeri foto dinamis, stok real-time, badge kategori, dan detail spesifikasi produk.
+- 🛒 **Keranjang Belanja Interaktif**: 
+  - Multi-select checkbox produk per item.
+  - Stepper kuantitas responsif dengan validasi batas stok.
+  - Perhitungan subtotal dan total harga real-time.
+  - Tampilan *seamless* edge-to-edge khusus perangkat mobile.
+- 💳 **Checkout & Pembayaran Terintegrasi (Midtrans)**:
+  - Integrasi Midtrans Snap (Virtual Account, QRIS, GoPay, ShopeePay, Kartu Kredit).
+  - Pilihan metode pengiriman (Reguler, Kargo, Sameday).
+- 👤 **Manajemen Profil & Alamat Pelanggan**:
+  - Unggah foto profil dengan fitur **Interactive Image Cropper** dan inisial avatar otomatis.
+  - Buku alamat pengiriman dengan integrasi cascading wilayah (Provinsi, Kota/Kabupaten, Kecamatan, Kode Pos).
+- ⭐ **Ulasan & Rating Produk**: Penilaian bintang 1–5, ulasan teks pembeli terverifikasi, dan galeri foto ulasan.
+- 💬 **Live Chat Customer Service**: Komunikasi langsung dengan admin toko secara real-time.
 
-## Contributing
+---
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+### 🛡️ 2. Admin Management Dashboard
+- 📊 **Dashboard Analitik & KPI**:
+  - Statistik ringkasan pendapatan harian/bulanan.
+  - Total transaksi, jumlah produk aktif, dan status pesanan baru.
+- 🗂️ **CRUD Manajemen Kategori**:
+  - Tambah, ubah, dan hapus kategori produk.
+  - Visual selector icon kategori dan penghitungan otomatis jumlah produk per kategori.
+- 📦 **CRUD Manajemen Produk**:
+  - Manajemen katalog, upload foto produk, penetapan harga, bobot pengiriman, dan kontrol stok.
+- 📑 **Manajemen Pesanan & Transaksi**:
+  - Pemantauan status pesanan (*Menunggu Pembayaran, Diproses, Dikirim, Selesai, Dibatalkan*).
+  - Update nomor resi pengiriman (*Tracking Number*).
+- 💬 **Helpdesk & Chat Inbox**:
+  - Pusat layanan pesan pelanggan dengan notifikasi pesan belum dibaca (*Unread Badges*).
+- 🔔 **Pusat Notifikasi Toko**: Notifikasi instan untuk pesanan baru, pembayaran berhasil, dan pesan masuk.
 
-## Code of Conduct
+---
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+## 🛠️ Teknologi & Stack
 
-## Security Vulnerabilities
+| Layer | Teknologi / Library | Kegunaan |
+| :--- | :--- | :--- |
+| **Backend** | [Laravel 11.x](https://laravel.com/) | RESTful API Engine, ORM Eloquent, MVC Architecture |
+| **Authentication** | [Laravel Sanctum](https://laravel.com/docs/sanctum) | Secure SPA Token-Based Authentication |
+| **Database** | MySQL / MariaDB | Relational Database Storage |
+| **Frontend Framework** | [React 18 / 19](https://react.dev/) | Client-Side SPA Reactive Interface |
+| **Build Tool** | [Vite 5 / 6](https://vitejs.dev/) | Ultra-Fast Bundler & Hot Module Replacement (HMR) |
+| **Routing** | [React Router DOM v6](https://reactrouter.com/) | Client-side Nested Routing & Protected Routes |
+| **Icons** | [Lucide React](https://lucide.dev/) | Modern, Clean & Consistent Feather-style Icons |
+| **Payment Gateway**| [Midtrans Snap](https://midtrans.com/) | Gateway Pembayaran Nasional (VA, QRIS, E-Wallet) |
+| **Styling** | Vanilla CSS + Design Tokens | Custom Component Styles, Dark/Light palettes, Mobile Fluid Media Queries |
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+---
 
-## License
+## 📂 Struktur Direktori
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+```text
+inno/
+├── app/                        # Backend Core Logic (Laravel)
+│   ├── Http/
+│   │   └── Controllers/        # Auth, Product, Category, Order, Chat Controllers
+│   └── Models/                 # Eloquent Models (User, Product, Category, Order, dll)
+├── config/                     # Konfigurasi Laravel & Layanan Pihak Ketiga
+├── database/
+│   ├── migrations/             # Migrasi Database Skema Tabel
+│   └── seeders/                # Seeder Data Awal (User, Category, Product)
+├── routes/
+│   ├── api.php                 # API Endpoint Definitions
+│   └── web.php                 # Web & View Routes
+│
+├── frontend/                   # Frontend SPA (React + Vite)
+│   ├── public/                 # Static Assets (Logo, Favicon, Brand Images)
+│   └── src/
+│       ├── assets/             # Gambar & Ilustrasi
+│       ├── components/         # Komponen Reusable (Navbar, Sidebar, Avatar, Cropper, dll)
+│       ├── context/            # Global State (AuthContext, CartContext, NotificationContext)
+│       ├── layouts/            # Layout Wrapper (UserLayout, AdminLayout)
+│       ├── pages/              # Halaman Aplikasi (Home, Cart, Checkout, Profile, Admin)
+│       ├── services/           # Axios HTTP Clients & Data Handlers (api, product, order)
+│       ├── index.css           # Global Styles & Responsive Media Queries
+│       └── App.jsx             # Root Routing Router
+└── README.md
+```
+
+---
+
+## 🚀 Panduan Instalasi
+
+Pastikan komputer Anda telah terinstal:
+- **PHP >= 8.2**
+- **Composer >= 2.x**
+- **Node.js >= 18.x & npm**
+- **MySQL / MariaDB Database Server**
+
+### 1. Clone Repository
+```bash
+git clone https://github.com/lemonade199/inno.git
+cd inno
+```
+
+---
+
+### 2. Konfigurasi Backend (Laravel)
+
+```bash
+# 1. Install dependensi PHP
+composer install
+
+# 2. Salin file environment
+cp .env.example .env
+
+# 3. Generate Application Encryption Key
+php artisan key:generate
+
+# 4. Konfigurasi Database di file .env:
+# DB_CONNECTION=mysql
+# DB_HOST=127.0.0.1
+# DB_PORT=3306
+# DB_DATABASE=berkah_pancing
+# DB_USERNAME=root
+# DB_PASSWORD=
+
+# 5. Jalankan Migrasi & Database Seeder
+php artisan migrate:fresh --seed
+
+# 6. Buat Symlink Storage
+php artisan storage:link
+
+# 7. Jalankan Server Backend
+php artisan serve
+```
+> Server backend akan aktif di: `http://127.0.0.1:8000`
+
+---
+
+### 3. Konfigurasi Frontend (React + Vite)
+
+Buka terminal baru:
+
+```bash
+# 1. Masuk ke direktori frontend
+cd frontend
+
+# 2. Install dependensi Node.js
+npm install
+
+# 3. Jalankan Vite Development Server
+npm run dev
+```
+> Aplikasi web akan aktif di: `http://localhost:5173`
+
+---
+
+## 🔐 Akun Demo untuk Pengujian
+
+Setelah menjalankan `php artisan migrate --seed`, Anda dapat langsung login menggunakan akun default berikut:
+
+| Peran (Role) | Email | Password | Hak Akses |
+| :--- | :--- | :--- | :--- |
+| **Administrator** | `admin@berkahpancing.com` | `password` | Akses penuh dashboard admin, kelola produk, kategori, pesanan, & live chat |
+| **Pelanggan 1** | `julianto@gmail.com` | `password` | Berbelanja, checkout Midtrans, kelola profil, ulasan, & keranjang |
+| **Pelanggan 2** | `budi.santoso@yahoo.com` | `password` | Akun pembeli aktif |
+
+---
+
+## 📡 Daftar Endpoint API Utama
+
+| Method | Endpoint | Deskripsi | Hak Akses |
+| :--- | :--- | :--- | :--- |
+| `POST` | `/api/login` | Autentikasi Pengguna & Dapatkan Bearer Token | Publik |
+| `POST` | `/api/register` | Pendaftaran Akun Pelanggan Baru | Publik |
+| `GET` | `/api/products` | Mengambil seluruh katalog produk | Publik |
+| `GET` | `/api/categories` | Mengambil seluruh data kategori aktif | Publik |
+| `GET` | `/api/user` | Mengambil profil user yang sedang login | Auth (Sanctum) |
+| `POST`| `/api/user/profile` | Update nama, no. HP, alamat, & avatar foto | Auth (Sanctum) |
+| `POST`| `/api/orders` | Membuat pesanan baru & checkout Snap Midtrans | Auth (Sanctum) |
+| `POST`| `/api/admin/categories` | Tambah kategori baru | Admin Only |
+| `PUT` | `/api/admin/categories/{id}` | Update informasi kategori | Admin Only |
+| `DELETE`| `/api/admin/categories/{id}`| Hapus kategori | Admin Only |
+| `POST`| `/api/admin/products` | Tambah produk baru | Admin Only |
+
+---
+
+## 🏢 Informasi Toko Resmi
+
+- 📍 **Alamat**: Jln. Cibiru Hilir RT 02 / RW 03, Desa Cibiru Hilir, Kec. Cileunyi, Kab. Bandung, Jawa Barat 40624
+- 📞 **WhatsApp / CS**: [+62 857-2172-6584](https://wa.me/6285721726584)
+- ✉️ **Email Resmi**: [BerkahPancing@gmail.com](mailto:BerkahPancing@gmail.com)
+- ⏰ **Jam Operasional**: Buka Setiap Hari: 06.00 WIB s/d Malam (Tutup)
+
+---
+
+## 📄 Lisensi
+
+Proyek ini dirilis di bawah lisensi [MIT License](LICENSE). Anda bebas untuk menggunakan, mengembangkan, dan memodifikasi kode ini untuk keperluan edukasi maupun komersial.
+
+<div align="center">
+  <sub>Developed with ❤️ for Indonesian Anglers & Farmers Community.</sub>
+</div>
