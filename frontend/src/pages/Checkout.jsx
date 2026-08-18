@@ -6,7 +6,6 @@ import {
   MapPin, 
   CheckCircle2, 
   ArrowLeft, 
-  QrCode, 
   Banknote,
   ChevronRight
 } from 'lucide-react';
@@ -19,10 +18,13 @@ import api from '../services/api';
 import MapLocationPicker from '../components/MapLocationPicker';
 
 const Checkout = () => {
-  const { cart, getCartTotal, clearCart } = useCart();
+  const { cart, checkoutPayload, getCartTotal, clearCart, commitCheckout } = useCart();
   const { user, addresses } = useAuth();
   const { addNotification } = useNotification();
   const navigate = useNavigate();
+
+  // The active items we are checking out
+  const activeItems = (checkoutPayload && checkoutPayload.length > 0) ? checkoutPayload : cart;
 
   const [formData, setFormData] = useState({
     name: user?.name || '',
@@ -41,23 +43,24 @@ const Checkout = () => {
   const [selectedService, setSelectedService] = useState(null);
   const [isLoadingShipping, setIsLoadingShipping] = useState(false);
 
-  const [editingAddress, setEditingAddress] = useState(false);
+  const [editingAddress, setEditingAddress] = useState(true);
   const [showMapModal, setShowMapModal] = useState(false);
   const [showSavedAddressesModal, setShowSavedAddressesModal] = useState(false);
   const [pendingCityName, setPendingCityName] = useState(null);
   const [selectedLocation, setSelectedLocation] = useState(null);
   const [submitting, setSubmitting] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState('QRIS');
+  const [paymentMethod, setPaymentMethod] = useState('Midtrans');
+  const [deliveryMethod, setDeliveryMethod] = useState('delivery'); // 'delivery' | 'pickup'
 
-  const subtotal = getCartTotal();
+  const subtotal = getCartTotal(activeItems);
 
-  // Load Provinces
+  // Load Provinces (data statis, selalu berhasil)
   useEffect(() => {
     shippingService.getProvinces().then(res => {
-      if (res.status === 'success') {
+      if (res.status === 'success' && res.data.length > 0) {
         setProvinces(res.data);
       }
-    }).catch(err => console.error("Error loading provinces:", err));
+    });
   }, []);
 
   // Load Cities when Province changes
@@ -66,24 +69,26 @@ const Checkout = () => {
       setCities([]);
       if (!pendingCityName) setSelectedCity(null);
       
-      shippingService.getCities(selectedProvince.province_id).then(res => {
-        if (res.status === 'success') {
-          setCities(res.data);
-          if (pendingCityName) {
-            // Find city matching the pending name
-            const searchCity = pendingCityName.trim().toUpperCase();
-            const foundCity = res.data.find(c => 
-              (c.type + ' ' + c.city_name).toUpperCase() === searchCity ||
-              c.city_name.toUpperCase() === searchCity ||
-              searchCity.includes(c.city_name.toUpperCase())
-            );
-            if (foundCity) {
-              setSelectedCity(foundCity);
+      if (selectedProvince.province_id) {
+        shippingService.getCities(selectedProvince.province_id).then(res => {
+          if (res.status === 'success') {
+            setCities(res.data);
+            if (pendingCityName) {
+              // Find city matching the pending name
+              const searchCity = pendingCityName.trim().toUpperCase();
+              const foundCity = res.data.find(c => 
+                (c.type + ' ' + c.city_name).toUpperCase() === searchCity ||
+                c.city_name.toUpperCase() === searchCity ||
+                searchCity.includes(c.city_name.toUpperCase())
+              );
+              if (foundCity) {
+                setSelectedCity(foundCity);
+              }
+              setPendingCityName(null);
             }
-            setPendingCityName(null);
           }
-        }
-      });
+        });
+      }
     }
   }, [selectedProvince, pendingCityName]);
 
@@ -116,12 +121,12 @@ const Checkout = () => {
 
   // Load Shipping Cost when City changes
   useEffect(() => {
-    if (selectedCity && cart.length > 0) {
+    if (selectedCity && activeItems.length > 0) {
       setIsLoadingShipping(true);
       setShippingCostData(null);
       setSelectedService(null);
 
-      const items = cart.map(item => ({ id: item.product.id, qty: item.qty }));
+      const items = activeItems.map(item => ({ id: item.product.id, qty: item.qty }));
 
       shippingService.calculateCost(selectedCity.city_id, items, 'jne')
         .then(res => {
@@ -139,13 +144,14 @@ const Checkout = () => {
           setIsLoadingShipping(false);
         });
     }
-  }, [selectedCity, cart]);
+  }, [selectedCity, activeItems]);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
   const getShippingFee = () => {
+    if (deliveryMethod === 'pickup') return 0; // Ambil di tempat: gratis ongkir
     if (selectedService) return selectedService.price;
     return 0;
   };
@@ -165,13 +171,15 @@ const Checkout = () => {
   const handleSubmitOrder = async (e) => {
     if (e) e.preventDefault();
     
-    if (!selectedProvince || !selectedCity || !formData.addressDetail) {
-      alert('Mohon lengkapi alamat pengiriman');
-      return;
-    }
-    if (!selectedService) {
-      alert('Mohon pilih layanan pengiriman (kurir) yang tersedia');
-      return;
+    if (deliveryMethod === 'delivery') {
+      if (!selectedProvince || !selectedCity || !formData.addressDetail) {
+        alert('Mohon lengkapi alamat pengiriman (Provinsi, Kota, dan Detail Jalan)');
+        return;
+      }
+      if (!selectedService) {
+        alert('Mohon pilih layanan pengiriman (kurir) yang tersedia');
+        return;
+      }
     }
 
     setSubmitting(true);
@@ -181,20 +189,20 @@ const Checkout = () => {
       customerEmail: formData.email,
       customerPhone: formData.phone,
       address: getFullAddress(),
-      items: cart.map(item => ({
+      items: activeItems.map(item => ({
         id: item.product.id,
         name: item.product.name,
         qty: item.qty,
         price: item.product.price,
         image: item.product.image
       })),
-      shipping_method: 'delivery',
-      shipping_courier: 'JNE',
-      shipping_service: selectedService?.code,
-      shipping_province_id: selectedProvince?.province_id,
-      shipping_province: selectedProvince?.province,
-      shipping_city_id: selectedCity?.city_id,
-      shipping_city: `${selectedCity?.type} ${selectedCity?.city_name}`,
+      shipping_method: deliveryMethod,
+      shipping_courier: deliveryMethod === 'pickup' ? 'PICKUP' : 'JNE',
+      shipping_service: deliveryMethod === 'pickup' ? 'PICKUP' : selectedService?.code,
+      shipping_province_id: deliveryMethod === 'pickup' ? null : selectedProvince?.province_id,
+      shipping_province: deliveryMethod === 'pickup' ? 'Ambil di Tempat' : selectedProvince?.province,
+      shipping_city_id: deliveryMethod === 'pickup' ? null : selectedCity?.city_id,
+      shipping_city: deliveryMethod === 'pickup' ? 'Toko Berkah Pancing, Bandung' : `${selectedCity?.type} ${selectedCity?.city_name}`,
       paymentMethod: paymentMethod
     };
 
@@ -214,7 +222,7 @@ const Checkout = () => {
         action_url: `/admin/orders/${createdOrder.order_id_db}`
       });
 
-      clearCart();
+      commitCheckout();
       setSubmitting(false);
       navigate(`/orders/${createdOrder.order_id_db}`);
     } catch (err) {
@@ -239,7 +247,7 @@ const Checkout = () => {
     );
   }
 
-  if (cart.length === 0) {
+  if (activeItems.length === 0) {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '60vh', gap: '1.25rem', textAlign: 'center', padding: '2rem' }}>
         <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: '#e6f0fa', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#0f4c81' }}>
@@ -266,9 +274,50 @@ const Checkout = () => {
 
       <div style={{ maxWidth: '800px', margin: '0 auto', padding: '0.85rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
         
-        {/* Section 1: Alamat Pengiriman */}
+        {/* Section 0: Metode Pengiriman (Ambil / Antar) */}
         <div style={{ background: '#fff', borderRadius: '6px', padding: '1rem', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
+          <div style={{ fontSize: '0.85rem', fontWeight: '800', color: '#1e293b', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span style={{ color: '#ee4d2d' }}>🚚</span> Metode Pengiriman
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+            {/* Diantar */}
+            <button
+              onClick={() => { setDeliveryMethod('delivery'); setPaymentMethod('Midtrans'); }}
+              style={{ padding: '0.85rem', borderRadius: '8px', border: deliveryMethod === 'delivery' ? '2px solid #ee4d2d' : '1.5px solid #e2e8f0', background: deliveryMethod === 'delivery' ? '#fff5f5' : '#fafafa', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', transition: 'all 0.15s' }}
+            >
+              <span style={{ fontSize: '1.5rem' }}>🏠</span>
+              <span style={{ fontSize: '0.82rem', fontWeight: '700', color: deliveryMethod === 'delivery' ? '#ee4d2d' : '#1e293b' }}>Diantar</span>
+              <span style={{ fontSize: '0.7rem', color: '#64748b', textAlign: 'center' }}>Pengiriman ke alamat Anda via JNE</span>
+            </button>
+
+            {/* Ambil di Tempat */}
+            <button
+              onClick={() => setDeliveryMethod('pickup')}
+              style={{ padding: '0.85rem', borderRadius: '8px', border: deliveryMethod === 'pickup' ? '2px solid #16a34a' : '1.5px solid #e2e8f0', background: deliveryMethod === 'pickup' ? '#f0fdf4' : '#fafafa', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', transition: 'all 0.15s' }}
+            >
+              <span style={{ fontSize: '1.5rem' }}>🏪</span>
+              <span style={{ fontSize: '0.82rem', fontWeight: '700', color: deliveryMethod === 'pickup' ? '#16a34a' : '#1e293b' }}>Ambil di Tempat</span>
+              <span style={{ fontSize: '0.7rem', color: '#64748b', textAlign: 'center' }}>Gratis Ongkir • Ambil langsung di toko</span>
+            </button>
+          </div>
+
+          {/* Info ambil di tempat */}
+          {deliveryMethod === 'pickup' && (
+            <div style={{ marginTop: '0.75rem', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '6px', padding: '0.75rem', fontSize: '0.8rem', color: '#15803d', display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
+              <span style={{ fontSize: '1rem', flexShrink: 0 }}>📍</span>
+              <div>
+                <strong>Toko Berkah Pancing</strong><br />
+                Jln. Cibiru Hilir RT02/RW03, Desa Cibiru Hilir, Kec. Cileunyi, Kab. Bandung, 40624<br />
+                <span style={{ color: '#64748b', marginTop: '2px', display: 'block' }}>Jam buka: Senin–Sabtu, 08.00–17.00 WIB</span>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Section 1: Alamat Pengiriman — hanya tampil jika metode Diantar */}
+        {deliveryMethod === 'delivery' && (
+          <div style={{ background: '#fff', borderRadius: '6px', padding: '1rem', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
             <MapPin size={20} color="#ee4d2d" style={{ marginTop: '2px', flexShrink: 0 }} />
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: '0.88rem', fontWeight: '700', color: '#1e293b', display: 'flex', justifyContent: 'space-between' }}>
@@ -300,11 +349,13 @@ const Checkout = () => {
                 value={selectedProvince?.province_id || ''} 
                 onChange={(e) => {
                   const p = provinces.find(x => x.province_id === e.target.value);
-                  setSelectedProvince(p);
+                  setSelectedProvince(p || null);
+                  setSelectedCity(null);
+                  setCities([]);
                 }}
-                style={{ padding: '0.6rem', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }}
+                style={{ padding: '0.6rem', borderRadius: '4px', border: '1.5px solid #cbd5e1', fontSize: '0.85rem', background: '#fff', cursor: 'pointer' }}
               >
-                <option value="">Pilih Provinsi</option>
+                <option value="">{provinces.length === 0 ? 'Memuat provinsi...' : '-- Pilih Provinsi --'}</option>
                 {provinces.map(p => <option key={p.province_id} value={p.province_id}>{p.province}</option>)}
               </select>
 
@@ -314,10 +365,10 @@ const Checkout = () => {
                   const c = cities.find(x => x.city_id === e.target.value);
                   setSelectedCity(c);
                 }}
-                style={{ padding: '0.6rem', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }}
                 disabled={!selectedProvince}
+                style={{ padding: '0.6rem', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.85rem', background: !selectedProvince ? '#f8fafc' : '#fff' }}
               >
-                <option value="">Pilih Kota/Kabupaten</option>
+                <option value="">{selectedProvince ? 'Pilih Kota/Kabupaten' : 'Pilih Provinsi Terlebih Dahulu'}</option>
                 {cities.map(c => <option key={c.city_id} value={c.city_id}>{c.type} {c.city_name}</option>)}
               </select>
 
@@ -408,6 +459,7 @@ const Checkout = () => {
             </div>
           )}
         </div>
+        )}
 
         {/* Section 2: Toko & Detail Produk */}
         <div style={{ background: '#fff', borderRadius: '6px', padding: '1rem', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -420,7 +472,7 @@ const Checkout = () => {
             </span>
           </div>
 
-          {cart.map(({ product, qty }) => (
+          {activeItems.map(({ product, qty }) => (
             <div key={product.id} style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
               <img src={product.image} alt={product.name} style={{ width: '64px', height: '64px', objectFit: 'cover', borderRadius: '4px', border: '1px solid #f1f5f9', flexShrink: 0 }} />
               <div style={{ flex: 1 }}>
@@ -475,7 +527,7 @@ const Checkout = () => {
           </div>
 
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #f1f5f9', paddingTop: '0.75rem', fontSize: '0.88rem' }}>
-            <span style={{ color: '#64748b' }}>Total {cart.reduce((sum, i) => sum + i.qty, 0)} Produk</span>
+            <span style={{ color: '#64748b' }}>Total {activeItems.reduce((sum, i) => sum + i.qty, 0)} Produk</span>
             <span style={{ fontWeight: '800', color: '#ee4d2d', fontSize: '1rem' }}>
               {productService.formatIDR(subtotal)}
             </span>
@@ -488,16 +540,6 @@ const Checkout = () => {
             <h3 style={{ fontSize: '0.92rem', fontWeight: '800', color: '#1e293b', margin: 0 }}>Metode Pembayaran</h3>
           </div>
 
-          <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem', borderRadius: '6px', border: paymentMethod === 'QRIS' ? '1.5px solid #ee4d2d' : '1px solid #e2e8f0', background: paymentMethod === 'QRIS' ? '#fff5f5' : '#fff', cursor: 'pointer' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <QrCode size={20} color="#ee4d2d" />
-              <div>
-                <div style={{ fontSize: '0.85rem', fontWeight: '700', color: '#1e293b' }}>QRIS (Instant QR)</div>
-                <div style={{ fontSize: '0.72rem', color: '#64748b' }}>DANA, Gopay, BCA Mobile, ShopeePay, dll</div>
-              </div>
-            </div>
-            <input type="radio" name="payment" value="QRIS" checked={paymentMethod === 'QRIS'} onChange={() => setPaymentMethod('QRIS')} style={{ accentColor: '#ee4d2d', transform: 'scale(1.2)' }} />
-          </label>
 
           <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem', borderRadius: '6px', border: paymentMethod === 'Midtrans' ? '1.5px solid #ee4d2d' : '1px solid #e2e8f0', background: paymentMethod === 'Midtrans' ? '#fff5f5' : '#fff', cursor: 'pointer' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -510,16 +552,19 @@ const Checkout = () => {
             <input type="radio" name="payment" value="Midtrans" checked={paymentMethod === 'Midtrans'} onChange={() => setPaymentMethod('Midtrans')} style={{ accentColor: '#ee4d2d', transform: 'scale(1.2)' }} />
           </label>
 
-          <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem', borderRadius: '6px', border: paymentMethod === 'COD' ? '1.5px solid #ee4d2d' : '1px solid #e2e8f0', background: paymentMethod === 'COD' ? '#fff5f5' : '#fff', cursor: 'pointer' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <Banknote size={20} color="#f77f00" />
-              <div>
-                <div style={{ fontSize: '0.85rem', fontWeight: '700', color: '#1e293b' }}>COD (Bayar di Tempat)</div>
-                <div style={{ fontSize: '0.72rem', color: '#64748b' }}>Bayar tunai saat kurir tiba atau pada saat ambil dikelurahan</div>
+          {/* COD hanya tersedia untuk Ambil di Tempat */}
+          {deliveryMethod === 'pickup' && (
+            <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem', borderRadius: '6px', border: paymentMethod === 'COD' ? '1.5px solid #ee4d2d' : '1px solid #e2e8f0', background: paymentMethod === 'COD' ? '#fff5f5' : '#fff', cursor: 'pointer' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <Banknote size={20} color="#f77f00" />
+                <div>
+                  <div style={{ fontSize: '0.85rem', fontWeight: '700', color: '#1e293b' }}>COD (Bayar di Tempat)</div>
+                  <div style={{ fontSize: '0.72rem', color: '#64748b' }}>Bayar tunai saat mengambil barang di toko</div>
+                </div>
               </div>
-            </div>
-            <input type="radio" name="payment" value="COD" checked={paymentMethod === 'COD'} onChange={() => setPaymentMethod('COD')} style={{ accentColor: '#ee4d2d', transform: 'scale(1.2)' }} />
-          </label>
+              <input type="radio" name="payment" value="COD" checked={paymentMethod === 'COD'} onChange={() => setPaymentMethod('COD')} style={{ accentColor: '#ee4d2d', transform: 'scale(1.2)' }} />
+            </label>
+          )}
         </div>
 
         {/* Section 5: Rincian Pembayaran */}

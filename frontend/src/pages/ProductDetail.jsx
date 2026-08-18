@@ -43,7 +43,7 @@ import Loading from '../components/Loading';
 const ProductDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { cartItems, addToCart } = useCart();
+  const { cartItems, addToCart, setCheckoutItems } = useCart();
   const { user } = useAuth();
   const cartCount = cartItems ? cartItems.reduce((acc, item) => acc + item.quantity, 0) : 0;
 
@@ -259,7 +259,7 @@ const ProductDetail = () => {
 
   const handleBuyNow = () => {
     if (product.stock <= 0) return;
-    addToCart(product, quantity);
+    setCheckoutItems([{ product, qty: quantity }]);
     navigate('/checkout');
   };
 
