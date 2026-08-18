@@ -3,10 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import { Plus, Search, Filter, Edit, Trash2, Eye, Package } from 'lucide-react';
 import { productService } from '../../services/productService';
 import { useToast } from '../../context/ToastContext';
+import { useNotification } from '../../context/NotificationContext';
 
 const AdminProducts = () => {
   const navigate = useNavigate();
   const { showToast, showConfirm } = useToast();
+  const { addNotification } = useNotification();
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [search, setSearch] = useState('');
@@ -32,6 +34,13 @@ const AdminProducts = () => {
       isDanger: true,
       onConfirm: () => {
         setProducts(prev => prev.filter((p) => p.id !== id));
+        addNotification({
+          title: 'Produk Dihapus',
+          message: `Admin menghapus produk "${name}" dari katalog.`,
+          type: 'error',
+          entity_type: 'product',
+          action_url: '/admin/products'
+        });
         showToast(`Produk "${name}" berhasil dihapus.`, 'success');
       }
     });

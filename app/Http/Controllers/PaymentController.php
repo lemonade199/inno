@@ -7,6 +7,7 @@ use App\Services\MidtransService;
 use App\Models\Order;
 use App\Models\Payment;
 use App\Models\OrderItem;
+use Illuminate\Support\Facades\DB;
 
 class PaymentController extends Controller
 {
@@ -22,75 +23,109 @@ class PaymentController extends Controller
         $request->validate([
             'customerName' => 'required',
             'customerEmail' => 'required',
-            'total' => 'required|numeric',
+            'items' => 'required|array',
+            'items.*.id' => 'required|integer',
+            'items.*.qty' => 'required|integer|min:1',
         ]);
-
-        $orderIdMidtrans = 'TRX-' . time() . '-' . rand(100, 999);
-
-        $paymentMethod = $request->paymentMethod ?? 'Midtrans';
-
-        // Buat Order 
-        $order = Order::create([
-            'order_id_midtrans' => $orderIdMidtrans,
-            'customer_name' => $request->customerName,
-            'customer_email' => $request->customerEmail,
-            'customer_phone' => $request->customerPhone ?? '-',
-            'address' => $request->address ?? '-',
-            'subtotal' => $request->subtotal ?? ($request->total - 20000),
-            'shipping_fee' => $request->shippingFee ?? 20000,
-            'total' => $request->total,
-            'payment_method' => $paymentMethod,
-            'status' => $paymentMethod === 'Cash' ? 'paid' : 'pending',
-        ]);
-
-        if ($request->items && is_array($request->items)) {
-            foreach ($request->items as $item) {
-                $productId = $item['id'] ?? null;
-                if ($productId) {
-                    $exists = \App\Models\Product::find($productId);
-                    if (!$exists) $productId = null;
-                }
-
-                OrderItem::create([
-                    'order_id' => $order->id,
-                    'product_id' => $productId,
-                    'name' => $item['name'] ?? 'Product Unnamed',
-                    'price' => $item['price'] ?? 0,
-                    'qty' => $item['qty'] ?? 1,
-                    'image' => $item['image'] ?? null,
-                ]);
-            }
-        }
-
-        if ($paymentMethod === 'Cash') {
-            Payment::create([
-                'order_id_db' => $order->id,
-                'order_id_midtrans' => $orderIdMidtrans,
-                'gross_amount' => $order->total,
-                'payment_status' => 'paid',
-                'snap_token' => null,
-            ]);
-
-            // Auto-decrement stock for cash
-            foreach ($order->items as $item) {
-                $product = \App\Models\Product::find($item->product_id);
-                if ($product) {
-                    $product->decrement('stock', $item->qty);
-                }
-            }
-
-            return response()->json([
-                'status' => 'success',
-                'token' => null,
-                'order_id_db' => $order->id, 
-                'order_id_midtrans' => $orderIdMidtrans,
-                'data' => $order
-            ]);
-        }
 
         try {
-            $token = $this->midtransService->createTransaction($order);
+            DB::beginTransaction();
+
+            $subtotal = 0;
+            $shippingFee = $request->shippingFee ?? 20000;
+            $itemsData = [];
+
+            // Sort product IDs to prevent deadlock
+            $productIds = collect($request->items)->pluck('id')->sort()->values()->all();
             
+            // Lock all products needed for update
+            $products = \App\Models\Product::whereIn('id', $productIds)->lockForUpdate()->get()->keyBy('id');
+
+            foreach ($request->items as $item) {
+                $productId = $item['id'];
+                $qty = $item['qty'];
+
+                if (!$products->has($productId)) {
+                    throw new \Exception("Product ID not found: $productId");
+                }
+
+                $product = $products[$productId];
+
+                if ($product->stock < $qty) {
+                    return response()->json(['message' => "Stok produk {$product->name} tidak mencukupi. Tersedia: {$product->stock}"], 422);
+                }
+
+                $subtotal += $product->price * $qty;
+                
+                $itemsData[] = [
+                    'product_id' => $product->id,
+                    'name' => $product->name,
+                    'price' => $product->price,
+                    'qty' => $qty,
+                    'image' => $product->image,
+                    'model' => $product
+                ];
+            }
+
+            $total = $subtotal + $shippingFee;
+            $paymentMethod = $request->paymentMethod ?? 'Midtrans';
+            $orderIdMidtrans = 'TRX-' . time() . '-' . rand(100, 999);
+
+            $order = Order::create([
+                'order_id_midtrans' => $orderIdMidtrans,
+                'customer_name' => $request->customerName,
+                'customer_email' => $request->customerEmail,
+                'customer_phone' => $request->customerPhone ?? '-',
+                'address' => $request->address ?? '-',
+                'subtotal' => $subtotal,
+                'shipping_fee' => $shippingFee,
+                'total' => $total,
+                'payment_method' => $paymentMethod,
+                'status' => 'pending',
+            ]);
+
+            foreach ($itemsData as $data) {
+                OrderItem::create([
+                    'order_id' => $order->id,
+                    'product_id' => $data['product_id'],
+                    'name' => $data['name'],
+                    'price' => $data['price'],
+                    'qty' => $data['qty'],
+                    'image' => $data['image'],
+                ]);
+
+                // Reduce stock
+                $data['model']->decrement('stock', $data['qty']);
+            }
+
+            if ($paymentMethod === 'Cash') {
+                Payment::create([
+                    'order_id_db' => $order->id,
+                    'order_id_midtrans' => $orderIdMidtrans,
+                    'gross_amount' => $order->total,
+                    'payment_status' => 'pending',
+                    'snap_token' => null,
+                ]);
+
+                DB::commit();
+
+                return response()->json([
+                    'status' => 'success',
+                    'token' => null,
+                    'order_id_db' => $order->id,
+                    'order_id_midtrans' => $orderIdMidtrans,
+                    'data' => $order
+                ], 201);
+            }
+
+            // Midtrans flow
+            $token = null;
+            try {
+                $token = $this->midtransService->createTransaction($order);
+            } catch (\Exception $e) {
+                $token = 'DEMO-SNAP-TOKEN-' . rand(1000, 9999);
+            }
+
             $order->update(['snap_token' => $token]);
             
             Payment::create([
@@ -101,31 +136,22 @@ class PaymentController extends Controller
                 'snap_token' => $token,
             ]);
 
+            DB::commit();
+
             return response()->json([
                 'status' => 'success',
                 'token' => $token,
-                'order_id_db' => $order->id, 
-                'order_id_midtrans' => $orderIdMidtrans,
-                'data' => $order
-            ]);
-
-        } catch (\Exception $e) {
-            // Fallback for development mode if Midtrans keys are not set
-            Payment::create([
                 'order_id_db' => $order->id,
                 'order_id_midtrans' => $orderIdMidtrans,
-                'gross_amount' => $order->total,
-                'payment_status' => 'pending',
-                'snap_token' => 'DEMO-SNAP-TOKEN-' . rand(1000, 9999),
-            ]);
-
-            return response()->json([
-                'status' => 'success',
-                'token' => null,
-                'order_id_db' => $order->id, 
-                'order_id_midtrans' => $orderIdMidtrans,
                 'data' => $order
-            ]);
+            ], 201);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'status' => 'error',
+                'message' => $e->getMessage()
+            ], 500);
         }
     }
 
@@ -174,20 +200,41 @@ class PaymentController extends Controller
         }
 
         $inputStatus = $request->status;
+        $previousStatus = $order->status;
         
         $order->status = $inputStatus;
         if ($request->has('trackingNumber') && $request->trackingNumber != '') {
             $order->tracking_number = $request->trackingNumber;
         }
-        $order->save();
 
-        if ($request->paymentStatus && $order->payment) {
-            $paymentStatusMap = [
-                'Belum Bayar' => 'pending',
-                'Lunas' => 'paid'
-            ];
-            $order->payment->payment_status = $paymentStatusMap[$request->paymentStatus] ?? 'paid';
-            $order->payment->save();
+        try {
+            DB::beginTransaction();
+
+            if ($inputStatus === 'cancelled' && $previousStatus !== 'cancelled') {
+                $items = OrderItem::where('order_id', $order->id)->get();
+                foreach ($items as $item) {
+                    $product = \App\Models\Product::lockForUpdate()->find($item->product_id);
+                    if ($product) {
+                        $product->increment('stock', $item->qty);
+                    }
+                }
+            }
+            
+            $order->save();
+
+            if ($request->paymentStatus && $order->payment) {
+                $paymentStatusMap = [
+                    'Belum Bayar' => 'pending',
+                    'Lunas' => 'paid'
+                ];
+                $order->payment->payment_status = $paymentStatusMap[$request->paymentStatus] ?? 'paid';
+                $order->payment->save();
+            }
+
+            DB::commit();
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['status' => 'error', 'message' => 'Gagal mengubah status.'], 500);
         }
 
         return response()->json(['status' => 'success', 'data' => $order]);

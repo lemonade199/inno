@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { AuthProvider } from './context/AuthContext';
 import { CartProvider } from './context/CartContext';
 import { ToastProvider } from './context/ToastContext';
+import { NotificationProvider } from './context/NotificationContext';
 
 // Layouts
 import UserLayout from './layouts/UserLayout';
@@ -38,14 +39,16 @@ import AdminCategories from './pages/admin/Categories';
 import AdminOrders from './pages/admin/Orders';
 import AdminOrderDetail from './pages/admin/OrderDetail';
 import AdminProfile from './pages/admin/Profile';
+import AdminNotifications from './pages/admin/Notifications';
 
 function App() {
   return (
     <AuthProvider>
       <CartProvider>
         <ToastProvider>
-          <Router>
-            <ErrorBoundary>
+          <NotificationProvider>
+            <Router>
+              <ErrorBoundary>
               <Routes>
               {/* Public Auth Routes */}
               <Route path="/login" element={<Login />} />
@@ -91,13 +94,15 @@ function App() {
                 <Route path="orders" element={<AdminOrders />} />
                 <Route path="orders/:id" element={<AdminOrderDetail />} />
                 <Route path="profile" element={<AdminProfile />} />
+                <Route path="notifications" element={<AdminNotifications />} />
               </Route>
 
               {/* Fallback Redirect */}
               <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
-            </ErrorBoundary>
-          </Router>
+              </Routes>
+              </ErrorBoundary>
+            </Router>
+          </NotificationProvider>
         </ToastProvider>
       </CartProvider>
     </AuthProvider>

@@ -226,8 +226,6 @@ const ProductDetail = () => {
   };
 
   // Mock metadata based on product ID
-  const discountPercent = product.id % 2 === 0 ? 50 : product.id % 3 === 0 ? 15 : 0;
-  const originalPrice = discountPercent > 0 ? product.price / (1 - discountPercent / 100) : null;
   const reviewCount = ((product.id * 31) % 150) + 12;
   const soldCount = ((product.id * 67) % 500) + 45;
   const rating = (4.5 + (product.id % 5) * 0.1).toFixed(1);
@@ -476,11 +474,6 @@ const ProductDetail = () => {
               <span style={{ fontSize: '1.6rem', fontWeight: '800', color: '#ee4d2d' }}>
                 {productService.formatIDR(product.price)}
               </span>
-              {originalPrice && (
-                <span style={{ fontSize: '0.85rem', textDecoration: 'line-through', color: '#94a3b8' }}>
-                  {productService.formatIDR(originalPrice)}
-                </span>
-              )}
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.82rem', color: '#64748b' }}>
               <span style={{ fontWeight: '600' }}>{soldCount > 50 ? '5RB+ Terjual' : `${soldCount} Terjual`}</span>

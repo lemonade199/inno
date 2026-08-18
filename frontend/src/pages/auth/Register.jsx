@@ -14,8 +14,10 @@ const Register = () => {
     address: '',
     password: ''
   });
+  const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     register(formData);
     navigate('/');
@@ -44,6 +46,12 @@ const Register = () => {
           <h2 style={{ fontSize: '1.6rem', fontWeight: '800', color: '#0f172a' }}>BERKAH PANCING</h2>
           <p style={{ fontSize: '0.85rem', color: '#64748b', marginTop: '4px' }}>Daftar Akun Pembeli Baru</p>
         </div>
+
+        {error && (
+          <div style={{ background: '#fef2f2', color: '#ef4444', padding: '0.75rem', borderRadius: '8px', marginBottom: '1.25rem', fontSize: '0.85rem', textAlign: 'center', border: '1px solid #fecaca' }}>
+            {error}
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           
@@ -131,6 +139,7 @@ const Register = () => {
 
           <button
             type="submit"
+            disabled={isLoading}
             className="btn btn-primary"
             style={{
               width: '100%',
@@ -139,10 +148,12 @@ const Register = () => {
               fontSize: '0.95rem',
               background: 'linear-gradient(135deg, #0f4c81 0%, #00a896 100%)',
               border: 'none',
-              boxShadow: '0 4px 15px rgba(0,168,150,0.4)'
+              boxShadow: '0 4px 15px rgba(0,168,150,0.4)',
+              cursor: isLoading ? 'not-allowed' : 'pointer',
+              opacity: isLoading ? 0.7 : 1
             }}
           >
-            Daftar Sekarang <ArrowRight size={18} />
+            {isLoading ? 'Memproses...' : 'Daftar Sekarang'} <ArrowRight size={18} />
           </button>
         </form>
 

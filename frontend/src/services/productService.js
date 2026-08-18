@@ -1,8 +1,10 @@
+import api from './api';
+
 export const productService = {
   getProducts: async () => {
     try {
-      const res = await fetch('/api/products');
-      return await res.json();
+      const res = await api.get('/products');
+      return res.data;
     } catch (e) {
       console.error(e);
       return [];
@@ -11,8 +13,8 @@ export const productService = {
 
   getProductById: async (id) => {
     try {
-      const res = await fetch(`/api/products/${id}`);
-      return await res.json();
+      const res = await api.get(`/products/${id}`);
+      return res.data;
     } catch (e) {
       console.error(e);
       return null;
@@ -24,11 +26,10 @@ export const productService = {
       const formData = new FormData();
       Object.keys(data).forEach(key => formData.append(key, data[key]));
 
-      const res = await fetch('/api/products', {
-        method: 'POST',
-        body: formData
+      const res = await api.post('/admin/products', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
       });
-      return await res.json();
+      return res.data;
     } catch (e) {
       console.error(e);
       return null;
@@ -37,7 +38,6 @@ export const productService = {
 
   updateProduct: async (id, data) => {
     try {
-      // For PUT simulating in Laravel via POST because of FormData limits
       const formData = new FormData();
       Object.keys(data).forEach(key => {
         if (data[key] !== null && data[key] !== undefined) {
@@ -46,11 +46,10 @@ export const productService = {
       });
       formData.append('_method', 'PUT');
 
-      const res = await fetch(`/api/products/${id}`, {
-        method: 'POST',
-        body: formData
+      const res = await api.post(`/admin/products/${id}`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
       });
-      return await res.json();
+      return res.data;
     } catch (e) {
       console.error(e);
       return null;
@@ -59,10 +58,8 @@ export const productService = {
 
   deleteProduct: async (id) => {
     try {
-      const res = await fetch(`/api/products/${id}`, {
-        method: 'DELETE'
-      });
-      return await res.json();
+      const res = await api.delete(`/admin/products/${id}`);
+      return res.data;
     } catch (e) {
       console.error(e);
       return { success: false };

@@ -17,10 +17,12 @@ import {
   Heart,
   AlertTriangle,
   Bell,
-  CheckCircle2
+  CheckCircle2,
+  CheckSquare
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
+import { useNotification } from '../context/NotificationContext';
 import { 
   getSearchHistory, 
   addSearchHistory, 
@@ -48,11 +50,7 @@ const Navbar = ({ isAdminView = false, toggleSidebar }) => {
   const cartCount = getCartCount();
   const isCartPage = location.pathname === '/cart';
 
-  const [adminNotifications, setAdminNotifications] = useState([
-    { id: 1, title: 'Pesanan Masuk #BP-1004', desc: 'Budi Santoso memesan Joran Shimano (Rp 1.260.000)', time: '5 menit lalu', read: false, type: 'order' },
-    { id: 2, title: 'Peringatan Stok Menipis', desc: 'Umpan Lure Minnow sisa 4 pcs. Segera restock!', time: '20 menit lalu', read: false, type: 'warning' },
-    { id: 3, title: 'Pembayaran Berhasil', desc: 'Pesanan #BP-1002 telah dikonfirmasi Lunas', time: '1 jam lalu', read: true, type: 'success' },
-  ]);
+  const { notifications: adminNotifications, unreadCount, markAsRead, markAllAsRead } = useNotification();
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -147,19 +145,28 @@ const Navbar = ({ isAdminView = false, toggleSidebar }) => {
               }}
             >
               <Bell size={18} />
-              {adminNotifications.some(n => !n.read) && (
+              {unreadCount > 0 && (
                 <span
                   style={{
                     position: 'absolute',
-                    top: '2px',
-                    right: '2px',
-                    width: '10px',
-                    height: '10px',
+                    top: '-4px',
+                    right: '-4px',
+                    minWidth: '16px',
+                    height: '16px',
                     borderRadius: '50%',
                     background: '#ef4444',
+                    color: '#fff',
                     border: '2px solid #ffffff',
+                    fontSize: '0.55rem',
+                    fontWeight: '800',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: '0 4px',
                   }}
-                />
+                >
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </span>
               )}
             </button>
 
@@ -196,56 +203,81 @@ const Navbar = ({ isAdminView = false, toggleSidebar }) => {
                     </span>
                   </div>
                   <button
-                    onClick={() => setAdminNotifications(prev => prev.map(n => ({ ...n, read: true })))}
+                    onClick={() => markAllAsRead()}
                     style={{
                       background: 'none',
                       border: 'none',
                       fontSize: '0.75rem',
                       fontWeight: '700',
-                      color: '#00a896',
-                      cursor: 'pointer',
+                      color: unreadCount > 0 ? '#00a896' : '#94a3b8',
+                      cursor: unreadCount > 0 ? 'pointer' : 'default',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px'
                     }}
+                    disabled={unreadCount === 0}
                   >
-                    Tandai dibaca
+                    <CheckSquare size={13} /> Tandai dibaca
                   </button>
                 </div>
 
-                <div style={{ maxHeight: '320px', overflowY: 'auto' }}>
-                  {adminNotifications.map((notif) => (
-                    <div
-                      key={notif.id}
-                      style={{
-                        padding: '0.85rem 1.1rem',
-                        borderBottom: '1px solid #f8fafc',
-                        background: notif.read ? '#ffffff' : '#f0fdfa',
-                        display: 'flex',
-                        gap: '10px',
-                        alignItems: 'flex-start',
-                      }}
-                    >
-                      <div
-                        style={{
-                          width: '8px',
-                          height: '8px',
-                          borderRadius: '50%',
-                          background: notif.type === 'warning' ? '#f59e0b' : notif.type === 'order' ? '#0f4c81' : '#10b981',
-                          marginTop: '6px',
-                          flexShrink: 0,
-                        }}
-                      />
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: '0.83rem', fontWeight: '700', color: '#1e293b' }}>
-                          {notif.title}
-                        </div>
-                        <div style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '2px', lineHeight: 1.4 }}>
-                          {notif.desc}
-                        </div>
-                        <div style={{ fontSize: '0.7rem', color: '#94a3b8', marginTop: '4px' }}>
-                          {notif.time}
-                        </div>
-                      </div>
+                <div style={{ maxHeight: '350px', overflowY: 'auto' }}>
+                  {adminNotifications.length === 0 ? (
+                    <div style={{ padding: '2rem 1rem', textAlign: 'center', color: '#64748b', fontSize: '0.85rem' }}>
+                      Tidak ada notifikasi saat ini.
                     </div>
-                  ))}
+                  ) : (
+                    adminNotifications.map((notif) => (
+                      <div
+                        key={notif.id}
+                        onClick={() => {
+                          if (!notif.is_read) markAsRead(notif.id);
+                          if (notif.action_url) {
+                            navigate(notif.action_url);
+                            setShowNotifDropdown(false);
+                          }
+                        }}
+                        style={{
+                          padding: '0.85rem 1.1rem',
+                          borderBottom: '1px solid #f8fafc',
+                          background: notif.is_read ? '#ffffff' : '#f0fdfa',
+                          display: 'flex',
+                          gap: '10px',
+                          alignItems: 'flex-start',
+                          cursor: notif.action_url ? 'pointer' : 'default',
+                          transition: 'background 0.25s'
+                        }}
+                        onMouseOver={(e) => { if(notif.action_url) e.currentTarget.style.background = notif.is_read ? '#f8fafc' : '#ccfbf1'; }}
+                        onMouseOut={(e) => { e.currentTarget.style.background = notif.is_read ? '#ffffff' : '#f0fdfa'; }}
+                      >
+                        <div
+                          style={{
+                            width: '8px',
+                            height: '8px',
+                            borderRadius: '50%',
+                            background: notif.type === 'warning' ? '#f59e0b' : notif.type === 'order' ? '#0f4c81' : notif.type === 'error' ? '#ef4444' : '#10b981',
+                            marginTop: '6px',
+                            flexShrink: 0,
+                            boxShadow: !notif.is_read ? `0 0 6px ${notif.type === 'warning' ? '#f59e0b' : notif.type === 'order' ? '#0f4c81' : notif.type === 'error' ? '#ef4444' : '#10b981'}` : 'none'
+                          }}
+                        />
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: '0.83rem', fontWeight: '700', color: notif.is_read ? '#475569' : '#0f172a' }}>
+                            {notif.title}
+                          </div>
+                          <div style={{ fontSize: '0.78rem', color: notif.is_read ? '#94a3b8' : '#64748b', marginTop: '2px', lineHeight: 1.4 }}>
+                            {notif.message}
+                          </div>
+                          <div style={{ fontSize: '0.7rem', color: '#94a3b8', marginTop: '4px' }}>
+                            {notif.created_at}
+                          </div>
+                        </div>
+                        {!notif.is_read && (
+                          <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#00a896', alignSelf: 'center' }} />
+                        )}
+                      </div>
+                    ))
+                  )}
                 </div>
 
                 <div

@@ -17,19 +17,22 @@ import {
 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
+import { useNotification } from '../context/NotificationContext';
 import { orderService } from '../services/orderService';
 import { productService } from '../services/productService';
+import api from '../services/api';
 
 const Checkout = () => {
   const { cart, getCartTotal, clearCart } = useCart();
   const { user } = useAuth();
+  const { addNotification } = useNotification();
   const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
-    name: user?.name || 'Refky Favian Mahardika',
-    phone: user?.phone || '(+62) 857-9764-5279',
-    email: user?.email || 'refky@gmail.com',
-    address: user?.address || 'Jalan Cidurian Utara, RT.4/RW.7, Sukapura, Kiaracondong (Gg Sukabakti 7 no 50) KIARACONDONG, KOTA BANDUNG, JAWA BARAT, ID 40281',
+    name: user?.name || '',
+    phone: user?.phone || '',
+    email: user?.email || '',
+    address: user?.address || '',
     notes: ''
   });
 
@@ -49,11 +52,40 @@ const Checkout = () => {
     return 0;
   };
 
-  const originalShippingFee = 58500;
   const shippingFee = getShippingFee();
   const serviceFee = 1000;
-  const discountSavings = originalShippingFee;
   const grandTotal = subtotal + shippingFee + serviceFee;
+
+  if (!user) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '60vh', gap: '1.25rem', textAlign: 'center', padding: '2rem' }}>
+        <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: '#fef2f2', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ef4444' }}>
+          <ShieldCheck size={40} />
+        </div>
+        <div>
+          <h2 style={{ fontSize: '1.5rem', fontWeight: '800', color: '#0f172a' }}>Harap Login Terlebih Dahulu</h2>
+          <p style={{ fontSize: '0.9rem', color: '#64748b', marginTop: '0.3rem' }}>
+            Anda harus masuk ke akun Anda sebelum bisa melanjutkan ke proses pembayaran.
+          </p>
+        </div>
+        <Link
+          to="/login"
+          style={{
+            background: '#0f4c81',
+            color: '#fff',
+            padding: '0.75rem 1.75rem',
+            borderRadius: '30px',
+            fontWeight: '700',
+            fontSize: '0.9rem',
+            textDecoration: 'none',
+            boxShadow: '0 4px 15px rgba(15, 76, 129, 0.3)'
+          }}
+        >
+          Masuk ke Akun
+        </Link>
+      </div>
+    );
+  }
 
   if (cart.length === 0) {
     return (
@@ -112,23 +144,28 @@ const Checkout = () => {
     };
 
     try {
-      const createResponse = await fetch('/api/payment/create', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(orderPayload)
-      });
-      const createdOrder = await createResponse.json();
+      const createResponse = await api.post('/payment/create', orderPayload);
+      const createdOrder = createResponse.data;
 
       if (createdOrder.status === 'error') {
         throw new Error(createdOrder.message);
       }
+
+      addNotification({
+        title: 'Pesanan Baru Masuk',
+        message: `Ada pesanan baru #${createdOrder.order_id_db} dari ${formData.name}.`,
+        type: 'order',
+        entity_type: 'order',
+        action_url: `/admin/orders/${createdOrder.order_id_db}`
+      });
 
       clearCart();
       setSubmitting(false);
       navigate(`/orders/${createdOrder.order_id_db}`);
     } catch (err) {
       setSubmitting(false);
-      alert('Gagal memproses pesanan. Silakan coba lagi.');
+      const errorMessage = err.response?.data?.message || err.message || 'Gagal memproses pesanan. Silakan coba lagi.';
+      alert('Checkout Gagal: ' + errorMessage);
     }
   };
 
@@ -259,7 +296,7 @@ const Checkout = () => {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #f8fafc', paddingTop: '0.75rem', fontSize: '0.85rem' }}>
             <span style={{ color: '#334155', fontWeight: '600' }}>Voucher Toko</span>
             <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#ee4d2d', fontWeight: '700' }}>
-              <span style={{ background: '#fef2f2', border: '1px solid #fca5a5', padding: '1px 6px', borderRadius: '2px', fontSize: '0.75rem' }}>Diskon Rp 10.000</span>
+              <span style={{ color: '#94a3b8', fontSize: '0.8rem', fontWeight: '500' }}>Tidak ada voucher</span>
               <ChevronRight size={16} color="#94a3b8" />
             </div>
           </div>
@@ -408,17 +445,12 @@ const Checkout = () => {
 
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', color: '#64748b' }}>
             <span>Subtotal Pengiriman</span>
-            <span style={{ fontWeight: '600', color: '#1e293b' }}>{productService.formatIDR(originalShippingFee)}</span>
+            <span style={{ fontWeight: '600', color: '#1e293b' }}>{productService.formatIDR(shippingFee)}</span>
           </div>
 
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', color: '#64748b' }}>
             <span>Biaya Layanan</span>
             <span style={{ fontWeight: '600', color: '#1e293b' }}>{productService.formatIDR(serviceFee)}</span>
-          </div>
-
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', color: '#ee4d2d' }}>
-            <span>Total Diskon Pengiriman</span>
-            <span style={{ fontWeight: '700' }}>-{productService.formatIDR(discountSavings)}</span>
           </div>
 
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #f1f5f9', paddingTop: '0.65rem', marginTop: '0.25rem' }}>
@@ -465,9 +497,6 @@ const Checkout = () => {
           <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
             <div style={{ fontSize: '0.85rem', color: '#1e293b' }}>
               Total <span style={{ fontSize: '1.2rem', fontWeight: '800', color: '#ee4d2d' }}>{productService.formatIDR(grandTotal)}</span>
-            </div>
-            <div style={{ fontSize: '0.72rem', color: '#ee4d2d' }}>
-              Hemat {productService.formatIDR(discountSavings)}
             </div>
           </div>
 

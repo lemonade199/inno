@@ -1,8 +1,10 @@
+import api from './api';
+
 export const orderService = {
   getOrders: async () => {
     try {
-      const res = await fetch('/api/orders');
-      return await res.json();
+      const res = await api.get('/orders');
+      return res.data;
     } catch (e) {
       console.error(e);
       return [];
@@ -10,8 +12,8 @@ export const orderService = {
   },
   getUserOrders: async (email) => {
     try {
-      const res = await fetch(`/api/orders?email=${email || ''}`);
-      return await res.json();
+      const res = await api.get(`/orders?email=${email || ''}`);
+      return res.data;
     } catch (e) {
       console.error(e);
       return [];
@@ -19,16 +21,14 @@ export const orderService = {
   },
   getOrderById: async (id) => {
     try {
-      const res = await fetch(`/api/orders/${id}`);
-      return await res.json();
+      const res = await api.get(`/orders/${id}`);
+      return res.data;
     } catch (e) {
       console.error(e);
       return null;
     }
   },
   createOrder: async (orderData) => {
-    // Actually the creation is handled inside Checkout.jsx via /api/payment/create !
-    // We can keep this for compatibility if other components use it, but Checkout does it directly.
     return Promise.reject("Gunakan endpoint /api/payment/create langsung seperti di Checkout.jsx");
   },
   updateOrderStatus: async (id, newStatus, paymentStatus, trackingNumber = null) => {
@@ -36,12 +36,8 @@ export const orderService = {
       const payload = { status: newStatus, paymentStatus };
       if (trackingNumber) payload.trackingNumber = trackingNumber;
 
-      const res = await fetch(`/api/admin/orders/${id}/status`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-      return await res.json();
+      const res = await api.put(`/admin/orders/${id}/status`, payload);
+      return res.data;
     } catch (e) {
       console.error(e);
       return null;

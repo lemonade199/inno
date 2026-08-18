@@ -1,89 +1,84 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
+import api from '../services/api';
 
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(() => {
-    const isLoggedOut = localStorage.getItem('berkah_logged_out');
-    if (isLoggedOut === 'true') return null;
-
-    const saved = localStorage.getItem('berkah_user');
-    if (saved) return JSON.parse(saved);
-    // Default logged in user (User role by default, can switch to Admin)
-    return {
-      id: 2,
-      name: 'Juli Anto',
-      email: 'julianto@gmail.com',
-      phone: '081234567890',
-      address: 'Jl. Merdeka No. 45, Jakarta Selatan',
-      role: 'user',
-      avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
-    };
-  });
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (user) {
-      localStorage.setItem('berkah_user', JSON.stringify(user));
+    const token = localStorage.getItem('berkah_token');
+    if (token) {
+      fetchUser();
     } else {
-      localStorage.removeItem('berkah_user');
+      setLoading(false);
     }
-  }, [user]);
+  }, []);
 
-  const login = (email, password, role = 'user') => {
-    localStorage.removeItem('berkah_logged_out');
-    if (email.includes('admin') || role === 'admin') {
-      const adminUser = {
-        id: 1,
-        name: 'Administrator Utama',
-        email: email || 'admin@berkahpancing.com',
-        role: 'admin',
-        avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
-      };
-      setUser(adminUser);
-      return adminUser;
-    } else {
-      const normalUser = {
-        id: 2,
-        name: email.split('@')[0] || 'Pelanggan Setia',
-        email: email,
-        phone: '081234567890',
-        address: 'Jl. Merdeka No. 45, Jakarta Selatan',
-        role: 'user',
-        avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
-      };
-      setUser(normalUser);
-      return normalUser;
+  const fetchUser = async () => {
+    try {
+      const response = await api.get('/user');
+      setUser(response.data);
+    } catch (error) {
+      console.error('Failed to fetch user:', error);
+      localStorage.removeItem('berkah_token');
+      setUser(null);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const register = (data) => {
-    localStorage.removeItem('berkah_logged_out');
-    const newUser = {
-      id: Date.now(),
-      name: data.name || 'User Baru',
-      email: data.email,
-      phone: data.phone || '081234567890',
-      address: data.address || 'Jl. Utama No. 12, Jakarta',
-      role: 'user',
-      avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
-    };
-    setUser(newUser);
-    return newUser;
+  const login = async (email, password) => {
+    try {
+      const response = await api.post('/login', { email, password });
+      const { user: userData, access_token } = response.data;
+      
+      localStorage.setItem('berkah_token', access_token);
+      
+      setUser(userData);
+      return userData;
+    } catch (error) {
+      const message = error.response?.data?.message || 'Gagal login. Silakan periksa kembali email & password Anda.';
+      throw new Error(message);
+    }
+  };
+
+  const register = async (data) => {
+    try {
+      const response = await api.post('/register', data);
+      const { user: userData, access_token } = response.data;
+      
+      localStorage.setItem('berkah_token', access_token);
+      
+      setUser(userData);
+      return userData;
+    } catch (error) {
+      const message = error.response?.data?.message || 'Pendaftaran gagal. Email mungkin sudah digunakan.';
+      throw new Error(message);
+    }
+  };
+
+  const logout = async () => {
+    try {
+      await api.post('/logout');
+    } catch (error) {
+      console.error('Logout error:', error);
+    } finally {
+      localStorage.removeItem('berkah_token');
+      setUser(null);
+    }
   };
 
   const updateUserProfile = (updatedData) => {
     setUser((prev) => ({ ...prev, ...updatedData }));
   };
 
-  const logout = () => {
-    localStorage.setItem('berkah_logged_out', 'true');
-    setUser(null);
-  };
-
   return (
     <AuthContext.Provider
       value={{
         user,
+        loading,
         login,
         register,
         logout,
@@ -91,7 +86,7 @@ export const AuthProvider = ({ children }) => {
         isAdmin: user?.role === 'admin',
       }}
     >
-      {children}
+      {!loading && children}
     </AuthContext.Provider>
   );
 };

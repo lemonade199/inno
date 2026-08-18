@@ -3,11 +3,13 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Save } from 'lucide-react';
 import { productService } from '../../services/productService';
 import { useToast } from '../../context/ToastContext';
+import { useNotification } from '../../context/NotificationContext';
 
 const AdminProductEdit = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { showToast } = useToast();
+  const { addNotification } = useNotification();
   const [formData, setFormData] = useState(null);
 
   useEffect(() => {
@@ -34,6 +36,25 @@ const AdminProductEdit = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     await productService.updateProduct(id, formData);
+    
+    addNotification({
+      title: 'Data Produk Diperbarui',
+      message: `Admin mengubah data produk "${formData.name}".`,
+      type: 'info',
+      entity_type: 'product',
+      action_url: `/admin/products/edit/${id}`
+    });
+
+    if (Number(formData.stock) <= 5) {
+      addNotification({
+        title: 'Peringatan Stok Menipis',
+        message: `Stok produk "${formData.name}" tersisa ${formData.stock}. Segera restock!`,
+        type: 'warning',
+        entity_type: 'product',
+        action_url: `/admin/products/edit/${id}`
+      });
+    }
+
     showToast(`Perubahan produk "${formData.name}" berhasil disimpan!`, 'success');
     navigate('/admin/products');
   };

@@ -18,7 +18,6 @@ const ProductCard = ({ product, onSelect }) => {
   const summary = reviewService.getProductRatingSummary(product.id);
   const ratingScore = summary.average;
   const ratingCount = summary.totalCount;
-  const discount = product.id % 2 === 0 ? '50%' : product.id % 3 === 0 ? '15%' : null;
   const sales = ((product.id * 17) % 80) + 12;
   const bonusText = product.id % 2 === 0 ? 'Hemat s.d 8% Pakai Bonus' : 'Hemat s.d 3% Pakai Bonus';
   const rating = (4.5 + (product.id % 5) * 0.1).toFixed(1);
@@ -49,24 +48,6 @@ const ProductCard = ({ product, onSelect }) => {
         e.currentTarget.style.boxShadow = 'none'; 
       }}
     >
-      {/* Discount Tag Badge */}
-      {discount && (
-        <span style={{
-          position: 'absolute',
-          top: '5px',
-          left: '5px',
-          background: '#ef4444',
-          color: '#fff',
-          fontSize: '0.68rem',
-          fontWeight: '800',
-          padding: '2px 6px',
-          borderRadius: '2px',
-          zIndex: 10
-        }}>
-          {discount} OFF
-        </span>
-      )}
-
       {/* Product Image */}
       <div className="product-card-img-wrapper" style={{ width: '100%', height: '170px', background: '#f8fafc', overflow: 'hidden' }}>
         <img

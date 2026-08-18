@@ -4,10 +4,12 @@ import { ShoppingBag, Search, Eye, CheckCircle2, Clock, Truck, AlertCircle } fro
 import { orderService } from '../../services/orderService';
 import { productService } from '../../services/productService';
 import { useToast } from '../../context/ToastContext';
+import { useNotification } from '../../context/NotificationContext';
 
 const AdminOrders = () => {
   const navigate = useNavigate();
   const { showToast, showPrompt } = useToast();
+  const { addNotification } = useNotification();
   const [orders, setOrders] = useState([]);
   const [activeTab, setActiveTab] = useState('Semua');
   const [search, setSearch] = useState('');
@@ -22,6 +24,15 @@ const AdminOrders = () => {
       
       setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: newStatus, paymentStatus: newPaymentStatus, trackingNumber: trackingNumber ?? o.trackingNumber } : o));
       await orderService.updateOrderStatus(orderId, newStatus, newPaymentStatus, trackingNumber);
+      
+      addNotification({
+        title: 'Status Pesanan Berubah',
+        message: `Status pesanan ${orderId} diubah menjadi "${newStatus}".`,
+        type: newStatus === 'Selesai' ? 'success' : 'order',
+        entity_type: 'order',
+        action_url: `/admin/orders/${orderId}`
+      });
+
       showToast(`Status pesanan #${orderId} diperbarui menjadi "${newStatus}"`, 'success');
     };
 
