@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, Link } from 'react-router-dom';
 import {
   LayoutDashboard,
   Package,
@@ -9,7 +9,8 @@ import {
   LogOut,
   Fish,
   ChevronRight,
-  MessageSquare
+  MessageSquare,
+  Globe
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { productService } from '../services/productService';
@@ -138,8 +139,32 @@ const Sidebar = ({ collapsed, toggleSidebar }) => {
         </nav>
       </div>
 
-      {/* Footer / Logout */}
-      <div style={{ padding: '1rem 0.75rem', borderTop: '1px solid rgba(255, 255, 255, 0.08)' }}>
+      {/* Footer / Actions & Logout */}
+      <div style={{ padding: '0.85rem 0.75rem', borderTop: '1px solid rgba(255, 255, 255, 0.08)', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+        <Link
+          to="/"
+          style={{
+            width: '100%',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.75rem',
+            padding: collapsed ? '0.75rem' : '0.75rem 1rem',
+            justifyContent: collapsed ? 'center' : 'flex-start',
+            borderRadius: '10px',
+            color: '#38bdf8',
+            background: 'rgba(56, 189, 248, 0.08)',
+            border: 'none',
+            textDecoration: 'none',
+            fontSize: '0.88rem',
+            fontWeight: '600',
+            transition: 'all 0.2s'
+          }}
+          title={collapsed ? "Lihat Toko" : undefined}
+        >
+          <Globe size={20} />
+          {!collapsed && <span>Lihat Toko</span>}
+        </Link>
+
         <button
           onClick={logout}
           style={{
@@ -158,6 +183,7 @@ const Sidebar = ({ collapsed, toggleSidebar }) => {
             cursor: 'pointer',
             transition: 'all 0.2s'
           }}
+          title={collapsed ? "Keluar" : undefined}
         >
           <LogOut size={20} />
           {!collapsed && <span>Keluar</span>}

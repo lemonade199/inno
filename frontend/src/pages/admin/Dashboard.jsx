@@ -468,21 +468,6 @@ const AdminDashboard = () => {
               display: 'inline-flex',
               alignItems: 'center',
               gap: '6px',
-              background: 'rgba(16, 185, 129, 0.2)',
-              border: '1px solid rgba(16, 185, 129, 0.4)',
-              color: '#34d399',
-              padding: '3px 10px',
-              borderRadius: '100px',
-              fontSize: '0.74rem',
-              fontWeight: '700',
-            }}>
-              <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#34d399', display: 'inline-block', boxShadow: '0 0 8px #34d399' }} />
-              Toko Buka & Operasional Normal
-            </span>
-            <span style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
               background: 'rgba(255, 255, 255, 0.08)',
               color: '#cbd5e1',
               padding: '3px 10px',
@@ -548,52 +533,6 @@ const AdminDashboard = () => {
             title="Download file rekap CSV pesanan"
           >
             <Download size={15} /> Rekap CSV
-          </button>
-
-          <button
-            onClick={() => navigate('/admin/chat')}
-            style={{
-              background: '#ee4d2d',
-              color: '#fff',
-              border: 'none',
-              padding: '0.65rem 1.25rem',
-              borderRadius: '10px',
-              fontWeight: '700',
-              fontSize: '0.84rem',
-              cursor: 'pointer',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '7px',
-              boxShadow: '0 4px 14px rgba(238, 77, 45, 0.4)',
-              transition: 'var(--transition)',
-            }}
-            onMouseOver={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
-            onMouseOut={(e) => e.currentTarget.style.transform = 'translateY(0)'}
-          >
-            <MessageSquare size={16} /> Live Chat Pelanggan
-          </button>
-
-          <button
-            onClick={() => navigate('/admin/products/create')}
-            style={{
-              background: 'linear-gradient(135deg, #00a896, #0284c7)',
-              color: '#fff',
-              border: 'none',
-              padding: '0.65rem 1.25rem',
-              borderRadius: '10px',
-              fontWeight: '700',
-              fontSize: '0.84rem',
-              cursor: 'pointer',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '7px',
-              boxShadow: '0 4px 14px rgba(0, 168, 150, 0.35)',
-              transition: 'var(--transition)',
-            }}
-            onMouseOver={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
-            onMouseOut={(e) => e.currentTarget.style.transform = 'translateY(0)'}
-          >
-            <Plus size={16} /> Tambah Produk
           </button>
         </div>
       </div>

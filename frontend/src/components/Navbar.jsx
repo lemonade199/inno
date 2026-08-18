@@ -14,7 +14,8 @@ import {
   Trash2,
   Package,
   Star,
-  Heart
+  Heart,
+  Globe
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
@@ -107,21 +108,64 @@ const Navbar = ({ isAdminView = false, toggleSidebar }) => {
           <button onClick={toggleSidebar} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', display: 'flex', alignItems: 'center' }}>
             <Menu size={22} />
           </button>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <img src="/logo.jpg" alt="Berkah Pancing Logo" style={{ width: '32px', height: '32px', borderRadius: '6px', objectFit: 'cover' }} />
+          <div>
             <h2 style={{ fontSize: '1.1rem', fontWeight: '800', color: '#0f172a', margin: 0 }}>Panel Admin</h2>
           </div>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <Link
+            to="/"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              fontSize: '0.82rem',
+              fontWeight: '600',
+              color: '#0f4c81',
+              textDecoration: 'none',
+              padding: '0.45rem 0.85rem',
+              borderRadius: '8px',
+              background: '#f0f9ff',
+              border: '1px solid #bae6fd',
+              transition: 'all 0.2s'
+            }}
+          >
+            <Globe size={15} />
+            <span>Lihat Toko</span>
+          </Link>
+
           <div style={{ position: 'relative' }} ref={dropdownRef}>
             <div onClick={() => setShowDropdown(!showDropdown)} style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
               <img src={user?.avatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80"} alt="" style={{ width: '32px', height: '32px', borderRadius: '50%', objectFit: 'cover' }} />
               <span style={{ fontSize: '0.85rem', fontWeight: '600', color: '#334155' }}>{user?.name}</span>
             </div>
             {showDropdown && (
-              <div style={{ position: 'absolute', right: 0, top: '40px', background: '#fff', borderRadius: '8px', boxShadow: '0 4px 20px rgba(0,0,0,0.1)', padding: '0.5rem', width: '150px', zIndex: 10 }}>
-                <button onClick={handleLogout} style={{ width: '100%', background: 'none', border: 'none', padding: '0.5rem', textAlign: 'left', cursor: 'pointer', color: '#ef4444', fontSize: '0.85rem', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <div style={{ position: 'absolute', right: 0, top: '40px', background: '#fff', borderRadius: '8px', boxShadow: '0 4px 20px rgba(0,0,0,0.1)', padding: '0.5rem', width: '160px', zIndex: 10, border: '1px solid #e2e8f0' }}>
+                <Link
+                  to="/"
+                  onClick={() => setShowDropdown(false)}
+                  style={{
+                    width: '100%',
+                    background: 'none',
+                    border: 'none',
+                    padding: '0.5rem',
+                    textAlign: 'left',
+                    cursor: 'pointer',
+                    color: '#0f4c81',
+                    fontSize: '0.85rem',
+                    fontWeight: '600',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    textDecoration: 'none',
+                    borderRadius: '6px'
+                  }}
+                >
+                  <Globe size={16} /> Lihat Toko
+                </Link>
+                <div style={{ height: '1px', background: '#f1f5f9', margin: '4px 0' }} />
+                <button onClick={handleLogout} style={{ width: '100%', background: 'none', border: 'none', padding: '0.5rem', textAlign: 'left', cursor: 'pointer', color: '#ef4444', fontSize: '0.85rem', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px', borderRadius: '6px' }}>
                   <LogOut size={16} /> Keluar
                 </button>
               </div>
