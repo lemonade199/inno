@@ -26,7 +26,8 @@ import {
   CreditCard,
   Building,
   Bell,
-  Lock
+  Lock,
+  AlertTriangle
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
@@ -136,7 +137,10 @@ const Profile = () => {
     setTimeout(() => setSavedSuccess(false), 2500);
   };
 
-  const handleLogout = () => {
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+
+  const confirmLogout = () => {
+    setShowLogoutConfirm(false);
     logout();
     navigate('/login');
   };
@@ -333,7 +337,7 @@ const Profile = () => {
             {/* Logout Button */}
             <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '0.85rem' }}>
               <button 
-                onClick={handleLogout}
+                onClick={() => setShowLogoutConfirm(true)}
                 style={{ 
                   width: '100%', 
                   background: '#fee2e2', 
@@ -837,6 +841,89 @@ const Profile = () => {
                 <button type="submit" style={{ background: '#00AB99', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: '4px', fontSize: '0.8rem', fontWeight: '700', cursor: 'pointer' }}>Simpan Alamat</button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Logout Confirmation Modal */}
+      {showLogoutConfirm && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(15, 23, 42, 0.65)',
+          backdropFilter: 'blur(4px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+          padding: '1rem',
+        }}>
+          <div style={{
+            background: '#ffffff',
+            borderRadius: '16px',
+            padding: '1.75rem 1.5rem',
+            maxWidth: '380px',
+            width: '100%',
+            boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
+            textAlign: 'center',
+          }}>
+            <div style={{
+              width: '54px',
+              height: '54px',
+              borderRadius: '50%',
+              background: '#fee2e2',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 1rem auto'
+            }}>
+              <AlertTriangle size={28} color="#ef4444" />
+            </div>
+
+            <h3 style={{ fontSize: '1.1rem', fontWeight: '800', color: '#1e293b', margin: '0 0 0.4rem 0' }}>
+              Konfirmasi Keluar Akun
+            </h3>
+            <p style={{ fontSize: '0.85rem', color: '#64748b', margin: '0 0 1.25rem 0', lineHeight: 1.45 }}>
+              Apakah Anda yakin ingin keluar dari akun Berkah Pancing Anda?
+            </p>
+
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button
+                type="button"
+                onClick={() => setShowLogoutConfirm(false)}
+                style={{
+                  flex: 1,
+                  padding: '0.65rem 1rem',
+                  borderRadius: '8px',
+                  border: '1px solid #cbd5e1',
+                  background: '#f8fafc',
+                  color: '#475569',
+                  fontWeight: '700',
+                  fontSize: '0.85rem',
+                  cursor: 'pointer',
+                }}
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={confirmLogout}
+                style={{
+                  flex: 1,
+                  padding: '0.65rem 1rem',
+                  borderRadius: '8px',
+                  border: 'none',
+                  background: '#ef4444',
+                  color: '#ffffff',
+                  fontWeight: '700',
+                  fontSize: '0.85rem',
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 12px rgba(239, 68, 68, 0.3)',
+                }}
+              >
+                Ya, Keluar
+              </button>
+            </div>
           </div>
         </div>
       )}

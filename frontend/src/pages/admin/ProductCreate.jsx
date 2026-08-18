@@ -2,9 +2,13 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Save, UploadCloud } from 'lucide-react';
 import { productService } from '../../services/productService';
+import { useToast } from '../../context/ToastContext';
+import { useNotification } from '../../context/NotificationContext';
 
 const AdminProductCreate = () => {
   const navigate = useNavigate();
+  const { showToast } = useToast();
+  const { addNotification } = useNotification();
   const [formData, setFormData] = useState({
     name: '',
     category: 'Joran',
@@ -21,7 +25,14 @@ const AdminProductCreate = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     await productService.createProduct(formData);
-    alert(`Produk "${formData.name}" berhasil ditambahkan!`);
+    addNotification({
+      title: 'Barang Ditambahkan',
+      message: `Admin menambahkan produk baru "${formData.name}" ke kategori ${formData.category}.`,
+      type: 'success',
+      entity_type: 'product',
+      action_url: '/admin/products'
+    });
+    showToast(`Produk "${formData.name}" berhasil ditambahkan!`, 'success');
     navigate('/admin/products');
   };
 

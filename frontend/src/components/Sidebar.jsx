@@ -1,32 +1,37 @@
 import React, { useState, useEffect } from 'react';
-import { NavLink, Link } from 'react-router-dom';
+import { NavLink, Link, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
   Package,
   FolderTree,
   ShoppingBag,
   User,
-  LogOut,
   Fish,
   ChevronRight,
   MessageSquare,
-  Globe
+  Globe,
+  LogOut,
+  Bell,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useNotification } from '../context/NotificationContext';
 import { productService } from '../services/productService';
 import { orderService } from '../services/orderService';
 import { chatService } from '../services/chatService';
 
-const Sidebar = ({ collapsed, toggleSidebar }) => {
+const Sidebar = ({ collapsed, toggleSidebar, style = {}, className = '' }) => {
   const { logout } = useAuth();
-  const [unreadCount, setUnreadCount] = useState(chatService.getUnreadCount());
+  const { unreadCount: notifUnreadCount } = useNotification();
+  const navigate = useNavigate();
+
+  const [chatUnreadCount, setChatUnreadCount] = useState(chatService.getUnreadCount());
   const [productCount, setProductCount] = useState(0);
   const [pendingOrderCount, setPendingOrderCount] = useState(0);
 
   useEffect(() => {
-    setUnreadCount(chatService.getUnreadCount());
+    setChatUnreadCount(chatService.getUnreadCount());
     const unsubscribe = chatService.subscribe(() => {
-      setUnreadCount(chatService.getUnreadCount());
+      setChatUnreadCount(chatService.getUnreadCount());
     });
 
     productService.getProducts().then(list => {
@@ -43,17 +48,23 @@ const Sidebar = ({ collapsed, toggleSidebar }) => {
     return () => unsubscribe();
   }, []);
 
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
+
   const menuItems = [
     { title: 'Dashboard', path: '/admin/dashboard', icon: LayoutDashboard },
-    { title: 'Pesan', path: '/admin/chat', icon: MessageSquare, badge: unreadCount > 0 ? String(unreadCount) : null, badgeColor: 'bg-emerald-500' },
+    { title: 'Pesan', path: '/admin/chat', icon: MessageSquare, badge: chatUnreadCount > 0 ? String(chatUnreadCount) : null, badgeColor: 'bg-emerald-500' },
     { title: 'Produk', path: '/admin/products', icon: Package, badge: productCount > 0 ? String(productCount) : null },
     { title: 'Kategori', path: '/admin/categories', icon: FolderTree },
     { title: 'Pesanan', path: '/admin/orders', icon: ShoppingBag, badge: pendingOrderCount > 0 ? String(pendingOrderCount) : null, badgeColor: 'bg-amber-500' },
+    { title: 'Notifikasi', path: '/admin/notifications', icon: Bell, badge: notifUnreadCount > 0 ? notifUnreadCount : null, badgeColor: 'bg-red-500' },
     { title: 'Profil Admin', path: '/admin/profile', icon: User },
   ];
 
   return (
-    <aside className={`admin-sidebar ${collapsed ? 'collapsed' : ''}`}>
+    <aside className={`admin-sidebar ${collapsed ? 'collapsed' : ''} ${className}`} style={style}>
       {/* Header / Logo */}
       <div style={{
         height: '70px',
@@ -114,7 +125,8 @@ const Sidebar = ({ collapsed, toggleSidebar }) => {
                   fontWeight: isActive ? '600' : '500',
                   fontSize: '0.88rem',
                   transition: 'all 0.2s ease',
-                  position: 'relative'
+                  position: 'relative',
+                  textDecoration: 'none',
                 })}
               >
                 <Icon size={20} />
@@ -166,7 +178,7 @@ const Sidebar = ({ collapsed, toggleSidebar }) => {
         </Link>
 
         <button
-          onClick={logout}
+          onClick={handleLogout}
           style={{
             width: '100%',
             display: 'flex',

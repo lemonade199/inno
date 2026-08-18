@@ -12,11 +12,13 @@ import {
   MessageSquare,
   ChevronDown
 } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import { productService } from '../services/productService';
 
 const Cart = () => {
   const { cart, updateQuantity, removeFromCart, clearCart } = useCart();
+  const { user } = useAuth();
   const navigate = useNavigate();
   
   // Shopee-style item selection state
@@ -117,6 +119,15 @@ const Cart = () => {
   const subtotal = getSelectedTotal();
   const shippingFee = selectedProductsCount > 0 ? 20000 : 0;
   const grandTotal = Math.max(0, subtotal + shippingFee);
+
+  const handleCheckoutClick = () => {
+    if (!user) {
+      alert('Silakan login terlebih dahulu untuk melakukan checkout!');
+      navigate('/login');
+      return;
+    }
+    navigate('/checkout');
+  };
 
   if (cart.length === 0) {
     return (
@@ -287,7 +298,7 @@ const Cart = () => {
             </div>
 
             <button
-              onClick={() => navigate('/checkout')}
+              onClick={handleCheckoutClick}
               disabled={selectedIds.length === 0}
               className="cart-checkout-btn"
               style={{

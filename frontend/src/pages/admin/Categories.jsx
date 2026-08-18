@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { FolderTree, Plus, Edit, Trash2, Tag } from 'lucide-react';
 import { productService } from '../../services/productService';
+import { useToast } from '../../context/ToastContext';
 
 const AdminCategories = () => {
+  const { showToast, showConfirm } = useToast();
   const [categories, setCategories] = useState([]);
   const [newCat, setNewCat] = useState('');
   const [showModal, setShowModal] = useState(false);
@@ -22,14 +24,23 @@ const AdminCategories = () => {
       status: 'Aktif',
     };
     setCategories([...categories, newItem]);
+    showToast(`Kategori "${newCat}" berhasil ditambahkan!`, 'success');
     setNewCat('');
     setShowModal(false);
   };
 
   const handleDelete = (id, name) => {
-    if (window.confirm(`Hapus kategori "${name}"?`)) {
-      setCategories(categories.filter((c) => c.id !== id));
-    }
+    showConfirm({
+      title: 'Hapus Kategori',
+      message: `Hapus kategori "${name}"?`,
+      confirmText: 'Ya, Hapus',
+      cancelText: 'Batal',
+      isDanger: true,
+      onConfirm: () => {
+        setCategories(prev => prev.filter((c) => c.id !== id));
+        showToast(`Kategori "${name}" dihapus.`, 'success');
+      }
+    });
   };
 
   return (

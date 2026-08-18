@@ -177,7 +177,7 @@ const Orders = () => {
 
                   {order.status === 'Selesai' && (
                     <Link
-                      to={`/products/${order.items?.[0]?.id || 1}`}
+                      to={`/products/${order.items?.[0]?.id || 1}?writeReview=true`}
                       style={{ padding: '0.5rem 1rem', borderRadius: '8px', border: 'none', background: '#f77f00', color: '#fff', fontSize: '0.8rem', fontWeight: '700', cursor: 'pointer', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}
                     >
                       <Star size={14} /> Beri Ulasan

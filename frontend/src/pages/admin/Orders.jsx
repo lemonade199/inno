@@ -3,9 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import { ShoppingBag, Search, Eye, CheckCircle2, Clock, Truck, AlertCircle } from 'lucide-react';
 import { orderService } from '../../services/orderService';
 import { productService } from '../../services/productService';
+import { useToast } from '../../context/ToastContext';
+import { useNotification } from '../../context/NotificationContext';
 
 const AdminOrders = () => {
   const navigate = useNavigate();
+  const { showToast, showPrompt } = useToast();
+  const { addNotification } = useNotification();
   const [orders, setOrders] = useState([]);
   const [activeTab, setActiveTab] = useState('Semua');
   const [search, setSearch] = useState('');
@@ -15,14 +19,39 @@ const AdminOrders = () => {
   }, []);
 
   const handleStatusChange = async (orderId, newStatus) => {
-    let trackingNumber = null;
-    if (newStatus === 'Dikirim') {
-      trackingNumber = prompt('Masukkan Nomor Resi Kurir (contoh: JNE - 12345678):');
-      if (trackingNumber === null) return; // User cancelled prompt
-    }
+    const processUpdate = async (trackingNumber = null) => {
+      const newPaymentStatus = newStatus === 'Menunggu Pembayaran' ? 'Belum Bayar' : 'Lunas';
+      
+      setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: newStatus, paymentStatus: newPaymentStatus, trackingNumber: trackingNumber ?? o.trackingNumber } : o));
+      await orderService.updateOrderStatus(orderId, newStatus, newPaymentStatus, trackingNumber);
+      
+      addNotification({
+        title: 'Status Pesanan Berubah',
+        message: `Status pesanan ${orderId} diubah menjadi "${newStatus}".`,
+        type: newStatus === 'Selesai' ? 'success' : 'order',
+        entity_type: 'order',
+        action_url: `/admin/orders/${orderId}`
+      });
 
-    setOrders(orders.map(o => o.id === orderId ? { ...o, status: newStatus, trackingNumber: trackingNumber ?? o.trackingNumber } : o));
-    await orderService.updateOrderStatus(orderId, newStatus, newStatus === 'Menunggu Pembayaran' ? 'Belum Bayar' : 'Lunas', trackingNumber);
+      showToast(`Status pesanan #${orderId} diperbarui menjadi "${newStatus}"`, 'success');
+    };
+
+    if (newStatus === 'Dikirim') {
+      const defaultResi = 'JNE-BP' + Date.now().toString().slice(-6);
+      showPrompt({
+        title: 'Input Nomor Resi Kurir',
+        message: `Masukkan nomor resi ekspedisi untuk pesanan #${orderId}:`,
+        defaultValue: defaultResi,
+        placeholder: 'Contoh: JNE-BP123456',
+        confirmText: 'Simpan & Kirim',
+        onConfirm: (val) => {
+          const trackingNumber = val && val.trim() ? val.trim() : defaultResi;
+          processUpdate(trackingNumber);
+        }
+      });
+    } else {
+      processUpdate(null);
+    }
   };
 
   const tabs = ['Semua', 'Menunggu Pembayaran', 'Diproses', 'Dikirim', 'Selesai'];

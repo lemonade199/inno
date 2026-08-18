@@ -111,6 +111,14 @@ const ProductDetail = () => {
   const [modalImages, setModalImages] = useState([]);
   const [reviewSubmitted, setReviewSubmitted] = useState(false);
 
+  // Auto-open Review Modal if navigated with ?writeReview=true
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('writeReview') === 'true') {
+      setShowReviewModal(true);
+    }
+  }, []);
+
   // Lock background body scroll when review modal is open
   useEffect(() => {
     if (showReviewModal) {
@@ -256,8 +264,6 @@ const ProductDetail = () => {
   };
 
   // Mock metadata based on product ID
-  const discountPercent = product.id % 2 === 0 ? 50 : product.id % 3 === 0 ? 15 : 0;
-  const originalPrice = discountPercent > 0 ? product.price / (1 - discountPercent / 100) : null;
   const reviewCount = ((product.id * 31) % 150) + 12;
   const soldCount = ((product.id * 67) % 500) + 45;
   const rating = (4.5 + (product.id % 5) * 0.1).toFixed(1);
@@ -506,11 +512,6 @@ const ProductDetail = () => {
               <span style={{ fontSize: '1.6rem', fontWeight: '800', color: '#ee4d2d' }}>
                 {productService.formatIDR(product.price)}
               </span>
-              {originalPrice && (
-                <span style={{ fontSize: '0.85rem', textDecoration: 'line-through', color: '#94a3b8' }}>
-                  {productService.formatIDR(originalPrice)}
-                </span>
-              )}
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.82rem', color: '#64748b' }}>
               <span style={{ fontWeight: '600' }}>{soldCount > 50 ? '5RB+ Terjual' : `${soldCount} Terjual`}</span>
@@ -960,39 +961,76 @@ const ProductDetail = () => {
                 />
               </div>
 
-              {/* Photo Attachment URL Picker */}
+              {/* Photo Attachment File Picker */}
               <div>
                 <label style={{ fontSize: '0.82rem', fontWeight: '700', color: '#1e293b', display: 'block', marginBottom: '6px' }}>
-                  Tambah URL Foto Produk (Opsional)
+                  Unggah Foto Ulasan (Opsional)
                 </label>
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <input 
-                    type="text" 
-                    value={modalImageInput} 
-                    onChange={(e) => setModalImageInput(e.target.value)} 
-                    placeholder="https://..."
-                    style={{ flex: 1, padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.82rem' }}
-                  />
-                  <button 
-                    type="button"
-                    onClick={() => {
-                      if (modalImageInput.trim()) {
-                        setModalImages([...modalImages, modalImageInput.trim()]);
-                        setModalImageInput('');
-                      }
-                    }}
-                    style={{ background: '#0f4c81', color: '#fff', border: 'none', padding: '0 12px', borderRadius: '4px', fontSize: '0.8rem', fontWeight: '700', cursor: 'pointer' }}
-                  >
-                    Tambah
-                  </button>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <label style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '8px 14px',
+                    borderRadius: '8px',
+                    border: '1px dashed #0f4c81',
+                    background: '#f0f9ff',
+                    color: '#0f4c81',
+                    fontSize: '0.82rem',
+                    fontWeight: '700',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s'
+                  }}>
+                    <Upload size={16} /> Pilih Foto dari Galeri / Komputer
+                    <input 
+                      type="file" 
+                      accept="image/*"
+                      multiple
+                      onChange={(e) => {
+                        const files = Array.from(e.target.files);
+                        files.forEach((file) => {
+                          const reader = new FileReader();
+                          reader.onload = (uploadEvent) => {
+                            setModalImages((prev) => [...prev, uploadEvent.target.result]);
+                          };
+                          reader.readAsDataURL(file);
+                        });
+                      }}
+                      style={{ display: 'none' }}
+                    />
+                  </label>
+                  <span style={{ fontSize: '0.74rem', color: '#64748b' }}>Bisa pilih beberapa foto sekaligus</span>
                 </div>
                 
                 {/* Photo Previews */}
                 {modalImages.length > 0 && (
-                  <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
+                  <div style={{ display: 'flex', gap: '8px', marginTop: '10px', flexWrap: 'wrap' }}>
                     {modalImages.map((img, idx) => (
-                      <div key={idx} style={{ position: 'relative', width: '50px', height: '50px', borderRadius: '4px', overflow: 'hidden', border: '1px solid #cbd5e1' }}>
-                        <img src={img} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      <div key={idx} style={{ position: 'relative', width: '56px', height: '56px', borderRadius: '8px', overflow: 'hidden', border: '1px solid #cbd5e1' }}>
+                        <img src={img} alt="preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        <button
+                          type="button"
+                          onClick={() => setModalImages(modalImages.filter((_, i) => i !== idx))}
+                          style={{
+                            position: 'absolute',
+                            top: '2px',
+                            right: '2px',
+                            width: '18px',
+                            height: '18px',
+                            borderRadius: '50%',
+                            background: 'rgba(0,0,0,0.6)',
+                            color: '#fff',
+                            border: 'none',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '10px'
+                          }}
+                          title="Hapus foto ini"
+                        >
+                          <X size={12} />
+                        </button>
                       </div>
                     ))}
                   </div>

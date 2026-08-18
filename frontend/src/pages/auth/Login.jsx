@@ -8,8 +8,10 @@ const Login = () => {
   const { login } = useAuth();
   
   const [roleMode, setRoleMode] = useState('user'); // 'user' or 'admin'
-  const [email, setEmail] = useState('julianto@gmail.com');
-  const [password, setPassword] = useState('123456');
+  const [email, setEmail] = useState('user@gmail.com');
+  const [password, setPassword] = useState('password123');
+  const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleRoleToggle = (role) => {
     setRoleMode(role);
@@ -20,13 +22,22 @@ const Login = () => {
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    const loggedInUser = login(email, password, roleMode);
-    if (loggedInUser.role === 'admin') {
-      navigate('/admin/dashboard');
-    } else {
-      navigate('/');
+    setIsLoading(true);
+    setError('');
+
+    try {
+      const loggedInUser = await login(email, password);
+      if (loggedInUser.role === 'admin') {
+        navigate('/admin/dashboard');
+      } else {
+        navigate('/');
+      }
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -103,6 +114,12 @@ const Login = () => {
           </button>
         </div>
 
+        {error && (
+          <div style={{ background: '#fef2f2', color: '#ef4444', padding: '0.75rem', borderRadius: '8px', marginBottom: '1.25rem', fontSize: '0.85rem', textAlign: 'center', border: '1px solid #fecaca' }}>
+            {error}
+          </div>
+        )}
+
         <form onSubmit={handleSubmit}>
           <div className="form-group" style={{ marginBottom: '1rem' }}>
             <label className="form-label">Email {roleMode === 'admin' ? 'Admin' : 'Pembeli'}</label>
@@ -113,7 +130,7 @@ const Login = () => {
                 required
                 className="form-input"
                 style={{ paddingLeft: '2.5rem' }}
-                placeholder={roleMode === 'admin' ? 'admin@berkahpancing.com' : 'julianto@gmail.com'}
+                placeholder={roleMode === 'admin' ? 'admin@berkahpancing.com' : 'user@gmail.com'}
                 value={email}
                 onChange={e => setEmail(e.target.value)}
               />
@@ -138,6 +155,7 @@ const Login = () => {
 
           <button
             type="submit"
+            disabled={isLoading}
             className="btn btn-primary"
             style={{
               width: '100%',
@@ -145,10 +163,12 @@ const Login = () => {
               fontSize: '0.95rem',
               background: 'linear-gradient(135deg, #0f4c81 0%, #00a896 100%)',
               border: 'none',
-              boxShadow: '0 4px 15px rgba(0,168,150,0.4)'
+              boxShadow: '0 4px 15px rgba(0,168,150,0.4)',
+              cursor: isLoading ? 'not-allowed' : 'pointer',
+              opacity: isLoading ? 0.7 : 1
             }}
           >
-            Masuk {roleMode === 'admin' ? 'Admin Portal' : 'Sebagai Pembeli'} <ArrowRight size={18} />
+            {isLoading ? 'Memproses...' : `Masuk ${roleMode === 'admin' ? 'Admin Portal' : 'Sebagai Pembeli'}`} <ArrowRight size={18} />
           </button>
         </form>
 
