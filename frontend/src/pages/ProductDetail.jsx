@@ -26,7 +26,13 @@ import {
   CreditCard,
   Copy,
   MessageCircle,
-  Send
+  Send,
+  MoreVertical,
+  Smile,
+  PlusCircle,
+  Info,
+  BadgeCheck,
+  Anchor
 } from 'lucide-react';
 import { productService } from '../services/productService';
 import { reviewService } from '../services/reviewService';
@@ -53,6 +59,38 @@ const ProductDetail = () => {
   const [isCopied, setIsCopied] = useState(false);
   const [showSearchInput, setShowSearchInput] = useState(false);
   const [mobileSearchQuery, setMobileSearchQuery] = useState('');
+  
+  // Tokopedia-style Chat Modal state
+  const [showChatModal, setShowChatModal] = useState(false);
+  const [chatInputText, setChatInputText] = useState('');
+  const [chatMessages, setChatMessages] = useState([
+    { id: 1, text: 'Halo Kak! Selamat datang di Berkah Pancing. Ada yang bisa kami bantu mengenai produk ini?', sender: 'seller', time: '10:30' }
+  ]);
+
+  const handleSendMessage = (textToSend) => {
+    const text = textToSend || chatInputText;
+    if (!text.trim()) return;
+
+    const newBuyerMsg = {
+      id: Date.now(),
+      text: text.trim(),
+      sender: 'buyer',
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    };
+
+    setChatMessages((prev) => [...prev, newBuyerMsg]);
+    if (!textToSend) setChatInputText('');
+
+    setTimeout(() => {
+      const sellerReply = {
+        id: Date.now() + 1,
+        text: 'Terima kasih telah mengontak Berkah Pancing! Stok produk ini ready dan siap langsung dikirim hari ini. Silakan diorder ya Kak! 🎣✨',
+        sender: 'seller',
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      };
+      setChatMessages((prev) => [...prev, sellerReply]);
+    }, 1000);
+  };
 
   const handleCopyLink = () => {
     if (navigator.clipboard) {
@@ -984,7 +1022,7 @@ const ProductDetail = () => {
 
       {/* Tokopedia Mobile Sticky Bottom Bar (Chat, + Keranjang, Beli Sekarang) */}
       <div className="tokopedia-mobile-bottom-bar">
-        <button onClick={() => navigate('/chat')} className="tokopedia-btn-chat" title="Chat Seller">
+        <button onClick={() => navigate(`/chat?productId=${product.id}`)} className="tokopedia-btn-chat" title="Chat Seller">
           <MessageSquare size={20} color="#475569" />
         </button>
         <button 

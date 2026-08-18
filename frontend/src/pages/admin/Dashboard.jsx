@@ -42,10 +42,12 @@ import {
   Phone,
   Mail,
   Zap,
+  MessageSquare,
 } from 'lucide-react';
 import { orderService } from '../../services/orderService';
 import { productService } from '../../services/productService';
 import { userService } from '../../services/userService';
+import { chatService } from '../../services/chatService';
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
@@ -546,6 +548,29 @@ const AdminDashboard = () => {
             title="Download file rekap CSV pesanan"
           >
             <Download size={15} /> Rekap CSV
+          </button>
+
+          <button
+            onClick={() => navigate('/admin/chat')}
+            style={{
+              background: '#ee4d2d',
+              color: '#fff',
+              border: 'none',
+              padding: '0.65rem 1.25rem',
+              borderRadius: '10px',
+              fontWeight: '700',
+              fontSize: '0.84rem',
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '7px',
+              boxShadow: '0 4px 14px rgba(238, 77, 45, 0.4)',
+              transition: 'var(--transition)',
+            }}
+            onMouseOver={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
+            onMouseOut={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+          >
+            <MessageSquare size={16} /> Live Chat Pelanggan
           </button>
 
           <button

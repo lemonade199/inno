@@ -278,10 +278,10 @@ const Profile = () => {
               {isKotakMasukOpen && (
                 <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '0.4rem', fontSize: '0.82rem' }}>
                   <li 
-                    onClick={() => setActiveTab('chat')}
-                    style={{ padding: '6px 8px', borderRadius: '4px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', background: activeTab === 'chat' ? '#f0f9ff' : 'transparent', color: activeTab === 'chat' ? '#0f4c81' : '#475569', fontWeight: activeTab === 'chat' ? '700' : '500' }}
+                    onClick={() => navigate('/chat')}
+                    style={{ padding: '6px 8px', borderRadius: '4px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', background: activeTab === 'chat' ? '#f0f9ff' : 'transparent', color: '#0f4c81', fontWeight: '600' }}
                   >
-                    <MessageSquare size={15} color="#0f4c81" /> Chat Pembeli
+                    <MessageSquare size={15} color="#0f4c81" /> Chat Penjual
                   </li>
                   <li 
                     onClick={() => setActiveTab('ulasan')}
@@ -519,6 +519,42 @@ const Profile = () => {
                   )}
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* Tab: CHAT PENJUAL */}
+          {activeTab === 'chat' && (
+            <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem', textAlign: 'center', alignItems: 'center' }}>
+              <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: '#e6f8f6', color: '#00a896', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <MessageSquare size={32} />
+              </div>
+              <div>
+                <h3 style={{ fontSize: '1.15rem', fontWeight: '800', color: '#1e293b', margin: 0 }}>
+                  Chat Penjual Berkah Pancing
+                </h3>
+                <p style={{ fontSize: '0.88rem', color: '#64748b', marginTop: '6px', maxWidth: '400px', lineHeight: 1.5 }}>
+                  Tanyakan seputar produk, ketersediaan stok, atau informasi pengiriman langsung kepada layanan pelanggan Berkah Pancing.
+                </p>
+              </div>
+              <button 
+                onClick={() => navigate('/chat')}
+                style={{
+                  background: 'linear-gradient(135deg, #0f4c81 0%, #00a896 100%)',
+                  color: '#ffffff',
+                  border: 'none',
+                  padding: '12px 24px',
+                  borderRadius: '30px',
+                  fontWeight: '700',
+                  fontSize: '0.9rem',
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 14px rgba(0,168,150,0.3)',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}
+              >
+                <MessageSquare size={18} /> Buka Ruang Chat Penjual
+              </button>
             </div>
           )}
 

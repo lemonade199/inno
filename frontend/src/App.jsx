@@ -27,6 +27,7 @@ import UserOrders from './pages/Orders';
 import UserOrderDetail from './pages/OrderDetail';
 import UserProfile from './pages/Profile';
 import UserSearch from './pages/Search';
+import UserChat from './pages/Chat';
 
 // Admin Pages
 import AdminDashboard from './pages/admin/Dashboard';
@@ -37,6 +38,7 @@ import AdminCategories from './pages/admin/Categories';
 import AdminOrders from './pages/admin/Orders';
 import AdminOrderDetail from './pages/admin/OrderDetail';
 import AdminProfile from './pages/admin/Profile';
+import AdminChat from './pages/admin/Chat';
 
 function App() {
   return (
@@ -60,6 +62,7 @@ function App() {
               <Route path="orders/:id" element={<UserOrderDetail />} />
               <Route path="profile" element={<UserProfile />} />
               <Route path="search" element={<UserSearch />} />
+              <Route path="chat" element={<UserChat />} />
 
               {/* Backward compatibility redirects */}
               <Route path="user/dashboard" element={<Navigate to="/" replace />} />
@@ -82,6 +85,7 @@ function App() {
             <Route path="/admin" element={<AdminLayout />}>
               <Route index element={<Navigate to="/admin/dashboard" replace />} />
               <Route path="dashboard" element={<AdminDashboard />} />
+              <Route path="chat" element={<AdminChat />} />
               <Route path="products" element={<AdminProducts />} />
               <Route path="products/create" element={<AdminProductCreate />} />
               <Route path="products/edit/:id" element={<AdminProductEdit />} />

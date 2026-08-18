@@ -108,15 +108,12 @@ const Navbar = ({ isAdminView = false, toggleSidebar }) => {
             <Menu size={22} />
           </button>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <ShieldCheck size={20} color="#00a896" />
+            <img src="/logo.jpg" alt="Berkah Pancing Logo" style={{ width: '32px', height: '32px', borderRadius: '6px', objectFit: 'cover' }} />
             <h2 style={{ fontSize: '1.1rem', fontWeight: '800', color: '#0f172a', margin: 0 }}>Panel Admin</h2>
           </div>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <Link to="/" style={{ color: '#00a896', textDecoration: 'none', fontSize: '0.85rem', fontWeight: '700' }}>
-            ← Ke Toko Utama
-          </Link>
           <div style={{ position: 'relative' }} ref={dropdownRef}>
             <div onClick={() => setShowDropdown(!showDropdown)} style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
               <img src={user?.avatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80"} alt="" style={{ width: '32px', height: '32px', borderRadius: '50%', objectFit: 'cover' }} />
@@ -143,9 +140,7 @@ const Navbar = ({ isAdminView = false, toggleSidebar }) => {
         
         {/* Brand / Logo */}
         <Link to="/" className="navbar-brand-link" style={{ display: 'flex', alignItems: 'center', gap: '8px', textDecoration: 'none', color: '#fff', flexShrink: 0 }}>
-          <div className="navbar-brand-icon-box" style={{ background: '#f77f00', width: '40px', height: '40px', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 10px rgba(247,127,0,0.3)', flexShrink: 0 }}>
-            <Anchor size={22} color="#fff" />
-          </div>
+          <img src="/logo.jpg" alt="Berkah Pancing Logo" style={{ width: '42px', height: '42px', borderRadius: '10px', objectFit: 'cover', border: '2px solid #00a896', boxShadow: '0 4px 10px rgba(0,168,150,0.4)' }} />
           <div>
             <h1 className="navbar-brand-title" style={{ fontSize: '1.25rem', fontWeight: '800', letterSpacing: '-0.5px', margin: 0, lineHeight: 1.1 }}>BERKAH PANCING</h1>
             <span className="navbar-brand-subtext" style={{ fontSize: '0.62rem', color: '#e2e8f0', letterSpacing: '0.5px', opacity: 0.9 }}>Angler E-Commerce</span>

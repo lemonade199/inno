@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
 import {
   LayoutDashboard,
@@ -9,17 +9,45 @@ import {
   LogOut,
   Fish,
   ChevronRight,
+  MessageSquare
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { productService } from '../services/productService';
+import { orderService } from '../services/orderService';
+import { chatService } from '../services/chatService';
 
 const Sidebar = ({ collapsed, toggleSidebar }) => {
   const { logout } = useAuth();
+  const [unreadCount, setUnreadCount] = useState(chatService.getUnreadCount());
+  const [productCount, setProductCount] = useState(0);
+  const [pendingOrderCount, setPendingOrderCount] = useState(0);
+
+  useEffect(() => {
+    setUnreadCount(chatService.getUnreadCount());
+    const unsubscribe = chatService.subscribe(() => {
+      setUnreadCount(chatService.getUnreadCount());
+    });
+
+    productService.getProducts().then(list => {
+      if (list) setProductCount(list.length);
+    });
+
+    orderService.getOrders().then(orders => {
+      if (orders && Array.isArray(orders)) {
+        const pending = orders.filter(o => o.status === 'Menunggu Pembayaran' || o.status === 'Diproses').length;
+        setPendingOrderCount(pending || orders.length);
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   const menuItems = [
     { title: 'Dashboard', path: '/admin/dashboard', icon: LayoutDashboard },
-    { title: 'Produk', path: '/admin/products', icon: Package, badge: '6' },
+    { title: 'Pesan', path: '/admin/chat', icon: MessageSquare, badge: unreadCount > 0 ? String(unreadCount) : null, badgeColor: 'bg-emerald-500' },
+    { title: 'Produk', path: '/admin/products', icon: Package, badge: productCount > 0 ? String(productCount) : null },
     { title: 'Kategori', path: '/admin/categories', icon: FolderTree },
-    { title: 'Pesanan', path: '/admin/orders', icon: ShoppingBag, badge: '4', badgeColor: 'bg-amber-500' },
+    { title: 'Pesanan', path: '/admin/orders', icon: ShoppingBag, badge: pendingOrderCount > 0 ? String(pendingOrderCount) : null, badgeColor: 'bg-amber-500' },
     { title: 'Profil Admin', path: '/admin/profile', icon: User },
   ];
 
@@ -45,7 +73,7 @@ const Sidebar = ({ collapsed, toggleSidebar }) => {
             justifyContent: 'center',
             boxShadow: '0 4px 10px rgba(0, 168, 150, 0.3)'
           }}>
-            <Fish size={22} color="#fff" />
+            <img src="/logo.jpg" alt="Berkah Pancing Logo" style={{ width: '38px', height: '38px', borderRadius: '8px', objectFit: 'cover' }} />
           </div>
           {!collapsed && (
             <div>

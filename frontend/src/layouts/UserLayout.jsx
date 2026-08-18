@@ -5,13 +5,14 @@ import { Anchor, Phone, MapPin, Mail, ShieldCheck, Heart } from 'lucide-react';
 
 const UserLayout = () => {
   const location = useLocation();
-  const hideFooter = location.pathname.startsWith('/products') || location.pathname === '/cart';
+  const isChatPage = location.pathname === '/chat';
+  const hideFooter = location.pathname.startsWith('/products') || location.pathname === '/cart' || isChatPage;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', background: '#f8fafc' }}>
-      <Navbar isAdminView={false} />
+      {!isChatPage && <Navbar isAdminView={false} />}
       
-      <main style={{ flex: 1, maxWidth: '1200px', width: '100%', margin: '0 auto', padding: '1.5rem 1rem' }}>
+      <main style={{ flex: 1, maxWidth: isChatPage ? '100%' : '1200px', width: '100%', margin: '0 auto', padding: isChatPage ? 0 : '1.5rem 1rem' }}>
         <Outlet />
       </main>
 
