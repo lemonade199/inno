@@ -50,7 +50,7 @@ const Sidebar = ({ collapsed, toggleSidebar, style = {}, className = '' }) => {
 
   const handleLogout = () => {
     logout();
-    navigate('/login');
+    navigate('/login', { replace: true });
   };
 
   const menuItems = [

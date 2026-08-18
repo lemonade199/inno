@@ -7,15 +7,18 @@ use App\Services\MidtransService;
 use App\Models\Order;
 use App\Models\Payment;
 use App\Models\OrderItem;
+use App\Models\Product;
 use Illuminate\Support\Facades\DB;
 
 class PaymentController extends Controller
 {
     protected $midtransService;
+    protected $shippingService;
 
-    public function __construct(MidtransService $midtransService)
+    public function __construct(MidtransService $midtransService, \App\Services\ShippingService $shippingService)
     {
         $this->midtransService = $midtransService;
+        $this->shippingService = $shippingService;
     }
 
     public function createPayment(Request $request)
@@ -26,20 +29,25 @@ class PaymentController extends Controller
             'items' => 'required|array',
             'items.*.id' => 'required|integer',
             'items.*.qty' => 'required|integer|min:1',
+            'shipping_method' => 'required|in:pickup,delivery',
+            'shipping_service' => 'required_if:shipping_method,delivery',
+            'shipping_courier' => 'required_if:shipping_method,delivery',
+            'shipping_province_id' => 'required_if:shipping_method,delivery',
+            'shipping_city_id' => 'required_if:shipping_method,delivery',
         ]);
 
         try {
             DB::beginTransaction();
 
             $subtotal = 0;
-            $shippingFee = $request->shippingFee ?? 20000;
             $itemsData = [];
+            $totalWeight = 0;
 
             // Sort product IDs to prevent deadlock
             $productIds = collect($request->items)->pluck('id')->sort()->values()->all();
             
             // Lock all products needed for update
-            $products = \App\Models\Product::whereIn('id', $productIds)->lockForUpdate()->get()->keyBy('id');
+            $products = Product::whereIn('id', $productIds)->lockForUpdate()->get()->keyBy('id');
 
             foreach ($request->items as $item) {
                 $productId = $item['id'];
@@ -56,6 +64,8 @@ class PaymentController extends Controller
                 }
 
                 $subtotal += $product->price * $qty;
+                $weight = $product->weight > 0 ? $product->weight : 500;
+                $totalWeight += $weight * $qty;
                 
                 $itemsData[] = [
                     'product_id' => $product->id,
@@ -65,6 +75,31 @@ class PaymentController extends Controller
                     'image' => $product->image,
                     'model' => $product
                 ];
+            }
+
+            // Validasi Ongkir dari DB / Provider
+            $shippingFee = 0;
+            $shippingEtd = null;
+
+            if ($request->shipping_method === 'pickup') {
+                $shippingFee = 0;
+            } else {
+                if ($totalWeight === 0) $totalWeight = 1000;
+                
+                $shippingCostData = $this->shippingService->calculateCost(
+                    $request->shipping_city_id,
+                    $totalWeight,
+                    $request->shipping_courier ?? 'jne'
+                );
+
+                $selectedServiceCost = collect($shippingCostData['services'])->firstWhere('code', $request->shipping_service);
+
+                if (!$selectedServiceCost) {
+                    throw new \Exception("Layanan pengiriman {$request->shipping_service} tidak tersedia untuk tujuan ini.");
+                }
+
+                $shippingFee = $selectedServiceCost['price'];
+                $shippingEtd = $selectedServiceCost['etd'];
             }
 
             $total = $subtotal + $shippingFee;
@@ -82,6 +117,14 @@ class PaymentController extends Controller
                 'total' => $total,
                 'payment_method' => $paymentMethod,
                 'status' => 'pending',
+                'shipping_method' => $request->shipping_method,
+                'shipping_courier' => $request->shipping_method === 'pickup' ? null : ($request->shipping_courier ?? 'JNE'),
+                'shipping_service' => $request->shipping_method === 'pickup' ? null : $request->shipping_service,
+                'shipping_etd' => $request->shipping_method === 'pickup' ? null : $shippingEtd,
+                'shipping_province_id' => $request->shipping_method === 'pickup' ? null : $request->shipping_province_id,
+                'shipping_province' => $request->shipping_method === 'pickup' ? null : $request->shipping_province,
+                'shipping_city_id' => $request->shipping_method === 'pickup' ? null : $request->shipping_city_id,
+                'shipping_city' => $request->shipping_method === 'pickup' ? null : $request->shipping_city,
             ]);
 
             foreach ($itemsData as $data) {

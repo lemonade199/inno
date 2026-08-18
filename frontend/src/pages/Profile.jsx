@@ -39,7 +39,7 @@ import Avatar from '../components/Avatar';
 import ImageCropperModal from '../components/ImageCropperModal';
 
 const Profile = () => {
-  const { user, updateUserProfile, logout } = useAuth();
+  const { user, updateUserProfile, logout, addresses, saveAddresses } = useAuth();
   const { addToCart } = useCart();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -154,18 +154,7 @@ const Profile = () => {
   const [inputChat, setInputChat] = useState('');
 
   // Address list & Shopee-style modal state
-  const [addresses, setAddresses] = useState([
-    {
-      id: 1,
-      name: user?.name || 'Kaka',
-      phone: user?.phone || '085721726584',
-      region: 'JAWA BARAT, KAB. BANDUNG, CILEUNYI, 40624',
-      street: 'Jln,cibiru hilir rt02 rw03 desa cibiru hilir kecamatan cileunyi kabupaten bandung',
-      detail: 'Berkah pancing',
-      tag: 'Rumah',
-      isPrimary: true
-    }
-  ]);
+  // (Addresses now come from AuthContext)
   const [showAddressModal, setShowAddressModal] = useState(false);
   const [editingAddressId, setEditingAddressId] = useState(null);
   const [modalAddr, setModalAddr] = useState({
@@ -442,7 +431,7 @@ const Profile = () => {
 
     if (editingAddressId) {
       // Edit existing
-      setAddresses(addresses.map(a => {
+      saveAddresses(addresses.map(a => {
         if (a.id === editingAddressId) {
           return {
             ...a,
@@ -466,7 +455,7 @@ const Profile = () => {
       if (modalAddr.isPrimary) {
         updatedList = addresses.map(a => ({ ...a, isPrimary: false }));
       }
-      setAddresses([...updatedList, {
+      saveAddresses([...updatedList, {
         id: Date.now(),
         name: modalAddr.name,
         phone: modalAddr.phone || '085721726584',
@@ -490,7 +479,7 @@ const Profile = () => {
   // Set address as primary
   const handleSetPrimaryAddress = (id) => {
     const targetAddr = addresses.find(a => a.id === id);
-    setAddresses(addresses.map(a => ({ ...a, isPrimary: a.id === id })));
+    saveAddresses(addresses.map(a => ({ ...a, isPrimary: a.id === id })));
     if (targetAddr) {
       setFormData(prev => ({ ...prev, address: targetAddr.detail }));
       updateUserProfile({ address: targetAddr.detail });
@@ -507,7 +496,7 @@ const Profile = () => {
     if (!filtered.some(a => a.isPrimary) && filtered.length > 0) {
       filtered[0].isPrimary = true;
     }
-    setAddresses(filtered);
+    saveAddresses(filtered);
   };
 
 

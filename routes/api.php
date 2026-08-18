@@ -7,6 +7,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\ShippingController;
 
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/register', [AuthController::class, 'register']);
@@ -15,6 +16,11 @@ Route::post('/register', [AuthController::class, 'register']);
 Route::get('/products', [ProductController::class, 'index']);
 Route::get('/products/{id}', [ProductController::class, 'show']);
 Route::get('/categories', [CategoryController::class, 'index']);
+
+// Shipping APIs
+Route::get('/shipping/provinces', [ShippingController::class, 'getProvinces']);
+Route::get('/shipping/cities/{provinceId}', [ShippingController::class, 'getCities']);
+Route::post('/shipping/cost', [ShippingController::class, 'calculateCost']);
 
 // Webhooks
 Route::post('/payment/notification', [PaymentController::class, 'handleWebhook']);

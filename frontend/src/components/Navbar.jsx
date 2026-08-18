@@ -113,7 +113,7 @@ const Navbar = ({ isAdminView = false, toggleSidebar }) => {
     setShowLogoutConfirm(false);
     setShowDropdown(false);
     logout();
-    navigate('/login');
+    navigate('/login', { replace: true });
   };
 
   const handleLogout = () => {

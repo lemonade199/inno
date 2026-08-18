@@ -22,6 +22,17 @@ class Order extends Model
         'total',
         'payment_method',
         'status',
+        'shipping_method',
+        'shipping_courier',
+        'shipping_service',
+        'shipping_etd',
+        'shipping_province_id',
+        'shipping_province',
+        'shipping_city_id',
+        'shipping_city',
+        'shipping_district_id',
+        'shipping_district',
+        'shipping_postal_code',
     ];
 
     public function user()
