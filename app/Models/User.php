@@ -26,6 +26,8 @@ class User extends Authenticatable
         'role',
         'phone',
         'address',
+        'latitude',
+        'longitude',
         'avatar',
     ];
 
@@ -49,6 +51,8 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'latitude' => 'float',
+            'longitude' => 'float',
         ];
     }
 }
