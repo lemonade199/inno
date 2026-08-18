@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { 
   User, 
@@ -27,7 +27,8 @@ import {
   Building,
   Bell,
   Lock,
-  AlertTriangle
+  AlertTriangle,
+  Search
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
@@ -92,13 +93,196 @@ const Profile = () => {
   ]);
   const [inputChat, setInputChat] = useState('');
 
-  // Address list & Google Maps state
+  // Address list & Shopee-style modal state
   const [addresses, setAddresses] = useState([
-    { id: 1, name: 'Juli Anto', phone: '081234567890', detail: 'Jl. Merdeka No. 45, RT 02/RW 05, Jakarta Selatan', isPrimary: true }
+    {
+      id: 1,
+      name: user?.name || 'Kaka',
+      phone: user?.phone || '085721726584',
+      region: 'JAWA BARAT, KAB. BANDUNG, CILEUNYI, 40624',
+      street: 'Jln,cibiru hilir rt02 rw03 desa cibiru hilir kecamatan cileunyi kabupaten bandung',
+      detail: 'Berkah pancing',
+      tag: 'Rumah',
+      isPrimary: true
+    }
   ]);
   const [showAddressModal, setShowAddressModal] = useState(false);
   const [editingAddressId, setEditingAddressId] = useState(null);
-  const [modalAddr, setModalAddr] = useState({ name: '', phone: '', detail: '', isPrimary: false });
+  const [modalAddr, setModalAddr] = useState({
+    name: '',
+    phone: '',
+    region: 'JAWA BARAT, KAB. BANDUNG, CILEUNYI, 40624',
+    street: '',
+    detail: '',
+    tag: 'Rumah',
+    isPrimary: false
+  });
+
+  // Shopee 4-Tab Region Cascading Selector State
+  const [showRegionPicker, setShowRegionPicker] = useState(false);
+  const [regionTab, setRegionTab] = useState('provinsi'); // 'provinsi' | 'kota' | 'kecamatan' | 'kodepos'
+  const [regionSearch, setRegionSearch] = useState('');
+  const [selectedProvinsi, setSelectedProvinsi] = useState('JAWA BARAT');
+  const [selectedKota, setSelectedKota] = useState('KAB. BANDUNG');
+  const [selectedKecamatan, setSelectedKecamatan] = useState('CILEUNYI');
+  const [selectedKodePos, setSelectedKodePos] = useState('40624');
+
+  // Full Map View Modal State & Interactive Drag/Zoom
+  const [showFullMapModal, setShowFullMapModal] = useState(false);
+  const [mapLocationQuery, setMapLocationQuery] = useState('Jln. Cibiru Hilir No. 45, Cileunyi, Bandung');
+  const [mapPinConfirmed, setMapPinConfirmed] = useState(true);
+  const leafletMapRef = useRef(null);
+
+  // Initialize Real Leaflet OpenStreetMap when Modal Opens
+  useEffect(() => {
+    if (showFullMapModal) {
+      const timer = setTimeout(() => {
+        const container = document.getElementById('leaflet-map-modal-container');
+        if (container && window.L) {
+          // If map instance already exists, remove it first
+          if (leafletMapRef.current) {
+            leafletMapRef.current.remove();
+            leafletMapRef.current = null;
+          }
+
+          // Cibiru / Cileunyi Bandung default lat/lng
+          const lat = -6.9388;
+          const lng = 107.7183;
+
+          const map = window.L.map('leaflet-map-modal-container', {
+            center: [lat, lng],
+            zoom: 16,
+            zoomControl: false,
+          });
+
+          // Standard OpenStreetMap Tile Layer (Real-world map tiles)
+          window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '&copy; OpenStreetMap contributors'
+          }).addTo(map);
+
+          // Reverse Geocoding Debounced Handler on Map Move
+          let reverseTimer;
+          map.on('moveend', () => {
+            clearTimeout(reverseTimer);
+            const center = map.getCenter();
+            reverseTimer = setTimeout(() => {
+              fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${center.lat}&lon=${center.lng}&zoom=18`)
+                .then(res => res.json())
+                .then(data => {
+                  if (data && data.display_name) {
+                    setMapLocationQuery(data.display_name);
+                  }
+                })
+                .catch(() => {});
+            }, 500);
+          });
+
+          leafletMapRef.current = map;
+        }
+      }, 100);
+
+      return () => clearTimeout(timer);
+    } else {
+      if (leafletMapRef.current) {
+        leafletMapRef.current.remove();
+        leafletMapRef.current = null;
+      }
+    }
+  }, [showFullMapModal]);
+
+  // Administrative Region Data Source for Cascading Selector (Covers all major Indonesian provinces)
+  const regionData = {
+    provinsi: [
+      'ACEH', 'BALI', 'BANGKA BELITUNG', 'BANTEN', 'BENGKULU', 'DI YOGYAKARTA', 
+      'DKI JAKARTA', 'GORONTALO', 'JAMBI', 'JAWA BARAT', 'JAWA TENGAH', 'JAWA TIMUR', 
+      'KALIMANTAN BARAT', 'KALIMANTAN SELATAN', 'KALIMANTAN TENGAH', 'KALIMANTAN TIMUR', 
+      'KALIMANTAN UTARA', 'KEPULAUAN RIAU', 'LAMPUNG', 'MALUKU', 'MALUKU UTARA', 
+      'NUSA TENGGARA BARAT', 'NUSA TENGGARA TIMUR', 'PAPUA', 'PAPUA BARAT', 'RIAU', 
+      'SULAWESI BARAT', 'SULAWESI SELATAN', 'SULAWESI TENGAH', 'SULAWESI TENGGARA', 
+      'SULAWESI UTARA', 'SUMATERA BARAT', 'SUMATERA SELATAN', 'SUMATERA UTARA'
+    ],
+    kota: {
+      'BALI': ['KOTA DENPASAR', 'KAB. BADUNG', 'KAB. GIANYAR', 'KAB. BULELENG', 'KAB. TABANAN'],
+      'BANGKA BELITUNG': ['KOTA PANGKAL PINANG', 'KAB. BANGKA', 'KAB. BELITUNG'],
+      'BANTEN': ['KOTA TANGERANG', 'KOTA TANGERANG SELATAN', 'KOTA SERANG', 'KAB. TANGERANG', 'KOTA CILEGON'],
+      'BENGKULU': ['KOTA BENGKULU', 'KAB. REJANG LEBONG'],
+      'DI YOGYAKARTA': ['KOTA YOGYAKARTA', 'KAB. SLEMAN', 'KAB. BANTUL', 'KAB. GUNUNGKIDUL'],
+      'DKI JAKARTA': ['KOTA JAKARTA SELATAN', 'KOTA JAKARTA PUSAT', 'KOTA JAKARTA BARAT', 'KOTA JAKARTA TIMUR', 'KOTA JAKARTA UTARA'],
+      'JAWA BARAT': ['KAB. BANDUNG', 'KOTA BANDUNG', 'KOTA BEKASI', 'KAB. BOGOR', 'KOTA DEPOK', 'KAB. SUMEDANG', 'KOTA CIMAHI'],
+      'JAWA TENGAH': ['KOTA SEMARANG', 'KAB. BANYUMAS', 'KOTA SURAKARTA (SOLO)', 'KAB. MAGELANG', 'KOTA TEGAL'],
+      'JAWA TIMUR': ['KOTA SURABAYA', 'KOTA MALANG', 'KAB. SIDOARJO', 'KAB. GRESIK', 'KOTA KEDIRI'],
+      'KALIMANTAN BARAT': ['KOTA PONTIANAK', 'KAB. KUBU RAYA'],
+      'KALIMANTAN TIMUR': ['KOTA SAMARINDA', 'KOTA BALIKPAPAN'],
+      'LAMPUNG': ['KOTA BANDAR LAMPUNG', 'KAB. LAMPUNG SELATAN'],
+      'SUMATERA UTARA': ['KOTA MEDAN', 'KAB. DELI SERDANG', 'KOTA BINJAI']
+    },
+    kecamatan: {
+      // BALI
+      'KOTA DENPASAR': ['DENPASAR SELATAN', 'DENPASAR BARAT', 'DENPASAR UTARA', 'DENPASAR TIMUR'],
+      'KAB. BADUNG': ['KUTA', 'KUTA UTARA', 'KUTA SELATAN', 'MENGWI'],
+      // BANTEN
+      'KOTA TANGERANG': ['CIPONDOH', 'CILEDUG', 'KARAWACI', 'TANGERANG'],
+      'KOTA TANGERANG SELATAN': ['BSD CITY', 'SERPONG', 'PAMULANG', 'CIPUTAT'],
+      // DI YOGYAKARTA
+      'KOTA YOGYAKARTA': ['DANUREJAN', 'MALIOBORO', 'GONDOMANAN', 'KRATON'],
+      'KAB. SLEMAN': ['DEPOK', 'NGAGLIK', 'KALASAN', 'SLEMAN'],
+      // DKI JAKARTA
+      'KOTA JAKARTA SELATAN': ['CILANDAK', 'KEBAYORAN BARU', 'PANCORAN', 'TEBET', 'JAGAKARSA', 'PASAR MINGGU'],
+      'KOTA JAKARTA PUSAT': ['GAMBIR', 'TANAH ABANG', 'MENTENG', 'SABANG'],
+      // JAWA BARAT
+      'KAB. BANDUNG': ['CILEUNYI', 'CIBIRU', 'BOJONGSOANG', 'DAYEUHKOLOT', 'RANCAEKEK', 'MARGAHAYU'],
+      'KOTA BANDUNG': ['BANDUNG WETAN', 'COBLONG', 'CICENDO', 'SUMUR BANDUNG', 'DAGO'],
+      'KOTA BEKASI': ['BEKASI BARAT', 'BEKASI SELATAN', 'JATIASIH'],
+      'KAB. BOGOR': ['CIBINONG', 'CIBUBUR', 'CISAAT', 'SENTUL'],
+      // JAWA TENGAH
+      'KOTA SEMARANG': ['BANYUMANIK', 'SEMARANG BARAT', 'PEDURUNGAN', 'CANDISARI'],
+      // JAWA TIMUR
+      'KOTA SURABAYA': ['GUBENG', 'WONOKROMO', 'TEGALSARI', 'RUNGKUT', 'JAMBANGAN'],
+      'KOTA MALANG': ['LOWOKWARU', 'KLOJEN', 'SUKUN'],
+      // SUMATERA UTARA
+      'KOTA MEDAN': ['MEDAN KOTA', 'MEDAN BARAT', 'MEDAN HELVETIA', 'MEDAN PETISAH']
+    },
+    kodepos: {
+      'DENPASAR SELATAN': ['80221', '80222', '80223'],
+      'KUTA': ['80361', '80362'],
+      'CIPONDOH': ['15147', '15148'],
+      'SERPONG': ['15310', '15311'],
+      'DEPOK': ['55281', '55282'],
+      'CILANDAK': ['12430', '12440', '12450'],
+      'GAMBIR': ['10110', '10120'],
+      'CILEUNYI': ['40624', '40625', '40626', '40627'],
+      'CIBIRU': ['40614', '40615'],
+      'BANDUNG WETAN': ['40115', '40116'],
+      'BANYUMANIK': ['50268', '50269'],
+      'GUBENG': ['60281', '60282'],
+      'MEDAN KOTA': ['20211', '20212']
+    }
+  };
+
+  // Helper functions to dynamically load Kota, Kecamatan, and Kode Pos for ANY chosen province
+  const getKotaList = (prov) => {
+    return regionData.kota[prov] || [
+      `KOTA ${prov}`, 
+      `KAB. ${prov} PUSAT`, 
+      `KAB. ${prov} UTARA`, 
+      `KAB. ${prov} SELATAN`,
+      `KAB. ${prov} BARAT`
+    ];
+  };
+
+  const getKecamatanList = (kota) => {
+    return regionData.kecamatan[kota] || [
+      `KECAMATAN ${kota.replace('KOTA ', '').replace('KAB. ', '')} BARAT`,
+      `KECAMATAN ${kota.replace('KOTA ', '').replace('KAB. ', '')} TIMUR`,
+      `KECAMATAN ${kota.replace('KOTA ', '').replace('KAB. ', '')} UTARA`,
+      `KECAMATAN ${kota.replace('KOTA ', '').replace('KAB. ', '')} SELATAN`
+    ];
+  };
+
+  const getKodePosList = (kec) => {
+    return regionData.kodepos[kec] || ['40111', '40112', '40113', '40114'];
+  };
 
   // Lock background body scroll when address modal is open
   useEffect(() => {
@@ -111,7 +295,6 @@ const Profile = () => {
       document.body.style.overflow = 'unset';
     };
   }, [showAddressModal]);
-
 
   // Wishlist state
   const [wishlist, setWishlist] = useState([
@@ -163,27 +346,54 @@ const Profile = () => {
   // Open modal for adding new address
   const handleOpenAddAddress = () => {
     setEditingAddressId(null);
-    setModalAddr({ name: user?.name || 'Juli Anto', phone: user?.phone || '081234567890', detail: '', isPrimary: addresses.length === 0 });
+    setModalAddr({
+      name: user?.name || 'Kaka',
+      phone: user?.phone || '085721726584',
+      region: 'JAWA BARAT, KAB. BANDUNG, CILEUNYI, 40624',
+      street: '',
+      detail: '',
+      tag: 'Rumah',
+      isPrimary: addresses.length === 0
+    });
     setShowAddressModal(true);
   };
 
-  // Open modal for editing existing address (including primary address)
+  // Open modal for editing existing address
   const handleOpenEditAddress = (addr) => {
     setEditingAddressId(addr.id);
-    setModalAddr({ name: addr.name, phone: addr.phone, detail: addr.detail, isPrimary: addr.isPrimary });
+    setModalAddr({
+      name: addr.name || '',
+      phone: addr.phone || '',
+      region: addr.region || 'JAWA BARAT, KAB. BANDUNG, CILEUNYI, 40624',
+      street: addr.street || addr.detail || '',
+      detail: addr.detail || '',
+      tag: addr.tag || 'Rumah',
+      isPrimary: addr.isPrimary || false
+    });
     setShowAddressModal(true);
   };
 
   // Save address (create or update)
   const handleSaveAddress = (e) => {
     e.preventDefault();
-    if (!modalAddr.name || !modalAddr.detail) return;
+    if (!modalAddr.name || !modalAddr.street) return;
+
+    const fullDetailString = `${modalAddr.street}, ${modalAddr.region}${modalAddr.detail ? ` (${modalAddr.detail})` : ''}`;
 
     if (editingAddressId) {
       // Edit existing
       setAddresses(addresses.map(a => {
         if (a.id === editingAddressId) {
-          return { ...a, name: modalAddr.name, phone: modalAddr.phone, detail: modalAddr.detail, isPrimary: modalAddr.isPrimary };
+          return {
+            ...a,
+            name: modalAddr.name,
+            phone: modalAddr.phone,
+            region: modalAddr.region,
+            street: modalAddr.street,
+            detail: modalAddr.detail,
+            tag: modalAddr.tag,
+            isPrimary: modalAddr.isPrimary
+          };
         }
         if (modalAddr.isPrimary) {
           return { ...a, isPrimary: false };
@@ -199,16 +409,19 @@ const Profile = () => {
       setAddresses([...updatedList, {
         id: Date.now(),
         name: modalAddr.name,
-        phone: modalAddr.phone || '081234567890',
+        phone: modalAddr.phone || '085721726584',
+        region: modalAddr.region,
+        street: modalAddr.street,
         detail: modalAddr.detail,
+        tag: modalAddr.tag,
         isPrimary: modalAddr.isPrimary || addresses.length === 0
       }]);
     }
 
     // Also update main user address if primary address changed
     if (modalAddr.isPrimary) {
-      setFormData(prev => ({ ...prev, address: modalAddr.detail }));
-      updateUserProfile({ address: modalAddr.detail });
+      setFormData(prev => ({ ...prev, address: fullDetailString }));
+      updateUserProfile({ address: fullDetailString });
     }
 
     setShowAddressModal(false);
@@ -562,50 +775,114 @@ const Profile = () => {
             </div>
           )}
 
-          {/* Tab 2: DAFTAR ALAMAT */}
+          {/* Tab 2: DAFTAR ALAMAT (SHOPEE STYLE) */}
           {activeTab === 'alamat' && (
-            <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ padding: '1.75rem', display: 'flex', flexDirection: 'column', gap: '1.5rem', background: '#fff', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #f1f5f9', paddingBottom: '1rem' }}>
                 <div>
-                  <h4 style={{ fontSize: '0.95rem', fontWeight: '800', color: '#1e293b', margin: 0 }}>Daftar Alamat Pengiriman</h4>
-                  <p style={{ fontSize: '0.78rem', color: '#64748b', margin: '2px 0 0 0' }}>Kelola daftar alamat lengkap pengiriman pesanan Anda.</p>
+                  <h3 style={{ fontSize: '1.15rem', fontWeight: '700', color: '#222', margin: 0 }}>Alamat Saya</h3>
+                  <p style={{ fontSize: '0.8rem', color: '#757575', margin: '3px 0 0 0' }}>Kelola alamat pengiriman untuk kemudahan checkout pesanan.</p>
                 </div>
-                <button onClick={handleOpenAddAddress} style={{ background: '#00AB99', color: '#fff', border: 'none', padding: '7px 14px', borderRadius: '4px', fontSize: '0.82rem', fontWeight: '700', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <Plus size={15} /> Tambah Alamat Baru
+                <button 
+                  onClick={handleOpenAddAddress} 
+                  style={{ 
+                    background: '#ee4d2d', 
+                    color: '#fff', 
+                    border: 'none', 
+                    padding: '9px 18px', 
+                    borderRadius: '4px', 
+                    fontSize: '0.88rem', 
+                    fontWeight: '600', 
+                    cursor: 'pointer', 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: '6px',
+                    boxShadow: '0 2px 6px rgba(238, 77, 45, 0.25)',
+                    transition: 'all 0.2s ease'
+                  }}
+                  onMouseOver={(e) => e.currentTarget.style.background = '#d73211'}
+                  onMouseOut={(e) => e.currentTarget.style.background = '#ee4d2d'}
+                >
+                  <Plus size={16} /> Tambahkan Alamat Baru
                 </button>
               </div>
 
-              {addresses.map((addr) => (
-                <div key={addr.id} style={{ border: addr.isPrimary ? '1.5px solid #00AB99' : '1px solid #e2e8f0', borderRadius: '8px', padding: '1.25rem', background: addr.isPrimary ? '#f0fdfa' : '#fafafa', display: 'flex', flexDirection: 'column', gap: '10px', boxShadow: addr.isPrimary ? '0 2px 8px rgba(0, 171, 153, 0.08)' : 'none' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <strong style={{ fontSize: '0.9rem', color: '#1e293b' }}>{addr.name}</strong>
-                      {addr.isPrimary && <span style={{ fontSize: '0.68rem', background: '#ccfbf1', color: '#0f766e', padding: '2px 8px', borderRadius: '4px', fontWeight: '800' }}>UTAMA</span>}
+              {/* Address List Cards - Shopee Layout */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                {addresses.map((addr) => (
+                  <div key={addr.id} style={{ borderBottom: '1px solid #f0f0f0', paddingBottom: '1.25rem', display: 'flex', justifyContent: 'space-between', gap: '1.5rem' }}>
+                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <span style={{ fontSize: '0.95rem', fontWeight: '700', color: '#222' }}>{addr.name}</span>
+                        <span style={{ height: '14px', width: '1px', background: '#ccc' }}></span>
+                        <span style={{ fontSize: '0.88rem', color: '#757575' }}>
+                          {addr.phone.startsWith('0') ? `(+62) ${addr.phone.slice(1)}` : addr.phone}
+                        </span>
+                      </div>
+                      <div style={{ fontSize: '0.88rem', color: '#555', lineHeight: 1.45, marginTop: '2px' }}>
+                        {addr.street || addr.detail}
+                      </div>
+                      <div style={{ fontSize: '0.85rem', color: '#757575' }}>
+                        {addr.region}
+                      </div>
+                      {addr.detail && addr.street && (
+                        <div style={{ fontSize: '0.82rem', color: '#888', fontStyle: 'italic' }}>
+                          Detail: {addr.detail}
+                        </div>
+                      )}
+
+                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: '6px' }}>
+                        {addr.isPrimary && (
+                          <span style={{ border: '1px solid #ee4d2d', color: '#ee4d2d', fontSize: '0.72rem', padding: '1px 6px', borderRadius: '2px', fontWeight: '600' }}>
+                            Utama
+                          </span>
+                        )}
+                        {addr.tag && (
+                          <span style={{ border: '1px solid #999', color: '#666', fontSize: '0.72rem', padding: '1px 6px', borderRadius: '2px' }}>
+                            {addr.tag}
+                          </span>
+                        )}
+                      </div>
                     </div>
-                    <div style={{ display: 'flex', gap: '10px' }}>
-                      {/* Both Primary and Secondary addresses can be edited */}
-                      <button onClick={() => handleOpenEditAddress(addr)} style={{ background: 'none', border: 'none', color: '#00AB99', fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        <Edit3 size={13} /> Ubah Alamat
-                      </button>
-                      {!addr.isPrimary && (
-                        <>
-                          <button onClick={() => handleSetPrimaryAddress(addr.id)} style={{ background: 'none', border: 'none', color: '#0f4c81', fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer' }}>
-                            Atur Utama
-                          </button>
-                          <button onClick={() => handleDeleteAddress(addr.id)} style={{ background: 'none', border: 'none', color: '#ef4444', fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer' }}>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '10px', flexShrink: 0 }}>
+                      <div style={{ display: 'flex', gap: '12px', fontSize: '0.88rem' }}>
+                        <button 
+                          onClick={() => handleOpenEditAddress(addr)} 
+                          style={{ background: 'none', border: 'none', color: '#05a', cursor: 'pointer', fontWeight: '500' }}
+                        >
+                          Ubah
+                        </button>
+                        {!addr.isPrimary && (
+                          <button 
+                            onClick={() => handleDeleteAddress(addr.id)} 
+                            style={{ background: 'none', border: 'none', color: '#05a', cursor: 'pointer', fontWeight: '500' }}
+                          >
                             Hapus
                           </button>
-                        </>
-                      )}
+                        )}
+                      </div>
+
+                      <button 
+                        disabled={addr.isPrimary}
+                        onClick={() => handleSetPrimaryAddress(addr.id)}
+                        style={{
+                          background: addr.isPrimary ? '#fff' : '#fff',
+                          border: addr.isPrimary ? '1px solid #ccc' : '1px solid rgba(0,0,0,0.26)',
+                          color: addr.isPrimary ? '#ccc' : '#555',
+                          padding: '5px 12px',
+                          borderRadius: '2px',
+                          fontSize: '0.82rem',
+                          cursor: addr.isPrimary ? 'not-allowed' : 'pointer',
+                          transition: 'all 0.2s ease'
+                        }}
+                      >
+                        Atur sebagai utama
+                      </button>
                     </div>
                   </div>
-                  <div style={{ fontSize: '0.85rem', color: '#475569' }}>{addr.phone}</div>
-                  <div style={{ fontSize: '0.85rem', color: '#334155', lineHeight: 1.5, display: 'flex', alignItems: 'flex-start', gap: '6px' }}>
-                    <MapPin size={16} color="#00AB99" style={{ flexShrink: 0, marginTop: '2px' }} />
-                    <span>{addr.detail}</span>
-                  </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           )}
 
@@ -777,70 +1054,867 @@ const Profile = () => {
 
       </div>
 
-      {/* Address Edit/Add Modal with Interactive Google Maps & GPS Pinpoint */}
+      {/* Shopee-Style "Ubah Alamat / Tambah Alamat" Modal */}
       {showAddressModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
-          <div style={{ background: '#fff', borderRadius: '8px', maxWidth: '520px', width: '100%', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem', maxHeight: '90vh', overflowY: 'auto' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.5rem' }}>
-              <h4 style={{ fontSize: '1rem', fontWeight: '800', margin: 0, color: '#1e293b' }}>
-                {editingAddressId ? 'Ubah Alamat Pengiriman' : 'Tambah Alamat Pengiriman Baru'}
-              </h4>
-              <button onClick={() => setShowAddressModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={18} /></button>
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(0, 0, 0, 0.54)',
+          zIndex: 9999,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '1rem',
+        }}>
+          <div style={{
+            background: '#ffffff',
+            borderRadius: '4px',
+            maxWidth: '520px',
+            width: '100%',
+            padding: '1.75rem',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '1.25rem',
+            maxHeight: '92vh',
+            overflowY: 'auto',
+            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.25)',
+            fontFamily: 'inherit',
+          }}>
+            {/* Modal Title */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h3 style={{ fontSize: '1.2rem', fontWeight: '500', margin: 0, color: '#222' }}>
+                {editingAddressId ? 'Ubah Alamat' : 'Alamat Baru'}
+              </h3>
+              <button 
+                onClick={() => setShowAddressModal(false)} 
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#757575', padding: '4px' }}
+              >
+                <X size={20} />
+              </button>
             </div>
             
             <form onSubmit={handleSaveAddress} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              <div>
-                <label style={{ fontSize: '0.8rem', fontWeight: '600', color: '#475569' }}>Nama Penerima</label>
-                <input 
-                  type="text" 
-                  required 
-                  value={modalAddr.name} 
-                  onChange={(e) => setModalAddr({ ...modalAddr, name: e.target.value })} 
-                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.85rem', marginTop: '4px' }} 
-                />
+              {/* Row 1: Nama Lengkap & Nomor Telepon */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                {/* Nama Lengkap */}
+                <div style={{ position: 'relative' }}>
+                  <fieldset style={{
+                    border: '1px solid #ccc',
+                    borderRadius: '2px',
+                    margin: 0,
+                    padding: '0 10px 6px 10px',
+                  }}>
+                    <legend style={{ fontSize: '0.72rem', color: '#757575', padding: '0 4px', margin: 0 }}>
+                      Nama Lengkap
+                    </legend>
+                    <input 
+                      type="text" 
+                      required 
+                      value={modalAddr.name} 
+                      onChange={(e) => setModalAddr({ ...modalAddr, name: e.target.value })} 
+                      placeholder="Nama Lengkap"
+                      style={{
+                        width: '100%',
+                        border: 'none',
+                        outline: 'none',
+                        fontSize: '0.88rem',
+                        color: '#222',
+                        background: 'transparent',
+                        padding: '2px 0',
+                      }} 
+                    />
+                  </fieldset>
+                </div>
+
+                {/* Nomor Telepon */}
+                <div style={{ position: 'relative' }}>
+                  <fieldset style={{
+                    border: '1px solid #ccc',
+                    borderRadius: '2px',
+                    margin: 0,
+                    padding: '0 10px 6px 10px',
+                  }}>
+                    <legend style={{ fontSize: '0.72rem', color: '#757575', padding: '0 4px', margin: 0 }}>
+                      Nomor Telepon
+                    </legend>
+                    <input 
+                      type="text" 
+                      required 
+                      value={modalAddr.phone} 
+                      onChange={(e) => setModalAddr({ ...modalAddr, phone: e.target.value })} 
+                      placeholder="(+62) 857 2172 6584"
+                      style={{
+                        width: '100%',
+                        border: 'none',
+                        outline: 'none',
+                        fontSize: '0.88rem',
+                        color: '#222',
+                        background: 'transparent',
+                        padding: '2px 0',
+                      }} 
+                    />
+                  </fieldset>
+                </div>
               </div>
 
-              <div>
-                <label style={{ fontSize: '0.8rem', fontWeight: '600', color: '#475569' }}>Nomor HP Penerima</label>
-                <input 
-                  type="text" 
-                  required 
-                  value={modalAddr.phone} 
-                  onChange={(e) => setModalAddr({ ...modalAddr, phone: e.target.value })} 
-                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.85rem', marginTop: '4px' }} 
-                />
+              {/* Row 2: Shopee 4-Tab Cascading Region Selector */}
+              <div style={{ position: 'relative' }}>
+                <fieldset 
+                  onClick={() => setShowRegionPicker(!showRegionPicker)}
+                  style={{
+                    border: showRegionPicker ? '1.5px solid #ee4d2d' : '1px solid #ccc',
+                    borderRadius: '2px',
+                    margin: 0,
+                    padding: '0 10px 6px 10px',
+                    cursor: 'pointer',
+                    background: '#fff',
+                    transition: 'border 0.2s ease',
+                  }}
+                >
+                  <legend style={{ fontSize: '0.72rem', color: showRegionPicker ? '#ee4d2d' : '#757575', padding: '0 4px', margin: 0 }}>
+                    Provinsi, Kota, Kecamatan, Kode Pos
+                  </legend>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', minHeight: '26px' }}>
+                    <span style={{ fontSize: '0.85rem', color: modalAddr.region ? '#222' : '#aaa' }}>
+                      {modalAddr.region || 'Pilih Provinsi, Kota, Kecamatan, Kode Pos'}
+                    </span>
+                    <div style={{ display: 'flex', gap: '6px', alignItems: 'center', color: '#757575' }}>
+                      <Search size={15} />
+                      <X size={15} onClick={(e) => { e.stopPropagation(); setModalAddr({ ...modalAddr, region: '' }); }} style={{ cursor: 'pointer' }} />
+                    </div>
+                  </div>
+                </fieldset>
+
+                {/* Shopee 4-Tab Cascading Selector Popover Panel */}
+                {showRegionPicker && (
+                  <div style={{
+                    position: 'absolute',
+                    top: '100%',
+                    left: 0,
+                    right: 0,
+                    zIndex: 100,
+                    background: '#ffffff',
+                    border: '1px solid #e0e0e0',
+                    borderRadius: '4px',
+                    boxShadow: '0 6px 20px rgba(0,0,0,0.15)',
+                    marginTop: '4px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    maxHeight: '260px',
+                  }}>
+                    {/* Top 4 Navigation Tabs (Provinsi | Kota | Kecamatan | Kode Pos) */}
+                    <div style={{ display: 'flex', borderBottom: '1px solid #eee', background: '#fafafa' }}>
+                      {[
+                        { id: 'provinsi', label: 'Provinsi' },
+                        { id: 'kota', label: 'Kota' },
+                        { id: 'kecamatan', label: 'Kecamatan' },
+                        { id: 'kodepos', label: 'Kode Pos' },
+                      ].map((t) => {
+                        const isActive = regionTab === t.id;
+                        return (
+                          <button
+                            type="button"
+                            key={t.id}
+                            onClick={() => setRegionTab(t.id)}
+                            style={{
+                              flex: 1,
+                              padding: '10px 4px',
+                              background: 'none',
+                              border: 'none',
+                              borderBottom: isActive ? '2.5px solid #ee4d2d' : '2.5px solid transparent',
+                              color: isActive ? '#ee4d2d' : '#555',
+                              fontSize: '0.82rem',
+                              fontWeight: isActive ? '700' : '500',
+                              cursor: 'pointer',
+                              textAlign: 'center',
+                            }}
+                          >
+                            {t.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {/* Cascading Item List */}
+                    <div style={{ overflowY: 'auto', padding: '6px 0', maxHeight: '200px' }}>
+                      {regionTab === 'provinsi' && regionData.provinsi.map((item) => (
+                        <div
+                          key={item}
+                          onClick={() => {
+                            setSelectedProvinsi(item);
+                            setRegionTab('kota');
+                          }}
+                          style={{
+                            padding: '8px 16px',
+                            fontSize: '0.83rem',
+                            color: selectedProvinsi === item ? '#ee4d2d' : '#333',
+                            fontWeight: selectedProvinsi === item ? '700' : '400',
+                            cursor: 'pointer',
+                            transition: 'background 0.15s ease',
+                          }}
+                          onMouseOver={(e) => e.currentTarget.style.background = '#f5f5f5'}
+                          onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
+                        >
+                          {item}
+                        </div>
+                      ))}
+
+                      {regionTab === 'kota' && getKotaList(selectedProvinsi).map((item) => (
+                        <div
+                          key={item}
+                          onClick={() => {
+                            setSelectedKota(item);
+                            setRegionTab('kecamatan');
+                          }}
+                          style={{
+                            padding: '8px 16px',
+                            fontSize: '0.83rem',
+                            color: selectedKota === item ? '#ee4d2d' : '#333',
+                            fontWeight: selectedKota === item ? '700' : '400',
+                            cursor: 'pointer',
+                            transition: 'background 0.15s ease',
+                          }}
+                          onMouseOver={(e) => e.currentTarget.style.background = '#f5f5f5'}
+                          onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
+                        >
+                          {item}
+                        </div>
+                      ))}
+
+                      {regionTab === 'kecamatan' && getKecamatanList(selectedKota).map((item) => (
+                        <div
+                          key={item}
+                          onClick={() => {
+                            setSelectedKecamatan(item);
+                            setRegionTab('kodepos');
+                          }}
+                          style={{
+                            padding: '8px 16px',
+                            fontSize: '0.83rem',
+                            color: selectedKecamatan === item ? '#ee4d2d' : '#333',
+                            fontWeight: selectedKecamatan === item ? '700' : '400',
+                            cursor: 'pointer',
+                            transition: 'background 0.15s ease',
+                          }}
+                          onMouseOver={(e) => e.currentTarget.style.background = '#f5f5f5'}
+                          onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
+                        >
+                          {item}
+                        </div>
+                      ))}
+
+                      {regionTab === 'kodepos' && getKodePosList(selectedKecamatan).map((item) => (
+                        <div
+                          key={item}
+                          onClick={() => {
+                            setSelectedKodePos(item);
+                            const fullStr = `${selectedProvinsi}, ${selectedKota}, ${selectedKecamatan}, ${item}`;
+                            setModalAddr({ ...modalAddr, region: fullStr });
+                            setShowRegionPicker(false);
+                          }}
+                          style={{
+                            padding: '8px 16px',
+                            fontSize: '0.83rem',
+                            color: selectedKodePos === item ? '#ee4d2d' : '#333',
+                            fontWeight: selectedKodePos === item ? '700' : '400',
+                            cursor: 'pointer',
+                            transition: 'background 0.15s ease',
+                          }}
+                          onMouseOver={(e) => e.currentTarget.style.background = '#f5f5f5'}
+                          onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
+                        >
+                          {item}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
-              <div>
-                <label style={{ fontSize: '0.8rem', fontWeight: '600', color: '#475569' }}>Alamat Lengkap & Detail Patokan</label>
-                <textarea 
-                  required 
-                  rows={3} 
-                  value={modalAddr.detail} 
-                  onChange={(e) => setModalAddr({ ...modalAddr, detail: e.target.value })} 
-                  placeholder="Nama jalan, nomor rumah, RT/RW, Kecamatan, Kota, Kode pos..."
-                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.85rem', marginTop: '4px' }} 
-                />
+              {/* Row 3: Nama Jalan, Gedung, No. Rumah */}
+              <div style={{ position: 'relative' }}>
+                <fieldset style={{
+                  border: '1px solid #ccc',
+                  borderRadius: '2px',
+                  margin: 0,
+                  padding: '0 10px 6px 10px',
+                }}>
+                  <legend style={{ fontSize: '0.72rem', color: '#757575', padding: '0 4px', margin: 0 }}>
+                    Nama Jalan, Gedung, No. Rumah
+                  </legend>
+                  <textarea 
+                    required 
+                    rows={2} 
+                    value={modalAddr.street} 
+                    onChange={(e) => setModalAddr({ ...modalAddr, street: e.target.value })} 
+                    placeholder="Jln, cibiru hilir rt02 rw03 desa cibiru hilir kecamatan cileunyi..."
+                    style={{
+                      width: '100%',
+                      border: 'none',
+                      outline: 'none',
+                      fontSize: '0.85rem',
+                      color: '#222',
+                      background: 'transparent',
+                      resize: 'none',
+                      fontFamily: 'inherit',
+                      padding: '2px 0',
+                    }} 
+                  />
+                </fieldset>
               </div>
 
+              {/* Row 4: Detail Lainnya (Patokan) */}
+              <div style={{ position: 'relative' }}>
+                <fieldset style={{
+                  border: '1px solid #ccc',
+                  borderRadius: '2px',
+                  margin: 0,
+                  padding: '0 10px 6px 10px',
+                }}>
+                  <legend style={{ fontSize: '0.72rem', color: '#757575', padding: '0 4px', margin: 0 }}>
+                    Detail Lainnya (Cth: Blok / Unit No., Patokan)
+                  </legend>
+                  <input 
+                    type="text" 
+                    value={modalAddr.detail} 
+                    onChange={(e) => setModalAddr({ ...modalAddr, detail: e.target.value })} 
+                    placeholder="Berkah pancing"
+                    style={{
+                      width: '100%',
+                      border: 'none',
+                      outline: 'none',
+                      fontSize: '0.85rem',
+                      color: '#222',
+                      background: 'transparent',
+                      padding: '2px 0',
+                    }} 
+                  />
+                </fieldset>
+              </div>
 
+              {/* Row 5: Google Maps Box with Hover 'Lihat Peta' Button */}
+              <div style={{
+                position: 'relative',
+                height: '145px',
+                borderRadius: '4px',
+                overflow: 'hidden',
+                border: '1px solid #e0e0e0',
+                background: '#e5e3df',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}>
+                {/* SVG Stylized Map Background */}
+                <svg width="100%" height="100%" style={{ position: 'absolute', inset: 0, opacity: 0.85 }}>
+                  <rect width="100%" height="100%" fill="#f4f3f0" />
+                  <path d="M0,40 Q150,20 300,70 T600,50" fill="none" stroke="#aadaff" strokeWidth="12" />
+                  <path d="M40,0 Q90,100 160,140" fill="none" stroke="#ffffff" strokeWidth="8" />
+                  <path d="M220,0 L200,140" fill="none" stroke="#ffffff" strokeWidth="6" />
+                  <path d="M0,100 L500,80" fill="none" stroke="#ffffff" strokeWidth="10" />
+                  <text x="320" y="115" fontSize="10" fill="#999" fontFamily="sans-serif">Gg. Sindangrasa</text>
+                  <text x="120" y="45" fontSize="10" fill="#999" fontFamily="sans-serif">Jl. Cibiru Hilir</text>
+                </svg>
 
-              {/* Primary Address Switch */}
-              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '0.82rem', color: '#1e293b', fontWeight: '600' }}>
+                {/* Floating "Lihat Peta" Button on Top Right (As Requested by User) */}
+                <button
+                  type="button"
+                  onClick={() => setShowFullMapModal(true)}
+                  style={{
+                    position: 'absolute',
+                    top: '12px',
+                    right: '12px',
+                    zIndex: 10,
+                    background: '#ffffff',
+                    border: '1px solid #e0e0e0',
+                    borderRadius: '2px',
+                    padding: '6px 14px',
+                    fontSize: '0.85rem',
+                    fontWeight: '500',
+                    color: '#333',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                  }}
+                  onMouseOver={(e) => { e.currentTarget.style.background = '#f8fafc'; e.currentTarget.style.transform = 'scale(1.03)'; }}
+                  onMouseOut={(e) => { e.currentTarget.style.background = '#ffffff'; e.currentTarget.style.transform = 'scale(1)'; }}
+                >
+                  Lihat Peta
+                </button>
+
+                {/* Red Google Maps Pinpoint Marker */}
+                <div style={{
+                  position: 'relative',
+                  zIndex: 2,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  transform: 'translateY(-12px)',
+                }}>
+                  <div style={{
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '50% 50% 50% 0',
+                    background: '#ea4335',
+                    transform: 'rotate(-45deg)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    boxShadow: '0 4px 10px rgba(234, 67, 53, 0.4)',
+                  }}>
+                    <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#ffffff', transform: 'rotate(45deg)' }} />
+                  </div>
+                </div>
+
+                {/* Google Map Footer Attribution Overlay */}
+                <div style={{
+                  position: 'absolute',
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  background: 'rgba(255, 255, 255, 0.9)',
+                  padding: '3px 8px',
+                  display: 'flex',
+                  justify: 'space-between',
+                  alignItems: 'center',
+                  fontSize: '0.65rem',
+                  color: '#555',
+                  zIndex: 3,
+                }}>
+                  <strong style={{ fontSize: '0.75rem', color: '#444' }}>Google</strong>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <span>Pintasan keyboard</span>
+                    <span>Data peta ©2026</span>
+                    <span>Persyaratan</span>
+                    <span>Laporkan kesalahan peta</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Row 6: Tandai Sebagai (Pill Buttons: Rumah / Kantor) */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <span style={{ fontSize: '0.85rem', color: '#757575' }}>Tandai Sebagai:</span>
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  {['Rumah', 'Kantor'].map((tagOption) => {
+                    const isSelected = modalAddr.tag === tagOption;
+                    return (
+                      <button
+                        type="button"
+                        key={tagOption}
+                        onClick={() => setModalAddr({ ...modalAddr, tag: tagOption })}
+                        style={{
+                          padding: '6px 18px',
+                          borderRadius: '2px',
+                          border: isSelected ? '1px solid #ee4d2d' : '1px solid #e0e0e0',
+                          background: isSelected ? '#fff' : '#fff',
+                          color: isSelected ? '#ee4d2d' : '#555',
+                          fontSize: '0.85rem',
+                          fontWeight: isSelected ? '600' : '400',
+                          cursor: 'pointer',
+                          transition: 'all 0.15s ease',
+                        }}
+                      >
+                        {tagOption}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Row 7: Checkbox Atur sebagai Alamat Utama */}
+              <label style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                cursor: 'pointer',
+                fontSize: '0.85rem',
+                color: '#555',
+                marginTop: '4px',
+              }}>
                 <input 
                   type="checkbox" 
                   checked={modalAddr.isPrimary} 
                   onChange={(e) => setModalAddr({ ...modalAddr, isPrimary: e.target.checked })}
-                  style={{ accentColor: '#00AB99', width: '16px', height: '16px' }} 
+                  style={{ accentColor: '#ee4d2d', width: '16px', height: '16px', cursor: 'pointer' }} 
                 />
-                Jadikan sebagai Alamat Utama Pengiriman
+                Atur sebagai Alamat Utama
               </label>
 
-              <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
-                <button type="button" onClick={() => setShowAddressModal(false)} style={{ background: '#f1f5f9', border: 'none', padding: '8px 14px', borderRadius: '4px', fontSize: '0.8rem', fontWeight: '600', cursor: 'pointer' }}>Batal</button>
-                <button type="submit" style={{ background: '#00AB99', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: '4px', fontSize: '0.8rem', fontWeight: '700', cursor: 'pointer' }}>Simpan Alamat</button>
+              {/* Row 8: Action Buttons (Nanti Saja | OK) */}
+              <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', alignItems: 'center', marginTop: '0.75rem' }}>
+                <button 
+                  type="button" 
+                  onClick={() => setShowAddressModal(false)} 
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#555',
+                    fontSize: '0.9rem',
+                    fontWeight: '500',
+                    cursor: 'pointer',
+                    padding: '8px 16px',
+                  }}
+                >
+                  Nanti Saja
+                </button>
+
+                <button 
+                  type="submit" 
+                  style={{
+                    background: '#ee4d2d',
+                    color: '#ffffff',
+                    border: 'none',
+                    padding: '9px 36px',
+                    borderRadius: '2px',
+                    fontSize: '0.9rem',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    boxShadow: '0 2px 6px rgba(238, 77, 45, 0.3)',
+                    transition: 'background 0.2s ease',
+                  }}
+                  onMouseOver={(e) => e.currentTarget.style.background = '#d73211'}
+                  onMouseOut={(e) => e.currentTarget.style.background = '#ee4d2d'}
+                >
+                  OK
+                </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Full Google Maps Interactive Pinpoint Modal (Shopee-Style "Ubah Lokasi") */}
+      {showFullMapModal && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(0, 0, 0, 0.54)',
+          zIndex: 10000,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '1rem',
+        }}>
+          <div style={{
+            background: '#ffffff',
+            borderRadius: '4px',
+            maxWidth: '680px',
+            width: '100%',
+            height: '82vh',
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden',
+            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.25)',
+          }}>
+            {/* Header: Ubah Lokasi & Close Button */}
+            <div style={{
+              padding: '1.25rem 1.5rem 0.85rem 1.5rem',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '12px',
+              background: '#fff',
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: '500', color: '#222' }}>
+                  Ubah Lokasi
+                </h3>
+                <button
+                  onClick={() => setShowFullMapModal(false)}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#757575', padding: '4px' }}
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              {/* Sub-text input containing current street address preview */}
+              <div style={{
+                fontSize: '0.85rem',
+                color: '#333',
+                background: '#f8fafc',
+                padding: '8px 12px',
+                borderRadius: '2px',
+                border: '1px solid #ee4d2d',
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                fontWeight: '500'
+              }}>
+                📍 Preview: {mapLocationQuery}
+              </div>
+            </div>
+
+            {/* Interactive Leaflet OpenStreetMap Container */}
+            <div 
+              style={{
+                flex: 1,
+                position: 'relative',
+                background: '#e5e3df',
+                overflow: 'hidden',
+              }}
+            >
+              {/* Leaflet OSM Target Container */}
+              <div 
+                id="leaflet-map-modal-container"
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  position: 'absolute',
+                  inset: 0,
+                  zIndex: 1,
+                }}
+              />
+
+              {/* Shopee Floating Scroll Tip Banner */}
+              <div style={{
+                position: 'absolute',
+                top: '12px',
+                left: '50%',
+                transform: 'translateX(-50%)',
+                zIndex: 30,
+                background: 'rgba(255, 255, 255, 0.95)',
+                color: '#333',
+                fontSize: '0.78rem',
+                padding: '6px 14px',
+                borderRadius: '4px',
+                boxShadow: '0 2px 10px rgba(0,0,0,0.15)',
+                pointerEvents: 'none',
+                fontWeight: '500',
+              }}>
+                Geser peta untuk memilih titik lokasi alamatmu
+              </div>
+
+              {/* FIXED CENTRAL RED PINPOINT MARKER & "Alamatmu di sini" Tooltip Badge */}
+              <div style={{
+                position: 'absolute',
+                top: '50%',
+                left: '50%',
+                transform: 'translate(-50%, -100%)',
+                zIndex: 35,
+                pointerEvents: 'none',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+              }}>
+                {/* Red "Alamatmu di sini" Badge */}
+                <div style={{
+                  background: '#ee4d2d',
+                  color: '#ffffff',
+                  fontSize: '0.78rem',
+                  fontWeight: '600',
+                  padding: '5px 14px',
+                  borderRadius: '3px',
+                  boxShadow: '0 4px 12px rgba(238, 77, 45, 0.45)',
+                  whiteSpace: 'nowrap',
+                  position: 'relative',
+                  marginBottom: '6px',
+                }}>
+                  Alamatmu di sini
+                  {/* Arrow pointing down */}
+                  <div style={{
+                    position: 'absolute',
+                    bottom: '-5px',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    width: 0,
+                    height: 0,
+                    borderLeft: '5px solid transparent',
+                    borderRight: '5px solid transparent',
+                    borderTop: '5px solid #ee4d2d',
+                  }} />
+                </div>
+
+                {/* Red Pinpoint Marker Circle */}
+                <div style={{
+                  width: '36px',
+                  height: '36px',
+                  borderRadius: '50% 50% 50% 0',
+                  background: '#ea4335',
+                  transform: 'rotate(-45deg)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: '0 4px 14px rgba(234, 67, 53, 0.5)',
+                }}>
+                  <div style={{ width: '14px', height: '14px', borderRadius: '50%', background: '#ffffff', transform: 'rotate(45deg)' }} />
+                </div>
+              </div>
+
+              {/* Shopee Zoom Controls (+ / -) & Target Location Reset Button on Bottom Right */}
+              <div style={{
+                position: 'absolute',
+                bottom: '35px',
+                right: '16px',
+                zIndex: 35,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '8px',
+              }}>
+                <button 
+                  type="button"
+                  title="Reset Lokasi Ke Center"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (leafletMapRef.current) {
+                      leafletMapRef.current.setView([-6.9388, 107.7183], 16);
+                    }
+                  }}
+                  style={{
+                    width: '36px',
+                    height: '36px',
+                    borderRadius: '50%',
+                    background: '#ffffff',
+                    border: '1px solid #e2e8f0',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                    cursor: 'pointer',
+                    color: '#ee4d2d',
+                    fontSize: '1rem',
+                  }}
+                >
+                  🎯
+                </button>
+                <div style={{
+                  background: '#ffffff',
+                  borderRadius: '4px',
+                  border: '1px solid #e2e8f0',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                }}>
+                  <button 
+                    type="button" 
+                    title="Zoom In"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (leafletMapRef.current) {
+                        leafletMapRef.current.zoomIn();
+                      }
+                    }}
+                    style={{ border: 'none', background: 'none', padding: '8px 12px', fontSize: '1.1rem', fontWeight: 'bold', cursor: 'pointer', color: '#555' }}
+                  >
+                    +
+                  </button>
+                  <div style={{ height: '1px', background: '#eee' }} />
+                  <button 
+                    type="button" 
+                    title="Zoom Out"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (leafletMapRef.current) {
+                        leafletMapRef.current.zoomOut();
+                      }
+                    }}
+                    style={{ border: 'none', background: 'none', padding: '8px 12px', fontSize: '1.1rem', fontWeight: 'bold', cursor: 'pointer', color: '#555' }}
+                  >
+                    -
+                  </button>
+                </div>
+              </div>
+
+              {/* OpenStreetMap Bottom Attribution Bar */}
+              <div style={{
+                position: 'absolute',
+                bottom: 0,
+                left: 0,
+                right: 0,
+                background: 'rgba(255, 255, 255, 0.92)',
+                padding: '4px 10px',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                fontSize: '0.65rem',
+                color: '#555',
+                zIndex: 35,
+              }}>
+                <strong style={{ fontSize: '0.75rem', color: '#444' }}>OpenStreetMap</strong>
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <span>© OpenStreetMap contributors</span>
+                  <span>Data peta real-time</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Footer Buttons: Nanti Saja | Konfirmasi (Red Shopee Solid Button) */}
+            <div style={{
+              padding: '0.85rem 1.5rem',
+              display: 'flex',
+              justify: 'flex-end',
+              alignItems: 'center',
+              gap: '12px',
+              background: '#fff',
+              borderTop: '1px solid #eee',
+            }}>
+              <button
+                type="button"
+                onClick={() => setShowFullMapModal(false)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: '#555',
+                  fontSize: '0.88rem',
+                  fontWeight: '500',
+                  cursor: 'pointer',
+                  padding: '8px 16px',
+                }}
+              >
+                Nanti Saja
+              </button>
+
+              <button
+                type="button"
+                onClick={async () => {
+                  setMapPinConfirmed(true);
+                  const center = leafletMapRef.current ? leafletMapRef.current.getCenter() : { lat: -6.9388, lng: 107.7183 };
+                  
+                  // Update local state form preview
+                  setModalAddr(prev => ({
+                    ...prev,
+                    street: mapLocationQuery
+                  }));
+
+                  // Perform backend confirmation save
+                  try {
+                    const res = await fetch('/api/user/location/confirm', {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                      },
+                      body: JSON.stringify({
+                        address: mapLocationQuery,
+                        latitude: center.lat,
+                        longitude: center.lng,
+                      })
+                    });
+                    const data = await res.json();
+                    if (data.success) {
+                      alert('✓ Alamat berhasil dikonfirmasi dan disimpan.');
+                    }
+                  } catch (err) {
+                    console.error("Save error:", err);
+                  }
+
+                  setShowFullMapModal(false);
+                }}
+                style={{
+                  background: '#ee4d2d',
+                  color: '#ffffff',
+                  border: 'none',
+                  padding: '9px 36px',
+                  borderRadius: '2px',
+                  fontSize: '0.88rem',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  boxShadow: '0 2px 6px rgba(238, 77, 45, 0.3)',
+                  transition: 'background 0.2s ease',
+                }}
+                onMouseOver={(e) => e.currentTarget.style.background = '#d73211'}
+                onMouseOut={(e) => e.currentTarget.style.background = '#ee4d2d'}
+              >
+                Konfirmasi
+              </button>
+            </div>
           </div>
         </div>
       )}
