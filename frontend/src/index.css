@@ -1344,6 +1344,88 @@ button, input, select, textarea {
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
+/* ========================================
+   ADMIN PANEL — RESPONSIVE (MOBILE/TABLET)
+   ======================================== */
+
+/* Tablet: 1024px dan ke bawah */
+@media (max-width: 1024px) {
+  /* Sidebar hidden by default, shown as overlay */
+  .admin-sidebar {
+    transform: translateX(-260px);
+    transition: transform 0.3s ease;
+    z-index: 999;
+  }
+
+  /* Show sidebar when NOT collapsed (toggle open) */
+  .admin-main:not(.collapsed) + .admin-sidebar,
+  .admin-sidebar.mobile-open {
+    transform: translateX(0);
+  }
+
+  /* Main content always full width on tablet/mobile */
+  .admin-main {
+    width: 100% !important;
+    margin-left: 0 !important;
+  }
+
+  .admin-content {
+    padding: 1.25rem 1rem;
+  }
+}
+
+/* Mobile: 768px dan ke bawah */
+@media (max-width: 768px) {
+  .admin-content {
+    padding: 1rem 0.75rem;
+  }
+
+  /* Stack page-header menjadi kolom */
+  .page-header {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 0.75rem !important;
+  }
+
+  .page-title {
+    font-size: 1.25rem !important;
+  }
+
+  /* Form full-width */
+  .form-input,
+  select.form-input {
+    width: 100% !important;
+    font-size: 16px !important;
+  }
+
+  /* Tabel scroll horizontal */
+  .card {
+    overflow-x: auto;
+  }
+
+  /* Navbar admin strip */
+  .admin-navbar {
+    padding: 0 1rem;
+    height: 58px;
+  }
+}
+
+/* Extra small: 480px */
+@media (max-width: 480px) {
+  .admin-content {
+    padding: 0.75rem 0.5rem;
+  }
+
+  .page-title {
+    font-size: 1.1rem !important;
+  }
+
+  .badge {
+    font-size: 0.65rem !important;
+  }
+}
+
+
 
 
 

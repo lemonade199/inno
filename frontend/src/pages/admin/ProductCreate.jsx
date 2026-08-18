@@ -2,9 +2,11 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Save, UploadCloud } from 'lucide-react';
 import { productService } from '../../services/productService';
+import { useToast } from '../../context/ToastContext';
 
 const AdminProductCreate = () => {
   const navigate = useNavigate();
+  const { showToast } = useToast();
   const [formData, setFormData] = useState({
     name: '',
     category: 'Joran',
@@ -21,7 +23,7 @@ const AdminProductCreate = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     await productService.createProduct(formData);
-    alert(`Produk "${formData.name}" berhasil ditambahkan!`);
+    showToast(`Produk "${formData.name}" berhasil ditambahkan!`, 'success');
     navigate('/admin/products');
   };
 

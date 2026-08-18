@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { CartProvider } from './context/CartContext';
+import { ToastProvider } from './context/ToastContext';
 
 // Layouts
 import UserLayout from './layouts/UserLayout';
@@ -42,60 +43,62 @@ function App() {
   return (
     <AuthProvider>
       <CartProvider>
-        <Router>
-          <ErrorBoundary>
-            <Routes>
-            {/* Public Auth Routes */}
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
+        <ToastProvider>
+          <Router>
+            <ErrorBoundary>
+              <Routes>
+              {/* Public Auth Routes */}
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
 
-            {/* User Customer Routes */}
-            <Route path="/" element={<UserLayout />}>
-              <Route index element={<Home />} />
-              <Route path="products" element={<UserProducts />} />
-              <Route path="products/:id" element={<UserProductDetail />} />
-              <Route path="cart" element={<UserCart />} />
-              <Route path="checkout" element={<UserCheckout />} />
-              <Route path="orders" element={<UserOrders />} />
-              <Route path="orders/:id" element={<UserOrderDetail />} />
-              <Route path="profile" element={<UserProfile />} />
-              <Route path="search" element={<UserSearch />} />
+              {/* User Customer Routes */}
+              <Route path="/" element={<UserLayout />}>
+                <Route index element={<Home />} />
+                <Route path="products" element={<UserProducts />} />
+                <Route path="products/:id" element={<UserProductDetail />} />
+                <Route path="cart" element={<UserCart />} />
+                <Route path="checkout" element={<UserCheckout />} />
+                <Route path="orders" element={<UserOrders />} />
+                <Route path="orders/:id" element={<UserOrderDetail />} />
+                <Route path="profile" element={<UserProfile />} />
+                <Route path="search" element={<UserSearch />} />
 
-              {/* Backward compatibility redirects */}
-              <Route path="user/dashboard" element={<Navigate to="/" replace />} />
-              <Route path="user" element={<Navigate to="/" replace />} />
-              <Route path="user/products" element={<Navigate to="/products" replace />} />
-              <Route path="user/products/:id" element={<Navigate to="/products/:id" replace />} />
-              <Route path="user/cart" element={<Navigate to="/cart" replace />} />
-              <Route path="user/checkout" element={<Navigate to="/checkout" replace />} />
-              <Route path="user/orders" element={<Navigate to="/orders" replace />} />
-              <Route path="user/orders/:id" element={<Navigate to="/orders/:id" replace />} />
-              <Route path="user/profile" element={<Navigate to="/profile" replace />} />
-            </Route>
+                {/* Backward compatibility redirects */}
+                <Route path="user/dashboard" element={<Navigate to="/" replace />} />
+                <Route path="user" element={<Navigate to="/" replace />} />
+                <Route path="user/products" element={<Navigate to="/products" replace />} />
+                <Route path="user/products/:id" element={<Navigate to="/products/:id" replace />} />
+                <Route path="user/cart" element={<Navigate to="/cart" replace />} />
+                <Route path="user/checkout" element={<Navigate to="/checkout" replace />} />
+                <Route path="user/orders" element={<Navigate to="/orders" replace />} />
+                <Route path="user/orders/:id" element={<Navigate to="/orders/:id" replace />} />
+                <Route path="user/profile" element={<Navigate to="/profile" replace />} />
+              </Route>
 
-            {/* Direct convenience aliases for user routes */}
-            <Route path="/produk" element={<Navigate to="/products" replace />} />
-            <Route path="/keranjang" element={<Navigate to="/cart" replace />} />
-            <Route path="/pesanan" element={<Navigate to="/orders" replace />} />
+              {/* Direct convenience aliases for user routes */}
+              <Route path="/produk" element={<Navigate to="/products" replace />} />
+              <Route path="/keranjang" element={<Navigate to="/cart" replace />} />
+              <Route path="/pesanan" element={<Navigate to="/orders" replace />} />
 
-            {/* Admin Routes */}
-            <Route path="/admin" element={<AdminLayout />}>
-              <Route index element={<Navigate to="/admin/dashboard" replace />} />
-              <Route path="dashboard" element={<AdminDashboard />} />
-              <Route path="products" element={<AdminProducts />} />
-              <Route path="products/create" element={<AdminProductCreate />} />
-              <Route path="products/edit/:id" element={<AdminProductEdit />} />
-              <Route path="categories" element={<AdminCategories />} />
-              <Route path="orders" element={<AdminOrders />} />
-              <Route path="orders/:id" element={<AdminOrderDetail />} />
-              <Route path="profile" element={<AdminProfile />} />
-            </Route>
+              {/* Admin Routes */}
+              <Route path="/admin" element={<AdminLayout />}>
+                <Route index element={<Navigate to="/admin/dashboard" replace />} />
+                <Route path="dashboard" element={<AdminDashboard />} />
+                <Route path="products" element={<AdminProducts />} />
+                <Route path="products/create" element={<AdminProductCreate />} />
+                <Route path="products/edit/:id" element={<AdminProductEdit />} />
+                <Route path="categories" element={<AdminCategories />} />
+                <Route path="orders" element={<AdminOrders />} />
+                <Route path="orders/:id" element={<AdminOrderDetail />} />
+                <Route path="profile" element={<AdminProfile />} />
+              </Route>
 
-            {/* Fallback Redirect */}
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-          </ErrorBoundary>
-        </Router>
+              {/* Fallback Redirect */}
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+            </ErrorBoundary>
+          </Router>
+        </ToastProvider>
       </CartProvider>
     </AuthProvider>
   );

@@ -2,10 +2,12 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Save } from 'lucide-react';
 import { productService } from '../../services/productService';
+import { useToast } from '../../context/ToastContext';
 
 const AdminProductEdit = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { showToast } = useToast();
   const [formData, setFormData] = useState(null);
 
   useEffect(() => {
@@ -32,7 +34,7 @@ const AdminProductEdit = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     await productService.updateProduct(id, formData);
-    alert(`Perubahan produk "${formData.name}" berhasil disimpan!`);
+    showToast(`Perubahan produk "${formData.name}" berhasil disimpan!`, 'success');
     navigate('/admin/products');
   };
 

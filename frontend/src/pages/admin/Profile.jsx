@@ -1,9 +1,15 @@
 import React, { useState } from 'react';
-import { User, Lock, Save, ShieldCheck } from 'lucide-react';
+import { User, Lock, Save, ShieldCheck, LogOut, AlertTriangle } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { useToast } from '../../context/ToastContext';
 
 const AdminProfile = () => {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+  const { showToast } = useToast();
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+
   const [profileData, setProfileData] = useState({
     name: user?.name || 'Administrator',
     email: user?.email || 'admin@berkahpancing.com',
@@ -19,28 +25,55 @@ const AdminProfile = () => {
 
   const handleProfileSubmit = (e) => {
     e.preventDefault();
-    alert('Profil berhasil diperbarui!');
+    showToast('Profil berhasil diperbarui!', 'success');
   };
 
   const handlePasswordSubmit = (e) => {
     e.preventDefault();
     if (passwordData.newPassword !== passwordData.confirmPassword) {
-      alert('Konfirmasi kata sandi baru tidak cocok!');
+      showToast('Konfirmasi kata sandi baru tidak cocok!', 'error');
       return;
     }
-    alert('Kata sandi berhasil diperbarui!');
+    showToast('Kata sandi berhasil diperbarui!', 'success');
     setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+  };
+
+  const confirmLogout = () => {
+    setShowLogoutConfirm(false);
+    logout();
+    navigate('/login');
   };
 
   return (
     <div>
-      <div className="page-header">
+      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div>
           <h1 className="page-title">
             <User size={26} color="#0f4c81" /> Profil Saya (Admin)
           </h1>
           <p className="page-subtitle">Kelola informasi akun administrator dan kata sandi Anda.</p>
         </div>
+
+        <button
+          type="button"
+          onClick={() => setShowLogoutConfirm(true)}
+          style={{
+            background: '#fee2e2',
+            color: '#ef4444',
+            border: 'none',
+            padding: '10px 18px',
+            borderRadius: '8px',
+            fontSize: '0.85rem',
+            fontWeight: '700',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            boxShadow: '0 2px 8px rgba(239,68,68,0.15)'
+          }}
+        >
+          <LogOut size={16} /> Keluar Akun Admin
+        </button>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
@@ -147,6 +180,89 @@ const AdminProfile = () => {
           </form>
         </div>
       </div>
+
+      {/* Admin Logout Confirmation Modal */}
+      {showLogoutConfirm && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(15, 23, 42, 0.7)',
+          backdropFilter: 'blur(4px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+          padding: '1rem',
+        }}>
+          <div style={{
+            background: '#ffffff',
+            borderRadius: '16px',
+            padding: '2rem',
+            maxWidth: '380px',
+            width: '100%',
+            boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
+            textAlign: 'center',
+          }}>
+            <div style={{
+              width: '56px',
+              height: '56px',
+              borderRadius: '50%',
+              background: '#fee2e2',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 1rem auto'
+            }}>
+              <AlertTriangle size={28} color="#dc2626" />
+            </div>
+
+            <h3 style={{ fontSize: '1.15rem', fontWeight: '800', color: '#1e293b', margin: '0 0 0.5rem 0' }}>
+              Konfirmasi Keluar Admin
+            </h3>
+            <p style={{ fontSize: '0.88rem', color: '#64748b', margin: '0 0 1.5rem 0', lineHeight: 1.5 }}>
+              Apakah Anda yakin ingin keluar dari akun <strong>Admin Portal</strong>?
+            </p>
+
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button
+                type="button"
+                onClick={() => setShowLogoutConfirm(false)}
+                style={{
+                  flex: 1,
+                  padding: '0.7rem 1rem',
+                  borderRadius: '10px',
+                  border: '1.5px solid #e2e8f0',
+                  background: '#f8fafc',
+                  color: '#475569',
+                  fontWeight: '700',
+                  fontSize: '0.88rem',
+                  cursor: 'pointer',
+                }}
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={confirmLogout}
+                style={{
+                  flex: 1,
+                  padding: '0.7rem 1rem',
+                  borderRadius: '10px',
+                  border: 'none',
+                  background: 'linear-gradient(135deg, #dc2626, #b91c1c)',
+                  color: '#ffffff',
+                  fontWeight: '700',
+                  fontSize: '0.88rem',
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 12px rgba(220, 38, 38, 0.3)',
+                }}
+              >
+                Ya, Keluar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

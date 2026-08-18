@@ -14,7 +14,10 @@ import {
   Trash2,
   Package,
   Star,
-  Heart
+  Heart,
+  AlertTriangle,
+  Bell,
+  CheckCircle2
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
@@ -33,31 +36,32 @@ const Navbar = ({ isAdminView = false, toggleSidebar }) => {
   const location = useLocation();
 
   const [showDropdown, setShowDropdown] = useState(false);
+  const [showNotifDropdown, setShowNotifDropdown] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [historyList, setHistoryList] = useState([]);
   const [popularList, setPopularList] = useState([]);
 
   const dropdownRef = useRef(null);
+  const notifRef = useRef(null);
   const searchContainerRef = useRef(null);
   const cartCount = getCartCount();
   const isCartPage = location.pathname === '/cart';
 
-  // Load history & popular terms on mount & update
-  const refreshSearchData = () => {
-    setHistoryList(getSearchHistory());
-    setPopularList(getPopularSearches());
-  };
-
-  useEffect(() => {
-    refreshSearchData();
-  }, []);
+  const [adminNotifications, setAdminNotifications] = useState([
+    { id: 1, title: 'Pesanan Masuk #BP-1004', desc: 'Budi Santoso memesan Joran Shimano (Rp 1.260.000)', time: '5 menit lalu', read: false, type: 'order' },
+    { id: 2, title: 'Peringatan Stok Menipis', desc: 'Umpan Lure Minnow sisa 4 pcs. Segera restock!', time: '20 menit lalu', read: false, type: 'warning' },
+    { id: 3, title: 'Pembayaran Berhasil', desc: 'Pesanan #BP-1002 telah dikonfirmasi Lunas', time: '1 jam lalu', read: true, type: 'success' },
+  ]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
         setShowDropdown(false);
+      }
+      if (notifRef.current && !notifRef.current.contains(e.target)) {
+        setShowNotifDropdown(false);
       }
       if (searchContainerRef.current && !searchContainerRef.current.contains(e.target)) {
         setIsSearchFocused(false);
@@ -93,10 +97,18 @@ const Navbar = ({ isAdminView = false, toggleSidebar }) => {
     setHistoryList([]);
   };
 
-  const handleLogout = () => {
-    logout();
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+
+  const confirmLogout = () => {
+    setShowLogoutConfirm(false);
     setShowDropdown(false);
+    logout();
     navigate('/login');
+  };
+
+  const handleLogout = () => {
+    setShowDropdown(false);
+    setShowLogoutConfirm(true);
   };
 
   // Admin View Navbar
@@ -113,7 +125,149 @@ const Navbar = ({ isAdminView = false, toggleSidebar }) => {
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
+          {/* Notification Button & Dropdown */}
+          <div style={{ position: 'relative' }} ref={notifRef}>
+            <button
+              onClick={() => setShowNotifDropdown(!showNotifDropdown)}
+              title="Notifikasi Aktivitas Toko"
+              style={{
+                position: 'relative',
+                background: '#f1f5f9',
+                border: 'none',
+                borderRadius: '50%',
+                width: '38px',
+                height: '38px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                color: '#475569',
+                transition: 'all 0.2s',
+              }}
+            >
+              <Bell size={18} />
+              {adminNotifications.some(n => !n.read) && (
+                <span
+                  style={{
+                    position: 'absolute',
+                    top: '2px',
+                    right: '2px',
+                    width: '10px',
+                    height: '10px',
+                    borderRadius: '50%',
+                    background: '#ef4444',
+                    border: '2px solid #ffffff',
+                  }}
+                />
+              )}
+            </button>
+
+            {/* Notification Popover Menu */}
+            {showNotifDropdown && (
+              <div
+                style={{
+                  position: 'absolute',
+                  right: '-10px',
+                  top: '48px',
+                  background: '#ffffff',
+                  borderRadius: '16px',
+                  boxShadow: '0 20px 40px -15px rgba(0,0,0,0.15), 0 0 0 1px rgba(0,0,0,0.05)',
+                  width: '340px',
+                  zIndex: 200,
+                  overflow: 'hidden',
+                  animation: 'scaleUp 0.2s ease-out',
+                }}
+              >
+                <div
+                  style={{
+                    padding: '0.85rem 1.1rem',
+                    borderBottom: '1px solid #f1f5f9',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    background: '#f8fafc',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Bell size={16} color="#0f4c81" />
+                    <span style={{ fontSize: '0.9rem', fontWeight: '800', color: '#0f172a' }}>
+                      Notifikasi Toko
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => setAdminNotifications(prev => prev.map(n => ({ ...n, read: true })))}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      fontSize: '0.75rem',
+                      fontWeight: '700',
+                      color: '#00a896',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Tandai dibaca
+                  </button>
+                </div>
+
+                <div style={{ maxHeight: '320px', overflowY: 'auto' }}>
+                  {adminNotifications.map((notif) => (
+                    <div
+                      key={notif.id}
+                      style={{
+                        padding: '0.85rem 1.1rem',
+                        borderBottom: '1px solid #f8fafc',
+                        background: notif.read ? '#ffffff' : '#f0fdfa',
+                        display: 'flex',
+                        gap: '10px',
+                        alignItems: 'flex-start',
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: '8px',
+                          height: '8px',
+                          borderRadius: '50%',
+                          background: notif.type === 'warning' ? '#f59e0b' : notif.type === 'order' ? '#0f4c81' : '#10b981',
+                          marginTop: '6px',
+                          flexShrink: 0,
+                        }}
+                      />
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: '0.83rem', fontWeight: '700', color: '#1e293b' }}>
+                          {notif.title}
+                        </div>
+                        <div style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '2px', lineHeight: 1.4 }}>
+                          {notif.desc}
+                        </div>
+                        <div style={{ fontSize: '0.7rem', color: '#94a3b8', marginTop: '4px' }}>
+                          {notif.time}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div
+                  style={{
+                    padding: '0.65rem',
+                    textAlign: 'center',
+                    borderTop: '1px solid #f1f5f9',
+                    background: '#f8fafc',
+                  }}
+                >
+                  <Link
+                    to="/admin/dashboard"
+                    onClick={() => setShowNotifDropdown(false)}
+                    style={{ fontSize: '0.8rem', fontWeight: '700', color: '#0f4c81', textDecoration: 'none' }}
+                  >
+                    Lihat Semua Aktivitas Dashboard →
+                  </Link>
+                </div>
+              </div>
+            )}
+          </div>
+
           <Link to="/" style={{ color: '#00a896', textDecoration: 'none', fontSize: '0.85rem', fontWeight: '700' }}>
             ← Ke Toko Utama
           </Link>
@@ -131,6 +285,89 @@ const Navbar = ({ isAdminView = false, toggleSidebar }) => {
             )}
           </div>
         </div>
+
+        {/* Admin Header Logout Confirmation Modal */}
+        {showLogoutConfirm && (
+          <div style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(15, 23, 42, 0.65)',
+            backdropFilter: 'blur(4px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 99999,
+            padding: '1rem',
+          }}>
+            <div style={{
+              background: '#ffffff',
+              borderRadius: '16px',
+              padding: '1.75rem 1.5rem',
+              maxWidth: '380px',
+              width: '100%',
+              boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
+              textAlign: 'center',
+            }}>
+              <div style={{
+                width: '54px',
+                height: '54px',
+                borderRadius: '50%',
+                background: '#fee2e2',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                margin: '0 auto 1rem auto'
+              }}>
+                <AlertTriangle size={28} color="#ef4444" />
+              </div>
+
+              <h3 style={{ fontSize: '1.1rem', fontWeight: '800', color: '#1e293b', margin: '0 0 0.4rem 0' }}>
+                Konfirmasi Keluar Akun
+              </h3>
+              <p style={{ fontSize: '0.85rem', color: '#64748b', margin: '0 0 1.25rem 0', lineHeight: 1.45 }}>
+                Apakah Anda yakin ingin keluar dari akun Berkah Pancing Anda?
+              </p>
+
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <button
+                  type="button"
+                  onClick={() => setShowLogoutConfirm(false)}
+                  style={{
+                    flex: 1,
+                    padding: '0.65rem 1rem',
+                    borderRadius: '8px',
+                    border: '1px solid #cbd5e1',
+                    background: '#f8fafc',
+                    color: '#475569',
+                    fontWeight: '700',
+                    fontSize: '0.85rem',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Batal
+                </button>
+                <button
+                  type="button"
+                  onClick={confirmLogout}
+                  style={{
+                    flex: 1,
+                    padding: '0.65rem 1rem',
+                    borderRadius: '8px',
+                    border: 'none',
+                    background: '#ef4444',
+                    color: '#ffffff',
+                    fontWeight: '700',
+                    fontSize: '0.85rem',
+                    cursor: 'pointer',
+                    boxShadow: '0 4px 12px rgba(239, 68, 68, 0.3)',
+                  }}
+                >
+                  Ya, Keluar
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </header>
     );
   }
@@ -369,6 +606,89 @@ const Navbar = ({ isAdminView = false, toggleSidebar }) => {
         )}
 
       </div>
+
+      {/* Logout Confirmation Modal */}
+      {showLogoutConfirm && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(15, 23, 42, 0.65)',
+          backdropFilter: 'blur(4px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 99999,
+          padding: '1rem',
+        }}>
+          <div style={{
+            background: '#ffffff',
+            borderRadius: '16px',
+            padding: '1.75rem 1.5rem',
+            maxWidth: '380px',
+            width: '100%',
+            boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
+            textAlign: 'center',
+          }}>
+            <div style={{
+              width: '54px',
+              height: '54px',
+              borderRadius: '50%',
+              background: '#fee2e2',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 1rem auto'
+            }}>
+              <AlertTriangle size={28} color="#ef4444" />
+            </div>
+
+            <h3 style={{ fontSize: '1.1rem', fontWeight: '800', color: '#1e293b', margin: '0 0 0.4rem 0' }}>
+              Konfirmasi Keluar Akun
+            </h3>
+            <p style={{ fontSize: '0.85rem', color: '#64748b', margin: '0 0 1.25rem 0', lineHeight: 1.45 }}>
+              Apakah Anda yakin ingin keluar dari sesi Anda saat ini?
+            </p>
+
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button
+                type="button"
+                onClick={() => setShowLogoutConfirm(false)}
+                style={{
+                  flex: 1,
+                  padding: '0.65rem 1rem',
+                  borderRadius: '8px',
+                  border: '1px solid #cbd5e1',
+                  background: '#f8fafc',
+                  color: '#475569',
+                  fontWeight: '700',
+                  fontSize: '0.85rem',
+                  cursor: 'pointer',
+                }}
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={confirmLogout}
+                style={{
+                  flex: 1,
+                  padding: '0.65rem 1rem',
+                  borderRadius: '8px',
+                  border: 'none',
+                  background: '#ef4444',
+                  color: '#ffffff',
+                  fontWeight: '700',
+                  fontSize: '0.85rem',
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 12px rgba(239, 68, 68, 0.3)',
+                }}
+              >
+                Ya, Keluar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </header>
   );

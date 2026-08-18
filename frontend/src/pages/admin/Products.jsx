@@ -2,9 +2,11 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Search, Filter, Edit, Trash2, Eye, Package } from 'lucide-react';
 import { productService } from '../../services/productService';
+import { useToast } from '../../context/ToastContext';
 
 const AdminProducts = () => {
   const navigate = useNavigate();
+  const { showToast, showConfirm } = useToast();
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [search, setSearch] = useState('');
@@ -22,9 +24,17 @@ const AdminProducts = () => {
   });
 
   const handleDelete = (id, name) => {
-    if (window.confirm(`Apakah Anda yakin ingin menghapus produk "${name}"?`)) {
-      setProducts(products.filter((p) => p.id !== id));
-    }
+    showConfirm({
+      title: 'Hapus Produk',
+      message: `Apakah Anda yakin ingin menghapus produk "${name}"? Tindakan ini tidak dapat dibatalkan.`,
+      confirmText: 'Ya, Hapus',
+      cancelText: 'Batal',
+      isDanger: true,
+      onConfirm: () => {
+        setProducts(prev => prev.filter((p) => p.id !== id));
+        showToast(`Produk "${name}" berhasil dihapus.`, 'success');
+      }
+    });
   };
 
   return (
@@ -117,13 +127,13 @@ const AdminProducts = () => {
                   <td style={{ fontWeight: '600' }}>{product.stock} pcs</td>
                   <td>
                     <span className={`badge ${
-                      product.stock > 10
+                      product.stock > 5
                         ? 'badge-success'
                         : product.stock > 0
                         ? 'badge-warning'
                         : 'badge-danger'
                     }`}>
-                      {product.status}
+                      {product.stock > 5 ? 'Tersedia' : product.stock > 0 ? 'Stok Menipis' : 'Habis'}
                     </span>
                   </td>
                   <td>

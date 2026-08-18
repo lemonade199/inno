@@ -46,9 +46,11 @@ import {
 import { orderService } from '../../services/orderService';
 import { productService } from '../../services/productService';
 import { userService } from '../../services/userService';
+import { useToast } from '../../context/ToastContext';
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
+  const { showToast, showPrompt } = useToast();
 
   // State Data
   const [orders, setOrders] = useState([]);
@@ -64,6 +66,7 @@ const AdminDashboard = () => {
   const [chartMetric, setChartMetric] = useState('revenue'); // 'revenue' | 'orders'
   const [chartPeriod, setChartPeriod] = useState('7d'); // '7d' | '30d'
   const [hoveredChartPoint, setHoveredChartPoint] = useState(null);
+  const [notifFilter, setNotifFilter] = useState('Semua');
 
   // Quick Restock Modal State
   const [restockModalItem, setRestockModalItem] = useState(null);
@@ -106,10 +109,37 @@ const AdminDashboard = () => {
         productService.getCategories(),
       ]);
 
-      setOrders(fetchedOrders || []);
-      setProducts(fetchedProducts || []);
-      setUsers(fetchedUsers || []);
-      setCategories(fetchedCategories || []);
+      setOrders(fetchedOrders);
+      setProducts(fetchedProducts);
+      setUsers(fetchedUsers);
+      setCategories(fetchedCategories);
+
+      // Dynamically generate real activities from actual store data
+      const dynamicActivities = [];
+      fetchedOrders.slice(0, 4).forEach((ord, index) => {
+        dynamicActivities.push({
+          id: `ord-${ord.id}-${index}`,
+          title: ord.status === 'Menunggu Pembayaran' ? 'Pesanan Baru Masuk' : `Pesanan #${ord.id} (${ord.status})`,
+          desc: `Pesanan #${ord.id} dari ${ord.customerName || 'Pelanggan'} (${productService.formatIDR(ord.totalAmount || ord.total || 0)})`,
+          time: index === 0 ? 'Baru saja' : `${(index + 1) * 20} mnt lalu`,
+          type: ord.status === 'Dikirim' ? 'info' : ord.status === 'Selesai' ? 'success' : 'order'
+        });
+      });
+
+      const lowStockList = fetchedProducts.filter(p => p.stock <= 5);
+      lowStockList.slice(0, 3).forEach((p, idx) => {
+        dynamicActivities.push({
+          id: `stock-${p.id}-${idx}`,
+          title: p.stock === 0 ? 'Stok Produk Habis!' : 'Peringatan Stok Menipis',
+          desc: `Produk "${p.name}" tersisa ${p.stock} pcs di gudang`,
+          time: `${(idx + 1) * 45} mnt lalu`,
+          type: 'warning'
+        });
+      });
+
+      if (dynamicActivities.length > 0) {
+        setActivities(dynamicActivities);
+      }
     } catch (err) {
       console.error('Error fetching dashboard data:', err);
     } finally {
@@ -134,7 +164,7 @@ const AdminDashboard = () => {
   };
 
   const addTask = (e) => {
-    e.preventDefault();
+    if (e && e.preventDefault) e.preventDefault();
     if (!newTaskInput.trim()) return;
     const newTask = {
       id: Date.now(),
@@ -142,7 +172,7 @@ const AdminDashboard = () => {
       done: false,
       priority: 'medium',
     };
-    setTasks([newTask, ...tasks]);
+    setTasks(prev => [newTask, ...prev]);
     setNewTaskInput('');
   };
 
@@ -153,19 +183,49 @@ const AdminDashboard = () => {
 
   // Quick Order Status Change
   const handleQuickStatusChange = async (orderId, newStatus) => {
-    await orderService.updateOrderStatus(orderId, newStatus);
-    setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: newStatus } : o));
-    // Add activity
-    setActivities(prev => [
-      {
-        id: Date.now(),
-        title: 'Status Pesanan Diperbarui',
-        desc: `Pesanan ${orderId} diubah menjadi "${newStatus}"`,
-        time: 'Baru saja',
-        type: 'info'
-      },
-      ...prev.slice(0, 7)
-    ]);
+    const processUpdate = async (trackingNumber = null) => {
+      const newPaymentStatus = newStatus === 'Menunggu Pembayaran' ? 'Belum Bayar' : 'Lunas';
+
+      await orderService.updateOrderStatus(
+        orderId, 
+        newStatus, 
+        newPaymentStatus,
+        trackingNumber
+      );
+
+      setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: newStatus, paymentStatus: newPaymentStatus, trackingNumber: trackingNumber ?? o.trackingNumber } : o));
+
+      showToast(`Status pesanan #${orderId} diubah menjadi "${newStatus}"`, 'success');
+
+      // Add activity
+      setActivities(prev => [
+        {
+          id: Date.now(),
+          title: 'Status Pesanan Diperbarui',
+          desc: `Pesanan #${orderId} diubah menjadi "${newStatus}"${trackingNumber ? ` (Resi: ${trackingNumber})` : ''}`,
+          time: 'Baru saja',
+          type: 'info'
+        },
+        ...prev.slice(0, 7)
+      ]);
+    };
+
+    if (newStatus === 'Dikirim') {
+      const defaultResi = 'JNE-BP' + Date.now().toString().slice(-6);
+      showPrompt({
+        title: 'Input Nomor Resi Kurir',
+        message: `Masukkan nomor resi ekspedisi untuk pesanan #${orderId}:`,
+        defaultValue: defaultResi,
+        placeholder: 'Contoh: JNE-BP123456',
+        confirmText: 'Simpan & Kirim',
+        onConfirm: (val) => {
+          const trackingNumber = val && val.trim() ? val.trim() : defaultResi;
+          processUpdate(trackingNumber);
+        }
+      });
+    } else {
+      processUpdate(null);
+    }
   };
 
   // Quick Restock Execution
@@ -219,8 +279,9 @@ const AdminDashboard = () => {
     // Average Order Value (AOV)
     const aov = totalOrders > 0 ? verifiedRevenue / (completedCount + processingCount || 1) : 0;
 
-    // User metrics
-    const totalAnglers = users.length;
+    // User metrics (Angler = pelanggan pancing)
+    const uniqueCustomerNames = new Set(orders.map(o => o.customerName || o.user_name).filter(Boolean));
+    const totalAnglers = users.length > 0 ? users.length : (uniqueCustomerNames.size > 0 ? uniqueCustomerNames.size : 5);
 
     return {
       verifiedRevenue,
@@ -242,50 +303,133 @@ const AdminDashboard = () => {
     };
   }, [orders, products, users]);
 
-  // Dynamic Chart Points (7 Days vs 30 Days)
+  // Dynamic Chart Points — computed from real orders
   const chartData = useMemo(() => {
-    const days7 = [
-      { label: 'Senin', short: 'Sen', revenue: 1450000, orders: 3 },
-      { label: 'Selasa', short: 'Sel', revenue: 2180000, orders: 5 },
-      { label: 'Rabu', short: 'Rab', revenue: 1890000, orders: 4 },
-      { label: 'Kamis', short: 'Kam', revenue: 3120000, orders: 7 },
-      { label: 'Jumat', short: 'Jum', revenue: 2750000, orders: 6 },
-      { label: 'Sabtu', short: 'Sab', revenue: 4680000, orders: 11 },
-      { label: 'Minggu', short: 'Min', revenue: 5240000, orders: 13 },
-    ];
-
-    const days30 = [
-      { label: 'Mgg 1 (1-7)', short: 'W1', revenue: 12400000, orders: 28 },
-      { label: 'Mgg 2 (8-14)', short: 'W2', revenue: 15800000, orders: 35 },
-      { label: 'Mgg 3 (15-21)', short: 'W3', revenue: 18200000, orders: 42 },
-      { label: 'Mgg 4 (22-28)', short: 'W4', revenue: 21300000, orders: 49 },
-    ];
-
-    const points = chartPeriod === '7d' ? days7 : days30;
-    const maxVal = Math.max(...points.map(p => chartMetric === 'revenue' ? p.revenue : p.orders));
-
-    return {
-      points,
-      maxVal: maxVal > 0 ? maxVal : 1,
-      totalRev: points.reduce((acc, p) => acc + p.revenue, 0),
-      totalOrd: points.reduce((acc, p) => acc + p.orders, 0),
+    // Flexible date parser: handles ISO, English ("18 August 2026"), and Indonesian ("18 Agustus 2026")
+    const MONTH_MAP = {
+      // English
+      'january': 0, 'february': 1, 'march': 2, 'april': 3,
+      'may': 4, 'june': 5, 'july': 6, 'august': 7,
+      'september': 8, 'october': 9, 'november': 10, 'december': 11,
+      // Indonesian
+      'januari': 0, 'februari': 1, 'maret': 2,
+      'mei': 4, 'juni': 5, 'juli': 6, 'agustus': 7,
+      'oktober': 9, 'november': 10, 'desember': 11
     };
-  }, [chartPeriod, chartMetric]);
+    const parseOrderDate = (order) => {
+      // Prefer ISO timestamp if available (most reliable)
+      if (order.created_at_raw) {
+        const d = new Date(order.created_at_raw);
+        if (!isNaN(d)) return d;
+      }
+      // Fallback: parse human-readable date string
+      const str = order.date;
+      if (!str) return null;
+      const parts = str.trim().split(/\s+/);
+      if (parts.length < 3) return null;
+      const day = parseInt(parts[0], 10);
+      const month = MONTH_MAP[parts[1].toLowerCase()];
+      const year = parseInt(parts[2], 10);
+      if (isNaN(day) || month === undefined || isNaN(year)) return null;
+      return new Date(year, month, day);
+    };
 
-  // Best Sellers Calculation
-  const bestSellers = useMemo(() => {
-    // Map existing products with realistic simulated order volume
-    return products.slice(0, 5).map((prod, idx) => {
-      const soldUnits = [48, 36, 29, 22, 18][idx] || (5 - idx) * 4;
-      const totalSales = soldUnits * Number(prod.price);
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+
+    if (chartPeriod === '7d') {
+      // Build slots for last 7 days (oldest → newest)
+      const DAY_LABELS = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
+      const slots = [];
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date(now);
+        d.setDate(now.getDate() - i);
+        slots.push({
+          date: d,
+          label: d.toLocaleDateString('id-ID', { weekday: 'long' }),
+          short: DAY_LABELS[d.getDay()],
+          revenue: 0,
+          orders: 0,
+        });
+      }
+
+      orders.forEach(o => {
+        const parsed = parseOrderDate(o);
+        if (!parsed) return;
+        const diffDays = Math.round((now - parsed) / 86400000);
+        if (diffDays >= 0 && diffDays < 7) {
+          const slotIdx = 6 - diffDays;
+          slots[slotIdx].revenue += Number(o.total) || 0;
+          slots[slotIdx].orders += 1;
+        }
+      });
+
+      const maxVal = Math.max(...slots.map(p => chartMetric === 'revenue' ? p.revenue : p.orders), 1);
       return {
-        ...prod,
-        soldUnits,
-        totalSales,
-        ranking: idx + 1,
+        points: slots,
+        maxVal,
+        totalRev: slots.reduce((acc, p) => acc + p.revenue, 0),
+        totalOrd: slots.reduce((acc, p) => acc + p.orders, 0),
+        isReal: true,
       };
+    } else {
+      // 30-day view: group by ISO week relative to current month
+      const slots = [
+        { label: 'Mgg 1 (1–7)', short: 'W1', revenue: 0, orders: 0 },
+        { label: 'Mgg 2 (8–14)', short: 'W2', revenue: 0, orders: 0 },
+        { label: 'Mgg 3 (15–21)', short: 'W3', revenue: 0, orders: 0 },
+        { label: 'Mgg 4 (22+)', short: 'W4', revenue: 0, orders: 0 },
+      ];
+
+      const cutoff = new Date(now);
+      cutoff.setDate(now.getDate() - 29);
+
+      orders.forEach(o => {
+        const parsed = parseOrderDate(o);
+        if (!parsed || parsed < cutoff) return;
+        const day = parsed.getDate();
+        const wi = day <= 7 ? 0 : day <= 14 ? 1 : day <= 21 ? 2 : 3;
+        slots[wi].revenue += Number(o.total) || 0;
+        slots[wi].orders += 1;
+      });
+
+      const maxVal = Math.max(...slots.map(p => chartMetric === 'revenue' ? p.revenue : p.orders), 1);
+      return {
+        points: slots,
+        maxVal,
+        totalRev: slots.reduce((acc, p) => acc + p.revenue, 0),
+        totalOrd: slots.reduce((acc, p) => acc + p.orders, 0),
+        isReal: true,
+      };
+    }
+  }, [orders, chartPeriod, chartMetric]);
+
+  // Best Sellers — computed from real order items
+  const bestSellers = useMemo(() => {
+    // Count sold units per product from all order items
+    const soldMap = {};
+    orders.forEach(o => {
+      if (o.items && Array.isArray(o.items)) {
+        o.items.forEach(item => {
+          const pid = item.id || item.product_id;
+          if (!pid) return;
+          soldMap[pid] = (soldMap[pid] || 0) + (Number(item.qty) || 1);
+        });
+      }
     });
-  }, [products]);
+
+    // Merge into products list and sort by soldUnits desc
+    return products
+      .map(prod => ({
+        ...prod,
+        soldUnits: soldMap[prod.id] || 0,
+        totalSales: (soldMap[prod.id] || 0) * Number(prod.price),
+      }))
+      .sort((a, b) => b.soldUnits - a.soldUnits)
+      .slice(0, 5)
+      .map((prod, idx) => ({ ...prod, ranking: idx + 1 }));
+  }, [orders, products]);
+
 
   // Category Contribution Analytics
   const categoryStats = useMemo(() => {
@@ -331,7 +475,7 @@ const AdminDashboard = () => {
   // Export CSV Handler
   const exportOrdersCSV = () => {
     if (orders.length === 0) {
-      alert('Tidak ada data pesanan untuk diekspor.');
+      showToast('Tidak ada data pesanan untuk diekspor.', 'warning');
       return;
     }
     const headers = ['ID Pesanan', 'Tanggal', 'Nama Pelanggan', 'Email', 'No Telepon', 'Metode Bayar', 'Status Bayar', 'Status Pesanan', 'Total Belanja'];
@@ -1007,8 +1151,19 @@ const AdminDashboard = () => {
               <h3 style={{ fontSize: '1.1rem', fontWeight: '800', color: '#1e293b', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <Activity size={18} color="#0f4c81" /> Tren Penjualan & Transaksi
               </h3>
-              <p style={{ fontSize: '0.8rem', color: '#64748b', margin: '2px 0 0 0' }}>
+              <p style={{ fontSize: '0.8rem', color: '#64748b', margin: '2px 0 0 0', display: 'flex', alignItems: 'center', gap: '6px' }}>
                 {chartPeriod === '7d' ? 'Pergerakan 7 hari terakhir' : 'Pergerakan bulanan (4 minggu)'}
+                <span style={{
+                  background: '#dcfce7',
+                  color: '#15803d',
+                  fontSize: '0.65rem',
+                  fontWeight: '800',
+                  padding: '1px 6px',
+                  borderRadius: '6px',
+                  letterSpacing: '0.02em',
+                }}>
+                  ● DATA REAL
+                </span>
               </p>
             </div>
 
@@ -1096,89 +1251,124 @@ const AdminDashboard = () => {
             </div>
           </div>
 
-          {/* SVG Area / Line Chart */}
+          {/* SVG Area / Line Chart - using viewBox for pixel-accurate path coords */}
           <div style={{ width: '100%', height: '220px', position: 'relative', marginTop: '0.5rem' }}>
-            <svg width="100%" height="100%" style={{ overflow: 'visible' }}>
+            <svg viewBox="0 0 700 220" width="100%" height="100%" preserveAspectRatio="none" style={{ overflow: 'visible' }}>
               <defs>
                 <linearGradient id="dashboardChartGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor={chartMetric === 'revenue' ? '#0f4c81' : '#00a896'} stopOpacity="0.4" />
-                  <stop offset="100%" stopColor={chartMetric === 'revenue' ? '#0f4c81' : '#00a896'} stopOpacity="0.0" />
+                  <stop offset="0%" stopColor={chartMetric === 'revenue' ? '#0f4c81' : '#00a896'} stopOpacity="0.35" />
+                  <stop offset="100%" stopColor={chartMetric === 'revenue' ? '#0f4c81' : '#00a896'} stopOpacity="0.02" />
                 </linearGradient>
               </defs>
 
               {/* Horizontal Grid lines */}
-              <line x1="0" y1="30" x2="100%" y2="30" stroke="#f1f5f9" strokeWidth="1" />
-              <line x1="0" y1="85" x2="100%" y2="85" stroke="#f1f5f9" strokeWidth="1" />
-              <line x1="0" y1="140" x2="100%" y2="140" stroke="#f1f5f9" strokeWidth="1" />
-              <line x1="0" y1="190" x2="100%" y2="190" stroke="#e2e8f0" strokeWidth="1.5" />
+              <line x1="0" y1="30" x2="700" y2="30" stroke="#f1f5f9" strokeWidth="1" />
+              <line x1="0" y1="85" x2="700" y2="85" stroke="#f1f5f9" strokeWidth="1" />
+              <line x1="0" y1="140" x2="700" y2="140" stroke="#f1f5f9" strokeWidth="1" />
+              <line x1="0" y1="190" x2="700" y2="190" stroke="#e2e8f0" strokeWidth="1.5" />
 
-              {/* Dynamic Path Construction */}
+              {/* Dynamic Path Construction using absolute pixel coords */}
               {(() => {
                 const points = chartData.points;
                 const count = points.length;
                 const max = chartData.maxVal;
+                const W = 700;
+                const H = 190;
+                const padL = 28;
+                const padR = 28;
+                const usableW = W - padL - padR;
 
                 const coords = points.map((p, i) => {
                   const val = chartMetric === 'revenue' ? p.revenue : p.orders;
-                  const xPct = count > 1 ? (i / (count - 1)) * 92 + 4 : 50;
-                  const yVal = 185 - (val / max) * 145;
-                  return { x: `${xPct}%`, xNum: xPct, y: yVal, item: p, val };
+                  const xVal = count > 1 ? padL + (i / (count - 1)) * usableW : W / 2;
+                  const yVal = H - ((val / max) * (H - 20));
+                  return { x: xVal, y: yVal, item: p, val };
                 });
 
-                const linePath = coords.map((c, i) => `${i === 0 ? 'M' : 'L'} ${c.x} ${c.y}`).join(' ');
-                const areaPath = `${linePath} L ${coords[coords.length - 1].x} 190 L ${coords[0].x} 190 Z`;
+                const linePath = coords.map((c, i) => `${i === 0 ? 'M' : 'L'} ${c.x.toFixed(1)} ${c.y.toFixed(1)}`).join(' ');
+                const areaPath = `${linePath} L ${coords[coords.length - 1].x.toFixed(1)} ${H} L ${coords[0].x.toFixed(1)} ${H} Z`;
                 const themeColor = chartMetric === 'revenue' ? '#0f4c81' : '#00a896';
 
                 return (
                   <>
+                    {/* Filled area under the line */}
                     <path d={areaPath} fill="url(#dashboardChartGrad)" />
-                    <path d={linePath} fill="none" stroke={themeColor} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+                    {/* The actual line */}
+                    <path d={linePath} fill="none" stroke={themeColor} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
 
                     {coords.map((c, i) => (
                       <g key={i}>
-                        {/* Hover bar detector */}
+                        {/* Data point circle */}
                         <circle
                           cx={c.x}
                           cy={c.y}
-                          r={hoveredChartPoint === i ? '7' : '5'}
+                          r={hoveredChartPoint === i ? 7 : 5}
                           fill="#ffffff"
                           stroke={themeColor}
-                          strokeWidth="3"
-                          style={{ cursor: 'pointer', transition: 'all 0.2s ease' }}
-                          onMouseOver={() => setHoveredChartPoint(i)}
-                          onMouseOut={() => setHoveredChartPoint(null)}
+                          strokeWidth="2.5"
+                          style={{ transition: 'r 0.15s ease', pointerEvents: 'none' }}
+                        />
+
+                        {/* Invisible larger hit-target circle for smooth hover without flicker */}
+                        <circle
+                          cx={c.x}
+                          cy={c.y}
+                          r={18}
+                          fill="transparent"
+                          style={{ cursor: 'pointer', pointerEvents: 'all' }}
+                          onMouseEnter={() => setHoveredChartPoint(i)}
+                          onMouseLeave={() => setHoveredChartPoint(null)}
                         />
 
                         {/* X-axis Label */}
-                        <text x={c.x} y="210" fill="#64748b" fontSize="11" textAnchor="middle" fontWeight="600">
+                        <text
+                          x={c.x}
+                          y={210}
+                          fill="#64748b"
+                          fontSize="10"
+                          textAnchor="middle"
+                          fontWeight="600"
+                          style={{ fontFamily: 'inherit', pointerEvents: 'none' }}
+                        >
                           {c.item.short}
                         </text>
 
-                        {/* Interactive Tooltip on Hover */}
+                        {/* Tooltip on hover — pointerEvents none prevents flickering */}
                         {hoveredChartPoint === i && (
-                          <foreignObject
-                            x={`calc(${c.x} - 70px)`}
-                            y={Math.max(0, c.y - 52)}
-                            width="140"
-                            height="50"
-                          >
-                            <div style={{
-                              background: '#1e293b',
-                              color: '#ffffff',
-                              padding: '5px 8px',
-                              borderRadius: '8px',
-                              fontSize: '0.72rem',
-                              textAlign: 'center',
-                              boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
-                              border: '1px solid rgba(255,255,255,0.1)',
-                              pointerEvents: 'none'
-                            }}>
-                              <div style={{ fontWeight: '600', color: '#94a3b8', fontSize: '0.68rem' }}>{c.item.label}</div>
-                              <div style={{ fontWeight: '800', color: '#38bdf8' }}>
-                                {chartMetric === 'revenue' ? productService.formatIDR(c.val) : `${c.val} Pesanan`}
-                              </div>
-                            </div>
-                          </foreignObject>
+                          <g style={{ pointerEvents: 'none' }}>
+                            <rect
+                              x={Math.min(Math.max(c.x - 55, 0), W - 115)}
+                              y={Math.max(c.y - 52, 2)}
+                              width={115}
+                              height={46}
+                              rx={8}
+                              fill="#1e293b"
+                              opacity="0.95"
+                              style={{ pointerEvents: 'none' }}
+                            />
+                            <text
+                              x={Math.min(Math.max(c.x - 55, 0), W - 115) + 57}
+                              y={Math.max(c.y - 52, 2) + 16}
+                              fill="#94a3b8"
+                              fontSize="9"
+                              textAnchor="middle"
+                              fontWeight="600"
+                              style={{ pointerEvents: 'none' }}
+                            >
+                              {c.item.label}
+                            </text>
+                            <text
+                              x={Math.min(Math.max(c.x - 55, 0), W - 115) + 57}
+                              y={Math.max(c.y - 52, 2) + 34}
+                              fill="#38bdf8"
+                              fontSize="10"
+                              textAnchor="middle"
+                              fontWeight="800"
+                              style={{ pointerEvents: 'none' }}
+                            >
+                              {chartMetric === 'revenue' ? productService.formatIDR(c.val) : `${c.val} Pesanan`}
+                            </text>
+                          </g>
                         )}
                       </g>
                     ))}
@@ -1706,7 +1896,7 @@ const AdminDashboard = () => {
             </div>
           </div>
 
-          {/* Panel 3: Interactive Admin To-Do Checklist & Activity Log */}
+          {/* Panel 3: Fitur Notifikasi & Audit Aktivitas Toko */}
           <div style={{
             background: '#ffffff',
             borderRadius: '16px',
@@ -1717,129 +1907,95 @@ const AdminDashboard = () => {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.85rem' }}>
               <div>
                 <h3 style={{ fontSize: '0.98rem', fontWeight: '800', color: '#1e293b', margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <CheckSquare size={17} color="#0f4c81" /> Catatan Tugas Harian Admin
+                  <Bell size={18} color="#f59e0b" /> Notifikasi & Aktivitas Toko
                 </h3>
                 <span style={{ fontSize: '0.74rem', color: '#64748b' }}>
-                  {tasks.filter(t => t.done).length} dari {tasks.length} tugas selesai
+                  Update real-time aktivitas & audit sistem
                 </span>
               </div>
-            </div>
-
-            {/* Add Task Input */}
-            <form onSubmit={addTask} style={{ display: 'flex', gap: '6px', marginBottom: '0.75rem' }}>
-              <input
-                type="text"
-                placeholder="Tulis tugas baru lalu tekan Enter..."
-                value={newTaskInput}
-                onChange={(e) => setNewTaskInput(e.target.value)}
-                style={{
-                  flex: 1,
-                  padding: '0.45rem 0.75rem',
-                  borderRadius: '8px',
-                  border: '1px solid #cbd5e1',
-                  fontSize: '0.76rem',
-                  outline: 'none',
-                }}
-              />
-              <button
-                type="submit"
-                style={{
-                  background: '#0f4c81',
-                  color: '#ffffff',
-                  border: 'none',
-                  padding: '0 10px',
-                  borderRadius: '8px',
-                  fontWeight: '700',
-                  fontSize: '0.76rem',
-                  cursor: 'pointer',
-                }}
-              >
-                + Tambah
-              </button>
-            </form>
-
-            {/* Task Items */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: '200px', overflowY: 'auto' }}>
-              {tasks.map((task) => (
-                <div
-                  key={task.id}
-                  onClick={() => toggleTask(task.id)}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    padding: '7px 10px',
-                    borderRadius: '8px',
-                    background: task.done ? '#f8fafc' : '#ffffff',
-                    border: `1px solid ${task.done ? '#f1f5f9' : '#e2e8f0'}`,
-                    cursor: 'pointer',
-                    transition: 'all 0.15s ease',
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden' }}>
-                    <input
-                      type="checkbox"
-                      checked={task.done}
-                      onChange={() => {}}
-                      style={{ cursor: 'pointer', accentColor: '#00a896' }}
-                    />
-                    <span style={{
-                      fontSize: '0.76rem',
-                      fontWeight: task.done ? '500' : '600',
-                      color: task.done ? '#94a3b8' : '#334155',
-                      textDecoration: task.done ? 'line-through' : 'none',
-                      whiteSpace: 'nowrap',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                    }}>
-                      {task.text}
-                    </span>
-                  </div>
-
-                  <button
-                    onClick={(e) => deleteTask(task.id, e)}
-                    style={{ background: 'none', border: 'none', color: '#cbd5e1', cursor: 'pointer', padding: '2px' }}
-                    onMouseOver={(e) => e.currentTarget.style.color = '#ef4444'}
-                    onMouseOut={(e) => e.currentTarget.style.color = '#cbd5e1'}
-                    title="Hapus tugas"
-                  >
-                    <Trash2 size={13} />
-                  </button>
-                </div>
-              ))}
-            </div>
-
-            {/* Activity Log Accordion / List */}
-            <div style={{ marginTop: '1.25rem', paddingTop: '1rem', borderTop: '1px solid #f1f5f9' }}>
-              <span style={{ fontSize: '0.78rem', fontWeight: '800', color: '#475569', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '0.6rem' }}>
-                <Bell size={14} color="#f59e0b" /> Riwayat & Audit Aktivitas Toko
+              <span style={{
+                background: '#fef3c7',
+                color: '#d97706',
+                fontSize: '0.7rem',
+                fontWeight: '800',
+                padding: '2px 8px',
+                borderRadius: '12px'
+              }}>
+                {activities.length} Notifikasi
               </span>
+            </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-                {activities.slice(0, 4).map((act) => (
-                  <div key={act.id} style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
+            {/* Notification Filter Chips */}
+            <div style={{ display: 'flex', gap: '6px', marginBottom: '0.85rem', flexWrap: 'wrap' }}>
+              {['Semua', 'Pesanan', 'Stok', 'Sistem'].map((cat) => {
+                const isActive = notifFilter === cat;
+                return (
+                  <button
+                    key={cat}
+                    type="button"
+                    onClick={() => setNotifFilter(cat)}
+                    style={{
+                      fontSize: '0.7rem',
+                      fontWeight: isActive ? '700' : '600',
+                      background: isActive ? '#0f4c81' : '#f1f5f9',
+                      color: isActive ? '#ffffff' : '#475569',
+                      border: 'none',
+                      padding: '4px 10px',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease',
+                      boxShadow: isActive ? '0 2px 6px rgba(15, 76, 129, 0.2)' : 'none',
+                    }}
+                  >
+                    {cat}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Notification Items List */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', maxHeight: '380px', overflowY: 'auto' }}>
+              {activities
+                .filter((act) => {
+                  if (notifFilter === 'Pesanan') return act.type === 'order' || act.type === 'success';
+                  if (notifFilter === 'Stok') return act.type === 'warning';
+                  if (notifFilter === 'Sistem') return act.type === 'user' || act.type === 'info' || act.type === 'system';
+                  return true;
+                })
+                .map((act) => (
+                  <div 
+                    key={act.id} 
+                    style={{ 
+                      display: 'flex', 
+                      gap: '10px', 
+                      alignItems: 'flex-start',
+                      padding: '8px 10px',
+                      borderRadius: '8px',
+                      background: act.type === 'warning' ? '#fff1f2' : act.type === 'order' ? '#f0f9ff' : '#f8fafc',
+                      border: `1px solid ${act.type === 'warning' ? '#fecdd3' : act.type === 'order' ? '#bae6fd' : '#e2e8f0'}`
+                    }}
+                  >
                     <div style={{
-                      width: '7px',
-                      height: '7px',
+                      width: '8px',
+                      height: '8px',
                       borderRadius: '50%',
                       background: act.type === 'warning' ? '#ef4444' : act.type === 'success' ? '#10b981' : act.type === 'order' ? '#0284c7' : '#64748b',
                       marginTop: '5px',
                       flexShrink: 0,
                     }} />
                     <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: '0.74rem', fontWeight: '700', color: '#1e293b', lineHeight: 1.2 }}>
+                      <div style={{ fontSize: '0.78rem', fontWeight: '700', color: '#1e293b', lineHeight: 1.25 }}>
                         {act.title}
                       </div>
-                      <div style={{ fontSize: '0.7rem', color: '#64748b', lineHeight: 1.3 }}>
+                      <div style={{ fontSize: '0.72rem', color: '#475569', lineHeight: 1.35, marginTop: '2px' }}>
                         {act.desc}
                       </div>
                     </div>
-                    <span style={{ fontSize: '0.65rem', color: '#94a3b8', whiteSpace: 'nowrap' }}>
+                    <span style={{ fontSize: '0.68rem', color: '#94a3b8', whiteSpace: 'nowrap', fontWeight: '600' }}>
                       {act.time}
                     </span>
                   </div>
                 ))}
-              </div>
             </div>
 
           </div>
