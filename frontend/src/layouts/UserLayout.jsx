@@ -1,18 +1,22 @@
 import React from 'react';
-import { Outlet, Link } from 'react-router-dom';
+import { Outlet, Link, useLocation } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import { Anchor, Phone, MapPin, Mail, ShieldCheck, Heart } from 'lucide-react';
 
 const UserLayout = () => {
+  const location = useLocation();
+  const hideFooter = location.pathname.startsWith('/products') || location.pathname === '/cart';
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', background: '#f8fafc' }}>
       <Navbar isAdminView={false} />
       
-      <main className="user-layout-main" style={{ flex: 1, maxWidth: '1200px', width: '100%', margin: '0 auto', padding: '1.5rem 1rem' }}>
+      <main style={{ flex: 1, maxWidth: '1200px', width: '100%', margin: '0 auto', padding: '1.5rem 1rem' }}>
         <Outlet />
       </main>
 
-      <footer className="user-footer">
+      {!hideFooter && (
+        <footer className="user-footer">
         <div className="footer-container">
           
           <div>
@@ -55,6 +59,7 @@ const UserLayout = () => {
           © {new Date().getFullYear()} Berkah Pancing. Developed with <Heart size={12} color="#ef4444" style={{ display: 'inline', margin: '0 2px' }} /> for Fishing Enthusiasts.
         </div>
       </footer>
+      )}
     </div>
   );
 };

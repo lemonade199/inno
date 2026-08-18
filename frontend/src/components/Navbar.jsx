@@ -137,7 +137,7 @@ const Navbar = ({ isAdminView = false, toggleSidebar }) => {
 
   // User Customer View Navbar
   return (
-    <header style={{ display: 'flex', flexDirection: 'column', background: 'linear-gradient(135deg, #0b2545 0%, #0f4c81 100%)', color: '#fff', boxShadow: '0 4px 20px rgba(0,0,0,0.15)', position: 'sticky', top: 0, zIndex: 999 }}>
+    <header className="main-navbar-header" style={{ display: 'flex', flexDirection: 'column', background: 'linear-gradient(135deg, #0b2545 0%, #0f4c81 100%)', color: '#fff', boxShadow: '0 4px 20px rgba(0,0,0,0.15)', position: 'sticky', top: 0, zIndex: 999 }}>
       
       <div className="navbar-container" style={{ maxWidth: '1200px', width: '100%', margin: '0 auto', padding: '0.9rem 2rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '2rem' }}>
         
@@ -195,20 +195,6 @@ const Navbar = ({ isAdminView = false, toggleSidebar }) => {
             >
               {/* 1. Riwayat Pencarian */}
               <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                  <span style={{ fontSize: '0.82rem', fontWeight: '800', color: '#475569', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <History size={14} color="#0f4c81" /> Riwayat Pencarian
-                  </span>
-                  {historyList.length > 0 && (
-                    <button
-                      type="button"
-                      onClick={handleClearAllHistory}
-                      style={{ background: 'none', border: 'none', color: '#ef4444', fontSize: '0.75rem', cursor: 'pointer', fontWeight: '700' }}
-                    >
-                      Hapus Semua
-                    </button>
-                  )}
-                </div>
 
                 {historyList.length === 0 ? (
                   <div style={{ fontSize: '0.78rem', color: '#94a3b8', padding: '4px 0' }}>

@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { 
   ArrowLeft, 
-  Search,
   ShoppingCart, 
   ShieldCheck, 
   Truck, 
@@ -21,9 +20,13 @@ import {
   Upload,
   CheckCircle2,
   Edit3,
-  MoreVertical,
+  Search,
+  Menu,
+  HelpCircle,
   CreditCard,
-  ChevronDown
+  Copy,
+  MessageCircle,
+  Send
 } from 'lucide-react';
 import { productService } from '../services/productService';
 import { reviewService } from '../services/reviewService';
@@ -34,56 +37,29 @@ import Loading from '../components/Loading';
 const ProductDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { addToCart, getCartCount } = useCart();
-  const cartCount = getCartCount ? getCartCount() : 0;
+  const { cartItems, addToCart } = useCart();
   const { user } = useAuth();
+  const cartCount = cartItems ? cartItems.reduce((acc, item) => acc + item.quantity, 0) : 0;
 
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [quantity, setQuantity] = useState(1);
   const [added, setAdded] = useState(false);
+  const [isExiting, setIsExiting] = useState(false);
   const [isFavorite, setIsFavorite] = useState(false);
   const [selectedVariant, setSelectedVariant] = useState('Standard');
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const [expandedReplies, setExpandedReplies] = useState({});
-
-  // Mobile Header Actions State
-  const [showMobileSearch, setShowMobileSearch] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [isCopied, setIsCopied] = useState(false);
+  const [showSearchInput, setShowSearchInput] = useState(false);
   const [mobileSearchQuery, setMobileSearchQuery] = useState('');
-  const [showMoreMenu, setShowMoreMenu] = useState(false);
-  const [toastMessage, setToastMessage] = useState('');
-  const [showAllReviewsModal, setShowAllReviewsModal] = useState(false);
-  const [activeSubTab, setActiveSubTab] = useState('produk');
 
-  const handleShareProduct = async () => {
-    const shareUrl = window.location.href;
-    const shareData = {
-      title: product ? product.name : 'Berkah Pancing',
-      text: `Cek ${product ? product.name : 'produk memancing'} di Berkah Pancing!`,
-      url: shareUrl
-    };
-
-    let shared = false;
-    if (navigator.share) {
-      try {
-        await navigator.share(shareData);
-        shared = true;
-      } catch (err) {
-        console.log('Share dismissed/unhandled, using clipboard fallback');
-      }
+  const handleCopyLink = () => {
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(window.location.href);
     }
-
-    if (!shared) {
-      try {
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-          await navigator.clipboard.writeText(shareUrl);
-        }
-      } catch (e) {
-        console.log('Clipboard fallback error', e);
-      }
-      setToastMessage('Tautan produk berhasil disalin!');
-      setTimeout(() => setToastMessage(''), 3000);
-    }
+    setIsCopied(true);
+    setTimeout(() => setIsCopied(false), 3000);
   };
 
   // Shopee Reviews state
@@ -142,7 +118,16 @@ const ProductDetail = () => {
     fetchReviews();
   };
 
+  const [reviewSearchQuery, setReviewSearchQuery] = useState('');
+
   const filteredReviews = reviews.filter((r) => {
+    if (reviewSearchQuery.trim() !== '') {
+      const query = reviewSearchQuery.toLowerCase();
+      const matchComment = r.comment && r.comment.toLowerCase().includes(query);
+      const matchVariant = r.variant && r.variant.toLowerCase().includes(query);
+      const matchUser = r.userName && r.userName.toLowerCase().includes(query);
+      if (!matchComment && !matchVariant && !matchUser) return false;
+    }
     if (activeStarFilter === 'all') return true;
     if (activeStarFilter === 'photo') return r.images && r.images.length > 0;
     if (activeStarFilter === 'comment') return r.comment && r.comment.trim().length > 0;
@@ -218,7 +203,12 @@ const ProductDetail = () => {
     if (product.stock <= 0) return;
     addToCart(product, quantity);
     setAdded(true);
-    setTimeout(() => setAdded(false), 1800);
+    setIsExiting(false);
+    setTimeout(() => setIsExiting(true), 1500);
+    setTimeout(() => {
+      setAdded(false);
+      setIsExiting(false);
+    }, 1850);
   };
 
   const handleBuyNow = () => {
@@ -240,138 +230,77 @@ const ProductDetail = () => {
 
 
   return (
-    <div className="product-detail-page-wrapper">
+    <div className="product-detail-mobile-wrapper" style={{ display: 'flex', flexDirection: 'column', gap: '1rem', background: '#f5f5f5', margin: '-1.5rem -1rem', padding: '1.5rem 1rem' }}>
       
-      {/* Tokopedia Mobile Clean Top Header Bar */}
-      <div className="mobile-tokopedia-header">
-        {showMobileSearch ? (
+      {/* Mobile Floating Top Navigation Header (Shopee / Tokopedia Style) */}
+      <div className="mobile-detail-top-nav">
+        {showSearchInput ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%' }}>
-            <button onClick={() => setShowMobileSearch(false)} className="mobile-header-btn" title="Batal Cari">
-              <ArrowLeft size={22} color="#1e293b" />
+            <button onClick={() => setShowSearchInput(false)} className="mobile-top-nav-btn" title="Tutup Pencarian">
+              <ArrowLeft size={18} color="#1e293b" />
             </button>
             <form 
               onSubmit={(e) => {
                 e.preventDefault();
                 if (mobileSearchQuery.trim()) {
                   navigate(`/products?search=${encodeURIComponent(mobileSearchQuery.trim())}`);
+                  setShowSearchInput(false);
                 }
-              }} 
-              style={{ flex: 1, display: 'flex', alignItems: 'center', background: '#f1f5f9', borderRadius: '8px', padding: '0 10px' }}
+              }}
+              style={{ flex: 1, position: 'relative', display: 'flex', alignItems: 'center' }}
             >
-              <Search size={16} color="#64748b" />
-              <input 
-                type="text" 
+              <Search size={16} color="#94a3b8" style={{ position: 'absolute', left: '10px' }} />
+              <input
+                type="text"
                 autoFocus
+                placeholder="Cari produk di Berkah Pancing..."
                 value={mobileSearchQuery}
                 onChange={(e) => setMobileSearchQuery(e.target.value)}
-                placeholder="Cari di Berkah Pancing..."
-                style={{ flex: 1, border: 'none', background: 'transparent', padding: '8px 6px', fontSize: '0.85rem', outline: 'none', color: '#0f172a' }}
+                style={{
+                  width: '100%',
+                  padding: '6px 32px 6px 34px',
+                  borderRadius: '20px',
+                  border: '1px solid #cbd5e1',
+                  background: '#f8fafc',
+                  fontSize: '0.82rem',
+                  outline: 'none',
+                  color: '#1e293b'
+                }}
               />
               {mobileSearchQuery && (
-                <button type="button" onClick={() => setMobileSearchQuery('')} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
-                  <X size={16} color="#94a3b8" />
+                <button
+                  type="button"
+                  onClick={() => setMobileSearchQuery('')}
+                  style={{ position: 'absolute', right: '10px', background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', padding: 0 }}
+                >
+                  <X size={14} />
                 </button>
               )}
             </form>
           </div>
         ) : (
           <>
-            <button 
-              onClick={() => {
-                if (window.history.length > 1) {
-                  navigate(-1);
-                } else {
-                  navigate('/products');
-                }
-              }} 
-              className="mobile-header-btn" 
-              title="Kembali"
-            >
-              <ArrowLeft size={22} color="#1e293b" />
+            <button onClick={() => navigate(-1)} className="mobile-top-nav-btn" title="Kembali">
+              <ArrowLeft size={18} color="#1e293b" />
             </button>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-              <button onClick={() => setShowMobileSearch(true)} className="mobile-header-btn" title="Cari Produk">
-                <Search size={20} color="#1e293b" />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+              <button onClick={() => setShowSearchInput(true)} className="mobile-top-nav-btn" title="Cari">
+                <Search size={18} color="#1e293b" />
               </button>
-              <button onClick={handleShareProduct} className="mobile-header-btn" title="Bagikan Produk">
-                <Share2 size={20} color="#1e293b" />
+              <button onClick={() => setShowShareModal(true)} className="mobile-top-nav-btn" title="Bagikan">
+                <Share2 size={18} color="#1e293b" />
               </button>
-              <button onClick={() => navigate('/cart')} className="mobile-header-btn" style={{ position: 'relative' }} title="Keranjang Belanja">
-                <ShoppingCart size={20} color="#1e293b" />
-                {cartCount > 0 && <span className="mobile-header-cart-badge">{cartCount}</span>}
-              </button>
-              <button onClick={() => setShowMoreMenu(!showMoreMenu)} className="mobile-header-btn" title="Menu Lainnya">
-                <MoreVertical size={20} color="#1e293b" />
-              </button>
+              <Link to="/cart" className="mobile-top-nav-btn" title="Keranjang" style={{ position: 'relative' }}>
+                <ShoppingCart size={18} color="#1e293b" />
+                {cartCount > 0 && (
+                  <span className="mobile-cart-badge">{cartCount}</span>
+                )}
+              </Link>
             </div>
           </>
         )}
       </div>
-
-      {/* Toast Notification Alert */}
-      {toastMessage && (
-        <div style={{ position: 'fixed', top: '70px', left: '50%', transform: 'translateX(-50%)', background: 'rgba(15, 23, 42, 0.9)', color: '#ffffff', padding: '8px 16px', borderRadius: '20px', fontSize: '0.8rem', fontWeight: '600', zIndex: 3000, boxShadow: '0 4px 12px rgba(0,0,0,0.15)' }}>
-          ✓ {toastMessage}
-        </div>
-      )}
-
-      {/* 3-Dots Dropdown Menu Modal */}
-      {showMoreMenu && (
-        <div 
-          onClick={() => setShowMoreMenu(false)}
-          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.3)', zIndex: 2000 }}
-        >
-          <div 
-            onClick={(e) => e.stopPropagation()}
-            style={{ 
-              position: 'absolute', 
-              top: '56px', 
-              right: '12px', 
-              background: '#ffffff', 
-              borderRadius: '12px', 
-              boxShadow: '0 10px 30px rgba(0,0,0,0.18)', 
-              width: '200px', 
-              padding: '6px 0',
-              display: 'flex',
-              flexDirection: 'column',
-              zIndex: 2001
-            }}
-          >
-            <button 
-              onClick={() => { navigate('/'); setShowMoreMenu(false); }}
-              style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 16px', background: 'none', border: 'none', color: '#1e293b', fontSize: '0.85rem', fontWeight: '600', width: '100%', cursor: 'pointer', textAlign: 'left' }}
-            >
-              <span style={{ fontSize: '1.1rem' }}>🏠</span> Beranda Toko
-            </button>
-            <button 
-              onClick={() => { navigate('/products'); setShowMoreMenu(false); }}
-              style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 16px', background: 'none', border: 'none', color: '#1e293b', fontSize: '0.85rem', fontWeight: '600', width: '100%', cursor: 'pointer', textAlign: 'left' }}
-            >
-              <span style={{ fontSize: '1.1rem' }}>📦</span> Semua Produk
-            </button>
-            <button 
-              onClick={() => { navigate('/cart'); setShowMoreMenu(false); }}
-              style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 16px', background: 'none', border: 'none', color: '#1e293b', fontSize: '0.85rem', fontWeight: '600', width: '100%', cursor: 'pointer', textAlign: 'left' }}
-            >
-              <span style={{ fontSize: '1.1rem' }}>🛒</span> Keranjang Saya
-            </button>
-            <button 
-              onClick={() => { navigate('/chat'); setShowMoreMenu(false); }}
-              style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 16px', background: 'none', border: 'none', color: '#1e293b', fontSize: '0.85rem', fontWeight: '600', width: '100%', cursor: 'pointer', textAlign: 'left' }}
-            >
-              <span style={{ fontSize: '1.1rem' }}>💬</span> Chat Penjual
-            </button>
-            <div style={{ height: '1px', background: '#f1f5f9', margin: '4px 0' }} />
-            <button 
-              onClick={() => { handleShareProduct(); setShowMoreMenu(false); }}
-              style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 16px', background: 'none', border: 'none', color: '#1e293b', fontSize: '0.85rem', fontWeight: '600', width: '100%', cursor: 'pointer', textAlign: 'left' }}
-            >
-              <span style={{ fontSize: '1.1rem' }}>🔗</span> Bagikan Produk
-            </button>
-          </div>
-        </div>
-      )}
-
+      
       {/* Shopee-style Breadcrumb */}
       <div className="product-detail-breadcrumb" style={{ fontSize: '0.8rem', color: '#64748b', display: 'flex', alignItems: 'center', gap: '6px' }}>
         <Link to="/" style={{ color: '#0f4c81', textDecoration: 'none', fontWeight: '600' }}>Home</Link>
@@ -384,36 +313,34 @@ const ProductDetail = () => {
       </div>
 
       {/* Main Container */}
-      <div className="product-detail-grid">
+      <div 
+        className="product-detail-grid"
+        style={{ 
+          background: '#fff', 
+          borderRadius: '3px', 
+          padding: '1.5rem', 
+          boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
+        }}
+      >
         
         {/* Left Column: Image Gallery & Social */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           {/* Main Large Image Slider */}
-          <div 
-            className="product-detail-image-box"
-            style={{ 
-              width: '100%', 
-              aspectRatio: '1', 
-              borderRadius: '2px', 
-              overflow: 'hidden', 
-              border: '1px solid #f1f5f9',
-              background: '#fafafa',
-              position: 'relative'
-            }}
-          >
+          <div className="product-detail-hero-image-box" style={{ 
+            width: '100%', 
+            aspectRatio: '1', 
+            borderRadius: '2px', 
+            overflow: 'hidden', 
+            border: '1px solid #f1f5f9',
+            background: '#fafafa',
+            position: 'relative'
+          }}>
             <img 
               src={productImages[currentImageIndex]} 
               alt={product.name} 
               style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'all 0.3s ease' }}
             />
-
-
             
-            {/* Shopee-style Image Count Badge Pill */}
-            <span className="mobile-image-badge">
-              {currentImageIndex + 1}/{productImages.length}
-            </span>
-
             {/* Prev Image Button */}
             <button
               onClick={handlePrevImage}
@@ -465,10 +392,15 @@ const ProductDetail = () => {
             >
               <ChevronRight size={20} />
             </button>
+
+            {/* Shopee Slide Counter Badge (1/9) */}
+            <div style={{ position: 'absolute', bottom: '12px', right: '12px', background: 'rgba(0,0,0,0.5)', color: '#fff', fontSize: '0.72rem', fontWeight: '700', padding: '2px 8px', borderRadius: '12px', zIndex: 10 }}>
+              {currentImageIndex + 1}/{productImages.length}
+            </div>
           </div>
 
-          {/* Thumbnails strip (Desktop Only) */}
-          <div className="desktop-only-thumbnails" style={{ display: 'flex', gap: '8px' }}>
+          {/* Thumbnails strip */}
+          <div style={{ display: 'flex', gap: '8px' }}>
             {productImages.map((img, idx) => (
               <div 
                 key={idx} 
@@ -489,8 +421,8 @@ const ProductDetail = () => {
             ))}
           </div>
 
-          {/* Share & Favorites Row (Desktop Only) */}
-          <div className="desktop-only-thumbnails" style={{ 
+          {/* Share & Favorites Row */}
+          <div className="product-detail-share-fav" style={{ 
             display: 'flex', 
             justifyContent: 'space-between', 
             alignItems: 'center', 
@@ -528,122 +460,60 @@ const ProductDetail = () => {
         </div>
 
         {/* Right Column: Title, Ratings, Price, Options, Counter */}
-        <div className="product-detail-info-box" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+        <div className="product-detail-info-column" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
           
-          {/* Price Block */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', flexWrap: 'wrap' }}>
-              <span style={{ fontSize: '0.9rem', fontWeight: '800', color: '#ef4444' }}>Rp</span>
-              <span style={{ fontSize: '1.75rem', fontWeight: '800', color: '#ef4444', lineHeight: 1 }}>
-                {Math.round(Number(product.price)).toLocaleString('id-ID')}
+          {/* Price & Terjual Row (Shopee Style) */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
+              <span style={{ fontSize: '1.6rem', fontWeight: '800', color: '#ee4d2d' }}>
+                {productService.formatIDR(product.price)}
               </span>
               {originalPrice && (
-                <span style={{ fontSize: '0.82rem', textDecoration: 'line-through', color: '#94a3b8', marginLeft: '4px' }}>
-                  Rp {Math.round(Number(originalPrice)).toLocaleString('id-ID')}
-                </span>
-              )}
-              {discountPercent > 0 && (
-                <span style={{ fontSize: '0.72rem', color: '#ef4444', fontWeight: '800' }}>
-                  {discountPercent}%
+                <span style={{ fontSize: '0.85rem', textDecoration: 'line-through', color: '#94a3b8' }}>
+                  {productService.formatIDR(originalPrice)}
                 </span>
               )}
             </div>
-
-            {/* Pink Discount Badge */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', marginTop: '2px' }}>
-              <span style={{ background: '#fdf2f8', color: '#db2777', fontSize: '0.72rem', fontWeight: '700', padding: '3px 8px', borderRadius: '4px' }}>
-                Diskon Pengguna Baru 40rb
-              </span>
-              <ChevronRight size={16} color="#94a3b8" />
-            </div>
-
-            {/* Bonus Row */}
-            <div style={{ fontSize: '0.78rem', color: '#334155', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
-              <span style={{ background: '#fef08a', color: '#854d0e', padding: '2px 5px', borderRadius: '3px', fontSize: '0.7rem' }}>⚡</span>
-              Lebih hemat s.d. 3% pakai bonus di checkout
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.82rem', color: '#64748b' }}>
+              <span style={{ fontWeight: '600' }}>{soldCount > 50 ? '5RB+ Terjual' : `${soldCount} Terjual`}</span>
+              <button 
+                onClick={() => setIsFavorite(!isFavorite)}
+                style={{ background: 'none', border: 'none', color: isFavorite ? '#ef4444' : '#64748b', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+              >
+                <Heart size={18} fill={isFavorite ? '#ef4444' : 'none'} />
+              </button>
             </div>
           </div>
 
-          {/* Title & Heart Row */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px', marginTop: '0.25rem' }}>
-            <h1 style={{ fontSize: '1rem', fontWeight: '700', color: '#0f172a', lineHeight: 1.4, margin: 0 }}>
+          {/* Product Title */}
+          <div>
+            <h1 style={{ fontSize: '0.98rem', fontWeight: '700', color: '#1e293b', lineHeight: 1.4, margin: '4px 0 0 0' }}>
               {product.name}
             </h1>
-            <button 
-              onClick={() => setIsFavorite(!isFavorite)}
-              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
-            >
-              <Heart size={22} color={isFavorite ? '#ef4444' : '#64748b'} fill={isFavorite ? '#ef4444' : 'none'} />
-            </button>
           </div>
 
-          {/* Rating Meta Line */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.78rem', color: '#64748b', marginTop: '0.2rem' }}>
-            <span style={{ color: '#eab308', fontWeight: '800' }}>★ 5.0</span>
-            <span style={{ textDecoration: 'underline' }}>({reviewCount})</span>
-            <span>•</span>
-            <span style={{ textDecoration: 'underline' }}>32 Foto ulasan</span>
-            <span>•</span>
-            <span>250+ Terjual</span>
-          </div>
-
-          {/* Divider */}
-          <div className="shopee-section-divider" />
-
-          {/* Shipping Row */}
-          <div className="shopee-info-row" style={{ border: 'none', padding: '0.25rem 0' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <Truck size={18} color="#0f4c81" />
-              <div style={{ fontSize: '0.82rem' }}>
-                <span style={{ fontWeight: '800', color: '#0f172a' }}>(Rp0</span>
-                <span style={{ textDecoration: 'line-through', color: '#94a3b8', margin: '0 4px', fontSize: '0.75rem' }}>Rp34.500</span>
-                <span style={{ color: '#334155', fontWeight: '600' }}>) Est. tiba 19 - 20 Aug</span>
+          {/* Shopee Feature Rows with Chevron Arrows (Pengiriman, Bebas Pengembalian, SPayLater) */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', borderTop: '1px solid #f1f5f9', paddingTop: '0.85rem', fontSize: '0.82rem' }}>
+            {/* Shipping row */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: '#334155' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Truck size={16} color="#00a896" />
+                <span><strong style={{ color: '#00a896' }}>19 Ags</strong> Dapatkan Voucher s/d Rp10.000 jika pesanan terlambat.</span>
               </div>
-            </div>
-            <ChevronRight size={16} color="#94a3b8" />
-          </div>
-
-          {/* Divider */}
-          <div className="shopee-section-divider" />
-
-          {/* Variant Selector Row */}
-          <div style={{ padding: '0.25rem 0' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-              <span style={{ fontSize: '0.88rem', fontWeight: '800', color: '#0f172a' }}>
-                {variants.length} tipe
-              </span>
               <ChevronRight size={16} color="#94a3b8" />
             </div>
 
-            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-              {variants.map((v) => (
-                <button
-                  key={v}
-                  onClick={() => setSelectedVariant(v)}
-                  style={{
-                    background: selectedVariant === v ? '#dcfce7' : '#ffffff',
-                    color: selectedVariant === v ? '#15803d' : '#334155',
-                    border: selectedVariant === v ? '1.5px solid #22c55e' : '1px solid #cbd5e1',
-                    borderRadius: '8px',
-                    padding: '6px 14px',
-                    fontSize: '0.8rem',
-                    fontWeight: '700',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px'
-                  }}
-                >
-                  {v}
-                  {selectedVariant === v && (
-                    <span style={{ background: '#ef4444', color: '#fff', borderRadius: '50%', width: '14px', height: '14px', fontSize: '0.55rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      👍
-                    </span>
-                  )}
-                </button>
-              ))}
+            {/* Free return row */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: '#334155' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <ShieldCheck size={16} color="#ee4d2d" />
+                <span style={{ fontWeight: '600' }}>Bebas Pengembalian</span>
+              </div>
+              <ChevronRight size={16} color="#94a3b8" />
             </div>
           </div>
+
+
 
           {/* Quantity Counter */}
           <div style={{ display: 'flex', gap: '1.5rem', fontSize: '0.82rem', alignItems: 'center' }}>
@@ -672,9 +542,9 @@ const ProductDetail = () => {
             </div>
           </div>
 
-          {/* Action CTA Buttons (Desktop Only) */}
+          {/* Action CTA Buttons */}
           {product.stock > 0 ? (
-            <div className="desktop-action-buttons" style={{ display: 'flex', gap: '12px', marginTop: '1rem', flexWrap: 'wrap' }}>
+            <div className="product-detail-desktop-action-cta" style={{ display: 'flex', gap: '12px', marginTop: '1rem', flexWrap: 'wrap' }}>
               {/* Masukkan Keranjang */}
               <button
                 onClick={handleAddToCart}
@@ -728,20 +598,114 @@ const ProductDetail = () => {
 
       </div>
 
-
-      {/* Product Description Section */}
+      {/* Shopee-style Merchant Card Section */}
       <div 
-        className="product-detail-desc-box"
+        className="merchant-card-grid"
         style={{ 
           background: '#fff', 
           borderRadius: '3px', 
           padding: '1.5rem', 
-          boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '1rem'
+          boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
         }}
       >
+        {/* Left Side: Merchant Info */}
+        <div className="merchant-card-left" style={{ display: 'flex', gap: '16px', alignItems: 'center', borderRight: '1px solid #f1f5f9', paddingRight: '2rem' }}>
+          <div style={{ 
+            width: '64px', 
+            height: '64px', 
+            borderRadius: '50%', 
+            overflow: 'hidden', 
+            border: '2px solid #f77f00',
+            flexShrink: 0
+          }}>
+            <img 
+              src="https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=200&auto=format&fit=crop&q=80" 
+              alt="Logo Toko" 
+              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+            />
+          </div>
+          <div>
+            <h3 style={{ fontSize: '1rem', fontWeight: '800', color: '#1e293b', margin: '0 0 4px 0' }}>
+              Berkah Pancing Official Store
+            </h3>
+            <span style={{ fontSize: '0.72rem', color: '#10b981', fontWeight: '600' }}>● Aktif 3 menit yang lalu</span>
+            <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
+              <button style={{ 
+                background: 'rgba(0,168,150,0.08)', 
+                color: '#00a896', 
+                border: '1px solid #00a896', 
+                borderRadius: '2px', 
+                padding: '4px 8px', 
+                fontSize: '0.75rem', 
+                fontWeight: '700', 
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px'
+              }}>
+                <MessageSquare size={13} /> Chat Sekarang
+              </button>
+              <button 
+                onClick={() => navigate('/')}
+                style={{ 
+                  background: '#fafafa', 
+                  color: '#475569', 
+                  border: '1px solid #cbd5e1', 
+                  borderRadius: '2px', 
+                  padding: '4px 8px', 
+                  fontSize: '0.75rem', 
+                  fontWeight: '700', 
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px'
+                }}
+              >
+                <Store size={13} /> Kunjungi Toko
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Right Side: Merchant Stats */}
+        <div style={{ 
+          display: 'grid', 
+          gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', 
+          gap: '1.25rem',
+          fontSize: '0.8rem',
+          color: '#64748b'
+        }}>
+          <div>
+            <span>Penilaian:</span> <strong style={{ color: '#f77f00', marginLeft: '6px' }}>48,2RB</strong>
+          </div>
+          <div>
+            <span>Persentase Chat Dibalas:</span> <strong style={{ color: '#f77f00', marginLeft: '6px' }}>100%</strong>
+          </div>
+          <div>
+            <span>Bergabung:</span> <strong style={{ color: '#f77f00', marginLeft: '6px' }}>25 bulan lalu</strong>
+          </div>
+          <div>
+            <span>Produk:</span> <strong style={{ color: '#f77f00', marginLeft: '6px' }}>216</strong>
+          </div>
+          <div>
+            <span>Waktu Chat Dibalas:</span> <strong style={{ color: '#f77f00', marginLeft: '6px' }}>hitungan menit</strong>
+          </div>
+          <div>
+            <span>Pengikut:</span> <strong style={{ color: '#f77f00', marginLeft: '6px' }}>9,4RB</strong>
+          </div>
+        </div>
+      </div>
+
+      {/* Product Description Section */}
+      <div style={{ 
+        background: '#fff', 
+        borderRadius: '3px', 
+        padding: '1.5rem', 
+        boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '1rem'
+      }}>
         <h3 style={{ fontSize: '1.05rem', fontWeight: '700', color: '#1e293b', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.75rem', margin: 0 }}>
           Spesifikasi & Deskripsi Produk
         </h3>
@@ -773,369 +737,109 @@ const ProductDetail = () => {
         </div>
       </div>
 
-      {/* ================= SHOPEE-STYLE PENILAIAN PRODUK / REVIEWS ================= */}
-      {filteredReviews && filteredReviews.length > 0 && (
-        <div style={{ 
-          background: '#fff', 
-          borderRadius: '3px', 
-          padding: '1.5rem', 
-          boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '1.5rem'
-        }}>
-        {/* Tokopedia Mobile Review Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-          <h3 style={{ fontSize: '1rem', fontWeight: '800', color: '#0f172a', margin: 0 }}>
+      {/* ================= TOKOPEDIA-STYLE ULASAN PEMBELI / REVIEWS ================= */}
+      <div style={{ 
+        background: '#fff', 
+        borderRadius: '3px', 
+        padding: '1.25rem', 
+        boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '1rem'
+      }}>
+        {/* Header Row: Ulasan pembeli (Left) & Lihat Semua / Tulis Ulasan (Right) */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <h3 style={{ fontSize: '1.15rem', fontWeight: '800', color: '#1e293b', margin: 0 }}>
             Ulasan pembeli
           </h3>
-          <button 
-            onClick={() => setShowAllReviewsModal(true)} 
-            style={{ background: 'none', border: 'none', color: '#00a896', fontSize: '0.85rem', fontWeight: '700', cursor: 'pointer', padding: 0 }}
-          >
-            Lihat Semua
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <button 
+              onClick={() => setShowReviewModal(true)}
+              style={{ 
+                background: 'none', 
+                border: 'none', 
+                color: '#00a896', 
+                fontSize: '0.88rem', 
+                fontWeight: '700', 
+                cursor: 'pointer' 
+              }}
+            >
+              Lihat Semua
+            </button>
+          </div>
         </div>
 
-        {/* Rating Summary Line */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.82rem', color: '#64748b', marginBottom: '0.85rem' }}>
-          <span style={{ color: '#eab308', fontWeight: '800', fontSize: '0.95rem' }}>★ {ratingSummary.average}</span>
-          <span>{soldCount * 2} rating • {reviewCount} ulasan</span>
+        {/* Rating Subheader */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.88rem', color: '#475569' }}>
+          <span style={{ color: '#f59e0b', fontSize: '1.1rem' }}>⭐</span>
+          <span style={{ fontWeight: '800', color: '#1e293b', fontSize: '1rem' }}>4.9</span>
+          <span style={{ color: '#64748b' }}>108,3 rb rating • 25,2 rb ulasan</span>
         </div>
 
-        {/* Customer Review Photos Horizontal Scroll Strip */}
-        <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '0.75rem', marginBottom: '1.25rem' }}>
-          {productImages.map((imgUrl, i) => (
-            <div key={i} style={{ width: '74px', height: '74px', borderRadius: '6px', overflow: 'hidden', flexShrink: 0, border: '1px solid #e2e8f0' }}>
-              <img src={imgUrl} alt="Foto ulasan" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+
+
+        {/* Horizontal Photo Thumbnail Gallery Strip (Vertical Rectangular Images) */}
+        <div className="single-line-tabs hide-scrollbar" style={{ display: 'flex', gap: '10px', overflowX: 'auto', padding: '4px 0' }}>
+          {[
+            'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=300&auto=format&fit=crop&q=80',
+            'https://images.unsplash.com/photo-1509198397868-475647b2a1e5?w=300&auto=format&fit=crop&q=80',
+            'https://images.unsplash.com/photo-1611095790444-1dfa35e37b52?w=300&auto=format&fit=crop&q=80',
+            'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=300&auto=format&fit=crop&q=80'
+          ].map((imgUrl, idx) => (
+            <div key={idx} style={{ width: '70px', height: '95px', borderRadius: '6px', overflow: 'hidden', flexShrink: 0, border: '1px solid #e2e8f0' }}>
+              <img src={imgUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
             </div>
           ))}
         </div>
 
-        {/* Tokopedia Mobile Full-Screen "Lihat Semua Ulasan" Modal */}
-      {showAllReviewsModal && (
-        <div style={{
-          position: 'fixed',
-          inset: 0,
-          background: '#ffffff',
-          zIndex: 9999,
-          display: 'flex',
-          flexDirection: 'column',
-          overflowY: 'auto'
-        }}>
-          {/* Top Header Bar */}
-          <div style={{
-            position: 'sticky',
-            top: 0,
-            background: '#ffffff',
-            borderBottom: '1px solid #e2e8f0',
-            padding: '12px 16px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            zIndex: 10
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-              <button 
-                onClick={() => setShowAllReviewsModal(false)}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
-              >
-                <ArrowLeft size={22} color="#0f172a" />
-              </button>
-              <h2 style={{ fontSize: '1.1rem', fontWeight: '800', color: '#0f172a', margin: 0 }}>
-                Ulasan
-              </h2>
-            </div>
-            <button 
-              onClick={() => { setShowAllReviewsModal(false); navigate('/cart'); }}
-              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, position: 'relative' }}
-            >
-              <ShoppingCart size={22} color="#0f172a" />
-              {cartCount > 0 && (
-                <span className="mobile-header-cart-badge">{cartCount}</span>
-              )}
-            </button>
+        {reviewSubmitted && (
+          <div style={{ background: '#dcfce7', color: '#15803d', padding: '0.75rem 1rem', borderRadius: '4px', fontSize: '0.85rem', fontWeight: '700' }}>
+            ✓ Terima kasih! Ulasan produk Anda telah berhasil dipublikasikan.
           </div>
+        )}
 
-
-
-          {/* Main Content Area */}
-          <div style={{ flex: 1, padding: '16px', display: 'flex', flexDirection: 'column', gap: '16px', paddingBottom: '90px' }}>
-            
-            {/* Rating Banner Box */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
-                  <span style={{ color: '#eab308', fontSize: '1.4rem' }}>★</span>
-                  <span style={{ fontSize: '1.8rem', fontWeight: '900', color: '#0f172a', lineHeight: 1 }}>5.0</span>
-                  <span style={{ fontSize: '0.85rem', color: '#64748b' }}>/5.0</span>
-                </div>
-                <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: '0.88rem', fontWeight: '800', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    99% pembeli merasa puas <ChevronRight size={16} color="#0f172a" />
-                  </div>
-                  <div style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '2px' }}>
-                    {reviewCount} rating • {reviews.length} ulasan
-                  </div>
-                </div>
-              </div>
-              <div style={{ fontSize: '0.75rem', color: '#64748b', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <span>🛍️</span> Diambil dari Tokopedia & TikTok Shop by Tokopedia
-              </div>
-            </div>
-
-
-
-            {/* Filter Pills */}
-            <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '4px' }}>
-              <button style={{ border: '1px solid #cbd5e1', background: '#fff', borderRadius: '20px', padding: '6px 14px', fontSize: '0.78rem', fontWeight: '600', color: '#334155', flexShrink: 0 }}>
-                Foto & Video
-              </button>
-              <button style={{ border: '1px solid #cbd5e1', background: '#fff', borderRadius: '20px', padding: '6px 14px', fontSize: '0.78rem', fontWeight: '600', color: '#334155', display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
-                Rating <ChevronDown size={14} />
-              </button>
-              <button style={{ border: '1px solid #cbd5e1', background: '#fff', borderRadius: '20px', padding: '6px 14px', fontSize: '0.78rem', fontWeight: '600', color: '#334155', display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
-                Varian <span style={{ background: '#ef4444', color: '#fff', fontSize: '0.58rem', padding: '1px 4px', borderRadius: '3px', fontWeight: '800' }}>BARU</span> <ChevronDown size={14} />
-              </button>
-              <button style={{ border: '1px solid #cbd5e1', background: '#fff', borderRadius: '20px', padding: '6px 14px', fontSize: '0.78rem', fontWeight: '600', color: '#334155', flexShrink: 0 }}>
-                Topik
-              </button>
-            </div>
-
-            {/* Reviews List */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginTop: '8px' }}>
-              {filteredReviews.map((rev) => (
-                <div key={rev.id} style={{ borderBottom: '1px solid #f1f5f9', paddingBottom: '1.25rem', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  
-                  {/* User Header */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <img 
-                      src={rev.userAvatar} 
-                      alt={rev.userName} 
-                      style={{ width: '36px', height: '36px', borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }}
-                    />
-                    <div>
-                      <div style={{ fontSize: '0.88rem', fontWeight: '800', color: '#0f172a', lineHeight: 1.2 }}>
-                        {rev.userName}
-                      </div>
-                      <div style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '2px' }}>
-                        1 ulasan lengkap • 1 terbantu
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Rating Stars & Time */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.8rem' }}>
-                    <span style={{ color: '#eab308' }}>{'★'.repeat(rev.rating)}</span>
-                    <span style={{ color: '#64748b', fontSize: '0.78rem' }}>10 bulan lalu</span>
-                  </div>
-
-                  {/* Variant */}
-                  <div style={{ fontSize: '0.78rem', color: '#64748b' }}>
-                    Varian: {rev.variant || selectedVariant}
-                  </div>
-
-                  {/* Comment Text */}
-                  <p style={{ fontSize: '0.88rem', color: '#0f172a', lineHeight: 1.45, margin: '2px 0' }}>
-                    {rev.comment}
-                  </p>
-
-                  {/* Review Photos */}
-                  {rev.images && rev.images.length > 0 && (
-                    <div style={{ display: 'flex', gap: '8px', marginTop: '4px', overflowX: 'auto' }}>
-                      {rev.images.map((imgUrl, imgIdx) => (
-                        <div key={imgIdx} style={{ width: '84px', height: '84px', borderRadius: '6px', overflow: 'hidden', border: '1px solid #e2e8f0', flexShrink: 0 }}>
-                          <img src={imgUrl} alt="Foto Ulasan" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Bottom Footer Action */}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '8px', fontSize: '0.78rem', color: '#0f172a' }}>
-                    <button 
-                      onClick={() => handleToggleHelpful(rev.id)}
-                      style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.78rem', color: '#0f172a', fontWeight: '600' }}
-                    >
-                      <ThumbsUp size={15} color="#475569" />
-                      <span>{rev.helpfulCount || 1} orang terbantu</span>
-                    </button>
-                    <button 
-                      onClick={() => setExpandedReplies(prev => ({ ...prev, [rev.id]: !prev[rev.id] }))}
-                      style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.78rem', color: '#0f172a', fontWeight: '600' }}
-                    >
-                      <span>{expandedReplies[rev.id] ? 'Sembunyikan Balasan' : 'Lihat Balasan'}</span>
-                      <ChevronDown size={14} color="#0f172a" style={{ transform: expandedReplies[rev.id] ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }} />
-                    </button>
-                  </div>
-
-                  {/* Seller Reply Box */}
-                  {(rev.sellerResponse || expandedReplies[rev.id]) && (
-                    <div style={{ background: '#f8fafc', borderLeft: '3px solid #00a896', padding: '10px 12px', borderRadius: '0 6px 6px 0', marginTop: '8px', fontSize: '0.8rem', color: '#334155' }}>
-                      <strong style={{ color: '#00a896', display: 'block', marginBottom: '4px' }}>Respon Penjual:</strong>
-                      {rev.sellerResponse || 'Terima kasih banyak kak atas ulasan positif dan kepercayaannya berbelanja di Berkah Pancing! 🙏✨'}
-                    </div>
-                  )}
-
-                </div>
-              ))}
-            </div>
-
-          </div>
-
-          {/* Sticky Bottom Action Bar */}
-          <div style={{
-            position: 'fixed',
-            bottom: 0,
-            left: 0,
-            right: 0,
-            background: '#ffffff',
-            borderTop: '1px solid #e2e8f0',
-            padding: '10px 16px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '10px',
-            zIndex: 100
-          }}>
-            <button 
-              onClick={() => { setShowAllReviewsModal(false); navigate('/chat'); }}
-              style={{
-                width: '42px',
-                height: '42px',
-                borderRadius: '8px',
-                border: '1px solid #cbd5e1',
-                background: '#ffffff',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
-                flexShrink: 0
-              }}
-            >
-              <MessageSquare size={20} color="#0f172a" />
-            </button>
-            <button 
-              onClick={() => { setShowAllReviewsModal(false); handleBuyNow(); }}
-              style={{
-                flex: 1,
-                padding: '10px 0',
-                borderRadius: '8px',
-                border: '1px solid #00a896',
-                background: '#ffffff',
-                color: '#00a896',
-                fontWeight: '800',
-                fontSize: '0.88rem',
-                cursor: 'pointer',
-                textAlign: 'center'
-              }}
-            >
-              Beli Langsung
-            </button>
-            <button 
-              onClick={() => { setShowAllReviewsModal(false); handleBuyNow(); }}
-              style={{
-                flex: 1.2,
-                padding: '10px 0',
-                borderRadius: '8px',
-                border: 'none',
-                background: '#00a896',
-                color: '#ffffff',
-                fontWeight: '800',
-                fontSize: '0.88rem',
-                cursor: 'pointer',
-                textAlign: 'center'
-              }}
-            >
-              Untung pakai App
-            </button>
-          </div>
-        </div>
-      )}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+        {/* Individual Buyer Reviews List */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', marginTop: '0.5rem' }}>
           {filteredReviews.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '1.5rem', color: '#64748b', fontSize: '0.85rem' }}>
-              Belum ada ulasan untuk produk ini.
+              Belum ada ulasan untuk filter ini.
             </div>
           ) : (
             filteredReviews.map((rev) => (
-              <div key={rev.id} style={{ borderBottom: '1px solid #f1f5f9', paddingBottom: '1.25rem', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                
-                {/* User Header Row */}
+              <div 
+                key={rev.id} 
+                style={{ 
+                  borderBottom: '1px solid #f1f5f9', 
+                  paddingBottom: '1.25rem', 
+                  display: 'flex', 
+                  flexDirection: 'column', 
+                  gap: '8px' 
+                }}
+              >
+                {/* Avatar + Masked Name */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <img 
-                    src={rev.userAvatar} 
-                    alt={rev.userName} 
-                    style={{ width: '36px', height: '36px', borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }}
-                  />
-                  <div>
-                    <div style={{ fontSize: '0.88rem', fontWeight: '800', color: '#0f172a', lineHeight: 1.2 }}>
-                      {rev.userName}
-                    </div>
-                    <div style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '2px' }}>
-                      1 ulasan lengkap • 1 terbantu
-                    </div>
+                  <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '700', color: '#64748b', fontSize: '0.8rem' }}>
+                    👤
                   </div>
+                  <span style={{ fontSize: '0.88rem', fontWeight: '800', color: '#1e293b' }}>
+                    {rev.userName.length > 3 ? `${rev.userName.charAt(0)}***${rev.userName.charAt(rev.userName.length - 1)}` : rev.userName}
+                  </span>
                 </div>
 
-                {/* Rating Stars & Time Ago */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.8rem' }}>
-                  <span style={{ color: '#eab308' }}>{'★'.repeat(rev.rating)}</span>
-                  <span style={{ color: '#64748b', fontSize: '0.78rem' }}>2 bulan lalu</span>
-                </div>
-
-                {/* Variant Row */}
-                <div style={{ fontSize: '0.78rem', color: '#64748b' }}>
-                  Varian: {rev.variant || selectedVariant}
+                {/* Stars */}
+                <div style={{ color: '#f59e0b', fontSize: '0.9rem', letterSpacing: '1px' }}>
+                  ★★★★★
                 </div>
 
                 {/* Comment Text */}
-                <p style={{ fontSize: '0.88rem', color: '#0f172a', lineHeight: 1.45, margin: '2px 0' }}>
+                <p style={{ fontSize: '0.85rem', color: '#1e293b', lineHeight: 1.5, margin: 0 }}>
                   {rev.comment}
                 </p>
-
-                {/* Review Photos Grid */}
-                {rev.images && rev.images.length > 0 && (
-                  <div style={{ display: 'flex', gap: '8px', marginTop: '4px', overflowX: 'auto' }}>
-                    {rev.images.map((imgUrl, imgIdx) => (
-                      <div key={imgIdx} style={{ width: '84px', height: '84px', borderRadius: '6px', overflow: 'hidden', border: '1px solid #e2e8f0', flexShrink: 0 }}>
-                        <img src={imgUrl} alt="Foto Ulasan" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {/* Bottom Footer Action Row (Helpful count + Lihat Balasan) */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '8px', fontSize: '0.78rem', color: '#0f172a' }}>
-                  <button 
-                    onClick={() => handleToggleHelpful(rev.id)}
-                    style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.78rem', color: '#0f172a', fontWeight: '600' }}
-                  >
-                    <ThumbsUp size={15} color="#475569" />
-                    <span>{rev.helpfulCount || 1} orang terbantu</span>
-                  </button>
-                  <button 
-                    onClick={() => setExpandedReplies(prev => ({ ...prev, [rev.id]: !prev[rev.id] }))}
-                    style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.78rem', color: '#0f172a', fontWeight: '600' }}
-                  >
-                    <span>{expandedReplies[rev.id] ? 'Sembunyikan Balasan' : 'Lihat Balasan'}</span>
-                    <ChevronDown size={14} color="#0f172a" style={{ transform: expandedReplies[rev.id] ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }} />
-                  </button>
-                </div>
-
-                {/* Seller Reply Box (when expanded or present) */}
-                {(rev.sellerResponse || expandedReplies[rev.id]) && (
-                  <div style={{ background: '#f8fafc', borderLeft: '3px solid #00a896', padding: '10px 12px', borderRadius: '0 6px 6px 0', marginTop: '8px', fontSize: '0.8rem', color: '#334155' }}>
-                    <strong style={{ color: '#00a896', display: 'block', marginBottom: '4px' }}>Respon Penjual:</strong>
-                    {rev.sellerResponse || 'Terima kasih banyak kak atas ulasan positif dan kepercayaannya berbelanja di Berkah Pancing! 🙏✨'}
-                  </div>
-                )}
-
               </div>
             ))
           )}
         </div>
       </div>
-      )}
 
       {/* ================= WRITE REVIEW MODAL ================= */}
       {showReviewModal && (
@@ -1283,13 +987,192 @@ const ProductDetail = () => {
         <button onClick={() => navigate('/chat')} className="tokopedia-btn-chat" title="Chat Seller">
           <MessageSquare size={20} color="#475569" />
         </button>
-        <button onClick={handleAddToCart} className="tokopedia-btn-cart">
-          + Keranjang
+        <button 
+          onClick={handleAddToCart} 
+          className={`tokopedia-btn-cart ${added ? (isExiting ? 'btn-added-exit' : 'btn-added-bounce') : ''}`}
+          style={{
+            background: added && !isExiting ? '#10b981' : '#00a896',
+            transition: 'all 0.35s cubic-bezier(0.4, 0, 0.2, 1)'
+          }}
+        >
+          {added ? (
+            <span className={isExiting ? 'cart-icon-pop-out' : 'cart-icon-pop-in'}>
+              <CheckCircle2 size={18} /> Tersimpan!
+            </span>
+          ) : (
+            '+ Keranjang'
+          )}
         </button>
         <button onClick={handleBuyNow} className="tokopedia-btn-buy">
           Beli Sekarang
         </button>
       </div>
+
+      {/* ================= E-COMMERCE CENTER SHARE MODAL ================= */}
+      {showShareModal && (
+        <div 
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0, 0, 0, 0.65)',
+            backdropFilter: 'blur(4px)',
+            zIndex: 2500,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '1rem'
+          }}
+          onClick={() => setShowShareModal(false)}
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: '#ffffff',
+              borderRadius: '16px',
+              maxWidth: '420px',
+              width: '100%',
+              padding: '1.25rem 1.5rem',
+              boxShadow: '0 20px 50px rgba(0, 0, 0, 0.3)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '1.25rem',
+              animation: 'popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
+            }}
+          >
+            {/* Modal Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.75rem' }}>
+              <h3 style={{ fontSize: '1.1rem', fontWeight: '800', color: '#1e293b', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Share2 size={20} color="#00a896" /> Bagikan Produk
+              </h3>
+              <button 
+                onClick={() => setShowShareModal(false)}
+                style={{ background: '#f1f5f9', border: 'none', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#64748b' }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Product Recap Mini Card */}
+            {product && (
+              <div style={{ display: 'flex', gap: '12px', alignItems: 'center', background: '#f8fafc', padding: '10px', borderRadius: '8px', border: '1px solid #f1f5f9' }}>
+                <img src={product.image} alt={product.name} style={{ width: '46px', height: '46px', borderRadius: '6px', objectFit: 'cover' }} />
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', overflow: 'hidden' }}>
+                  <div style={{ fontSize: '0.85rem', fontWeight: '700', color: '#1e293b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{product.name}</div>
+                  <div style={{ fontSize: '0.9rem', fontWeight: '800', color: '#ee4d2d' }}>{productService.formatIDR(product.price)}</div>
+                </div>
+              </div>
+            )}
+
+            {/* Center Link Input Box + Salin Button */}
+            <div>
+              <label style={{ fontSize: '0.8rem', fontWeight: '700', color: '#475569', display: 'block', marginBottom: '6px' }}>Link Produk</label>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <input 
+                  type="text"
+                  readOnly
+                  value={window.location.href}
+                  style={{
+                    flex: 1,
+                    padding: '9px 12px',
+                    borderRadius: '8px',
+                    border: '1px solid #cbd5e1',
+                    fontSize: '0.82rem',
+                    color: '#475569',
+                    background: '#fafafa',
+                    outline: 'none'
+                  }}
+                />
+                <button
+                  onClick={handleCopyLink}
+                  style={{
+                    padding: '9px 16px',
+                    borderRadius: '8px',
+                    border: 'none',
+                    background: isCopied ? '#10b981' : '#00a896',
+                    color: '#fff',
+                    fontWeight: '800',
+                    fontSize: '0.84rem',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    transition: 'all 0.2s',
+                    flexShrink: 0
+                  }}
+                >
+                  {isCopied ? (
+                    <>
+                      <CheckCircle2 size={16} /> Tersalin!
+                    </>
+                  ) : (
+                    <>
+                      <Copy size={16} /> Salin
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {/* Success Notification Text */}
+              {isCopied && (
+                <div style={{ fontSize: '0.8rem', color: '#10b981', fontWeight: '700', marginTop: '6px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <CheckCircle2 size={15} /> Berhasil disalin ke clipboard!
+                </div>
+              )}
+            </div>
+
+            {/* Social Sharing Applications Grid */}
+            <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '1rem' }}>
+              <span style={{ fontSize: '0.8rem', fontWeight: '700', color: '#475569', display: 'block', marginBottom: '0.75rem' }}>Bagikan Ke Aplikasi</span>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', textAlign: 'center' }}>
+                {/* WhatsApp */}
+                <div 
+                  onClick={() => window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(product.name + ' - ' + window.location.href)}`, '_blank')}
+                  style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', cursor: 'pointer' }}
+                >
+                  <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: '#25D366', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 10px rgba(37,211,102,0.3)' }}>
+                    <MessageCircle size={22} />
+                  </div>
+                  <span style={{ fontSize: '0.72rem', fontWeight: '600', color: '#334155' }}>WhatsApp</span>
+                </div>
+
+                {/* Telegram */}
+                <div 
+                  onClick={() => window.open(`https://t.me/share/url?url=${encodeURIComponent(window.location.href)}&text=${encodeURIComponent(product.name)}`, '_blank')}
+                  style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', cursor: 'pointer' }}
+                >
+                  <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: '#229ED9', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 10px rgba(34,158,217,0.3)' }}>
+                    <Send size={22} />
+                  </div>
+                  <span style={{ fontSize: '0.72rem', fontWeight: '600', color: '#334155' }}>Telegram</span>
+                </div>
+
+                {/* Facebook */}
+                <div 
+                  onClick={() => window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(window.location.href)}`, '_blank')}
+                  style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', cursor: 'pointer' }}
+                >
+                  <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: '#1877F2', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 10px rgba(24,119,242,0.3)', fontWeight: '900', fontSize: '1.2rem' }}>
+                    f
+                  </div>
+                  <span style={{ fontSize: '0.72rem', fontWeight: '600', color: '#334155' }}>Facebook</span>
+                </div>
+
+                {/* Twitter / X */}
+                <div 
+                  onClick={() => window.open(`https://twitter.com/intent/tweet?url=${encodeURIComponent(window.location.href)}&text=${encodeURIComponent(product.name)}`, '_blank')}
+                  style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', cursor: 'pointer' }}
+                >
+                  <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: '#000000', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 10px rgba(0,0,0,0.3)', fontWeight: '900', fontSize: '1.1rem' }}>
+                    𝕏
+                  </div>
+                  <span style={{ fontSize: '0.72rem', fontWeight: '600', color: '#334155' }}>Twitter / X</span>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      )}
 
     </div>
   );

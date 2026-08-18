@@ -32,6 +32,10 @@ const Home = () => {
   const [scrollProgress, setScrollProgress] = useState(0);
   const [canScroll, setCanScroll] = useState(false);
 
+  const tabsContainerRef = React.useRef(null);
+  const [tabsScrollProgress, setTabsScrollProgress] = useState(0);
+  const [tabsCanScroll, setTabsCanScroll] = useState(false);
+
   const updateScrollProgress = () => {
     if (catContainerRef.current) {
       const { scrollLeft, scrollWidth, clientWidth } = catContainerRef.current;
@@ -46,10 +50,29 @@ const Home = () => {
     }
   };
 
+  const updateTabsScrollProgress = () => {
+    if (tabsContainerRef.current) {
+      const { scrollLeft, scrollWidth, clientWidth } = tabsContainerRef.current;
+      const maxScroll = scrollWidth - clientWidth;
+      if (maxScroll > 5) {
+        setTabsCanScroll(true);
+        setTabsScrollProgress(Math.min(1, Math.max(0, scrollLeft / maxScroll)));
+      } else {
+        setTabsCanScroll(false);
+        setTabsScrollProgress(0);
+      }
+    }
+  };
+
   useEffect(() => {
     updateScrollProgress();
-    window.addEventListener('resize', updateScrollProgress);
-    return () => window.removeEventListener('resize', updateScrollProgress);
+    updateTabsScrollProgress();
+    const handleResize = () => {
+      updateScrollProgress();
+      updateTabsScrollProgress();
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
   }, [categories]);
 
   // Slides for Shopee-style carousel
@@ -346,7 +369,12 @@ const Home = () => {
       <div className="home-product-section-card" style={{ display: 'flex', flexDirection: 'column', gap: '1rem', background: '#fff', borderRadius: '8px', padding: '1.25rem', boxShadow: 'var(--shadow-sm)' }}>
         {/* Horizontal Smart Tab Bar */}
         <div style={{ borderBottom: '2px solid #f1f5f9', paddingBottom: '0.5rem' }}>
-          <div className="single-line-tabs hide-scrollbar" style={{ display: 'flex', gap: '1.25rem', overflowX: 'auto', paddingBottom: '4px' }}>
+          <div 
+            ref={tabsContainerRef}
+            onScroll={updateTabsScrollProgress}
+            className="single-line-tabs hide-scrollbar" 
+            style={{ display: 'flex', gap: '1.25rem', overflowX: 'auto', paddingBottom: '4px' }}
+          >
             {[
               '🌟 Rekomendasi Toko',
               '🔥 Paling Laris',
@@ -373,6 +401,36 @@ const Home = () => {
               </div>
             ))}
           </div>
+
+          {/* Custom Shopee-Style Horizontal Scrollbar Indicator Pill for Tabs */}
+          {tabsCanScroll && (
+            <div style={{ display: 'flex', justifyContent: 'center', marginTop: '0.35rem' }}>
+              <div 
+                style={{
+                  width: '46px',
+                  height: '5px',
+                  backgroundColor: '#e2e8f0',
+                  borderRadius: '10px',
+                  position: 'relative',
+                  overflow: 'hidden'
+                }}
+              >
+                <div 
+                  style={{
+                    width: '18px',
+                    height: '100%',
+                    backgroundColor: '#00a896',
+                    borderRadius: '10px',
+                    position: 'absolute',
+                    left: 0,
+                    top: 0,
+                    transform: `translateX(${tabsScrollProgress * 28}px)`,
+                    transition: 'transform 0.05s ease-out'
+                  }}
+                />
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Smart Product Cards Grid */}

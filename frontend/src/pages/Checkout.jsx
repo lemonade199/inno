@@ -1,6 +1,20 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { ShieldCheck, CreditCard, Truck, MapPin, CheckCircle2, ArrowLeft, Building2, QrCode, Banknote } from 'lucide-react';
+import { 
+  ShieldCheck, 
+  CreditCard, 
+  Truck, 
+  MapPin, 
+  CheckCircle2, 
+  ArrowLeft, 
+  Building2, 
+  QrCode, 
+  Banknote,
+  ChevronRight,
+  MessageSquare,
+  Ticket,
+  Coins
+} from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { orderService } from '../services/orderService';
@@ -12,46 +26,59 @@ const Checkout = () => {
   const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
-    name: user?.name || '',
-    email: user?.email || '',
-    phone: user?.phone || '081234567890',
-    address: user?.address || 'Jl. Merdeka No. 45, Jakarta Selatan',
+    name: user?.name || 'Refky Favian Mahardika',
+    phone: user?.phone || '(+62) 857-9764-5279',
+    email: user?.email || 'refky@gmail.com',
+    address: user?.address || 'Jalan Cidurian Utara, RT.4/RW.7, Sukapura, Kiaracondong (Gg Sukabakti 7 no 50) KIARACONDONG, KOTA BANDUNG, JAWA BARAT, ID 40281',
     notes: ''
   });
 
+  const [editingAddress, setEditingAddress] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState('E-Wallet');
-  const [shippingRegion, setShippingRegion] = useState('bandung'); // 'bandung', 'luar_kota', 'luar_pulau'
-  const [deliveryMethod, setDeliveryMethod] = useState('pickup'); // 'pickup' atau 'delivery'
+  const [paymentMethod, setPaymentMethod] = useState('QRIS');
+  const [shippingOption, setShippingOption] = useState('kargo'); // 'kargo', 'reguler', 'instant'
+  const [isDropshipper, setIsDropshipper] = useState(false);
 
   const subtotal = getCartTotal();
 
-  const calculateShipping = () => {
+  const getShippingFee = () => {
     if (cart.length === 0) return 0;
-    if (deliveryMethod === 'pickup') return 0; // Bebas ongkir jika ambil sendiri
-    if (paymentMethod === 'Cash') return 0; // Bebas ongkir jika COD
-    
-    
-    // Logic ongkir dinamis sesuai permintaan
-    if (shippingRegion === 'bandung') {
-      return subtotal >= 100000 ? 10000 : 5000; 
-    } else if (shippingRegion === 'luar_kota') {
-      return 15000;
-    } else if (shippingRegion === 'luar_pulau') {
-      return subtotal >= 300000 ? 50000 : 25000;
-    }
-    return 20000;
+    if (shippingOption === 'kargo') return 0; // Free / Promo Ongkir
+    if (shippingOption === 'reguler') return 15000;
+    if (shippingOption === 'instant') return 30000;
+    return 0;
   };
 
-  const shippingFee = calculateShipping();
-  const total = subtotal + shippingFee;
+  const originalShippingFee = 58500;
+  const shippingFee = getShippingFee();
+  const serviceFee = 1000;
+  const discountSavings = originalShippingFee;
+  const grandTotal = subtotal + shippingFee + serviceFee;
 
   if (cart.length === 0) {
     return (
-      <div className="card" style={{ padding: '3rem', textAlign: 'center', margin: '2rem 0', borderRadius: '14px' }}>
-        <h2>Keranjang Belanja Kosong</h2>
-        <p style={{ color: '#64748b', margin: '0.5rem 0 1.5rem' }}>Silakan tambahkan produk ke keranjang terlebih dahulu sebelum checkout.</p>
-        <Link to="/products" className="btn btn-primary" style={{ padding: '0.6rem 1.2rem' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '60vh', gap: '1.25rem', textAlign: 'center', padding: '2rem' }}>
+        <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: '#e6f0fa', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#0f4c81' }}>
+          <CheckCircle2 size={40} />
+        </div>
+        <div>
+          <h2 style={{ fontSize: '1.5rem', fontWeight: '800', color: '#0f172a' }}>Keranjang Belanja Kosong</h2>
+          <p style={{ fontSize: '0.9rem', color: '#64748b', marginTop: '0.3rem' }}>
+            Silakan tambahkan produk ke keranjang terlebih dahulu sebelum melakukan checkout.
+          </p>
+        </div>
+        <Link
+          to="/products"
+          style={{
+            background: '#f77f00',
+            color: '#fff',
+            padding: '0.75rem 1.75rem',
+            borderRadius: '30px',
+            fontWeight: '700',
+            fontSize: '0.9rem',
+            textDecoration: 'none'
+          }}
+        >
           Ke Katalog Produk
         </Link>
       </div>
@@ -63,20 +90,14 @@ const Checkout = () => {
   };
 
   const handleSubmitOrder = async (e) => {
-    e.preventDefault();
+    if (e) e.preventDefault();
     setSubmitting(true);
-
-    let finalAddress = `[${shippingRegion === 'bandung' ? 'Dalam Kota Bandung' : shippingRegion === 'luar_kota' ? 'Luar Kota (P. Jawa)' : 'Luar Pulau'}] ${formData.address}`;
-    
-    const paymentStr = paymentMethod === 'Cash' ? 'COD' : 'E-Wallet';
-    const deliveryStr = deliveryMethod === 'pickup' ? 'Ambil di Toko' : 'Diantar Kurir';
-    finalAddress = `[${paymentStr} - ${deliveryStr}] ${finalAddress}`;
 
     const orderPayload = {
       customerName: formData.name,
       customerEmail: formData.email,
       customerPhone: formData.phone,
-      address: finalAddress,
+      address: formData.address,
       items: cart.map(item => ({
         id: item.product.id,
         name: item.product.name,
@@ -86,12 +107,11 @@ const Checkout = () => {
       })),
       subtotal: subtotal,
       shippingFee: shippingFee,
-      total: total,
-      paymentMethod: paymentMethod === 'Cash' ? 'Cash' : 'Midtrans'
+      total: grandTotal,
+      paymentMethod: paymentMethod
     };
 
     try {
-      // 1. Simpan pesanan ke Backend Database
       const createResponse = await fetch('/api/payment/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -102,11 +122,10 @@ const Checkout = () => {
       if (createdOrder.status === 'error') {
         throw new Error(createdOrder.message);
       }
-      
+
       clearCart();
       setSubmitting(false);
       navigate(`/orders/${createdOrder.order_id_db}`);
-
     } catch (err) {
       setSubmitting(false);
       alert('Gagal memproses pesanan. Silakan coba lagi.');
@@ -114,224 +133,366 @@ const Checkout = () => {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+    <div style={{ background: '#f5f5f5', minHeight: '100vh', margin: '-1.5rem -1rem', paddingBottom: '6rem' }}>
       
-      {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+      {/* Shopee-style Header Bar */}
+      <div style={{
+        background: '#fff',
+        borderBottom: '1px solid #e2e8f0',
+        padding: '0.85rem 1rem',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '1rem',
+        position: 'sticky',
+        top: 0,
+        zIndex: 100
+      }}>
         <button
           onClick={() => navigate('/cart')}
-          style={{ background: 'none', border: 'none', color: '#0f4c81', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+          style={{ background: 'none', border: 'none', color: '#ee4d2d', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: 0 }}
         >
-          <ArrowLeft size={22} />
+          <ArrowLeft size={22} color="#ee4d2d" />
         </button>
-        <div>
-          <h1 style={{ fontSize: '1.75rem', fontWeight: '800', color: '#0f172a' }}>Pengiriman & Pembayaran</h1>
-          <p style={{ fontSize: '0.88rem', color: '#64748b' }}>Lengkapi data penerima dan pilih metode pembayaran</p>
-        </div>
+        <h1 style={{ fontSize: '1.1rem', fontWeight: '800', color: '#1e293b', margin: 0 }}>
+          Checkout
+        </h1>
       </div>
 
-      <form onSubmit={handleSubmitOrder} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem', alignItems: 'flex-start' }}>
+      <div style={{ maxWidth: '800px', margin: '0 auto', padding: '0.85rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
         
-        {/* Left Column: Alamat & Payment Options */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-          
-          {/* Section 1: Alamat Pengiriman */}
-          <div className="card" style={{ padding: '1.5rem', borderRadius: '14px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.25rem', color: '#0f4c81' }}>
-              <MapPin size={22} />
-              <h3 style={{ fontSize: '1.1rem', fontWeight: '800', color: '#1e293b', margin: 0 }}>Alamat Pengiriman</h3>
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              <div>
-                <label style={{ fontSize: '0.85rem', fontWeight: '700', color: '#475569', display: 'block', marginBottom: '0.3rem' }}>
-                  Nama Lengkap Penerima
-                </label>
-                <input
-                  type="text"
-                  name="name"
-                  required
-                  value={formData.name}
-                  onChange={handleChange}
-                  placeholder="Contoh: Juli Anto"
-                  style={{ width: '100%', padding: '0.65rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.9rem' }}
-                />
+        {/* Section 1: Alamat Pengiriman */}
+        <div style={{ background: '#fff', borderRadius: '6px', padding: '1rem', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
+            <MapPin size={20} color="#ee4d2d" style={{ marginTop: '2px', flexShrink: 0 }} />
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: '0.88rem', fontWeight: '700', color: '#1e293b' }}>
+                {formData.name} <span style={{ color: '#64748b', fontWeight: '400' }}>{formData.phone}</span>
               </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                <div>
-                  <label style={{ fontSize: '0.85rem', fontWeight: '700', color: '#475569', display: 'block', marginBottom: '0.3rem' }}>
-                    Nomor WhatsApp / HP
-                  </label>
-                  <input
-                    type="text"
-                    name="phone"
-                    required
-                    value={formData.phone}
-                    onChange={handleChange}
-                    placeholder="081234567890"
-                    style={{ width: '100%', padding: '0.65rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.9rem' }}
-                  />
-                </div>
-
-                <div>
-                  <label style={{ fontSize: '0.85rem', fontWeight: '700', color: '#475569', display: 'block', marginBottom: '0.3rem' }}>
-                    Email
-                  </label>
-                  <input
-                    type="email"
-                    name="email"
-                    required
-                    value={formData.email}
-                    onChange={handleChange}
-                    placeholder="nama@email.com"
-                    style={{ width: '100%', padding: '0.65rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.9rem' }}
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label style={{ fontSize: '0.85rem', fontWeight: '700', color: '#475569', display: 'block', marginBottom: '0.3rem' }}>
-                  Wilayah Pengiriman
-                </label>
-                <select
-                  value={shippingRegion}
-                  onChange={(e) => setShippingRegion(e.target.value)}
-                  style={{ width: '100%', padding: '0.65rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.9rem', cursor: 'pointer', background: '#fff' }}
-                >
-                  <option value="bandung">Dalam Kota (Bandung)</option>
-                  <option value="luar_kota">Luar Kota (Internal Pulau Jawa)</option>
-                  <option value="luar_pulau">Luar Pulau (Luar Pulau Jawa)</option>
-                </select>
-              </div>
-
-              <div>
-                <label style={{ fontSize: '0.85rem', fontWeight: '700', color: '#475569', display: 'block', marginBottom: '0.3rem' }}>
-                  Alamat Lengkap (Jalan, RT/RW, Kecamatan, Kota/Kab, Kode Pos)
-                </label>
-                <textarea
-                  name="address"
-                  required
-                  rows={3}
-                  value={formData.address}
-                  onChange={handleChange}
-                  placeholder="Tuliskan alamat pengiriman secara lengkap..."
-                  style={{ width: '100%', padding: '0.65rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.9rem' }}
-                />
+              <div style={{ fontSize: '0.82rem', color: '#475569', marginTop: '4px', lineHeight: 1.4 }}>
+                {formData.address}
               </div>
             </div>
+            <button 
+              onClick={() => setEditingAddress(!editingAddress)}
+              style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: 0 }}
+            >
+              <ChevronRight size={20} />
+            </button>
           </div>
 
-          {/* Section 2: Metode Pembayaran */}
-          <div className="card" style={{ padding: '1.5rem', borderRadius: '14px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.25rem', color: '#0f4c81' }}>
-              <Banknote size={22} />
-              <h3 style={{ fontSize: '1.1rem', fontWeight: '800', color: '#1e293b', margin: 0 }}>Metode Pembayaran</h3>
+          {editingAddress && (
+            <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px dashed #e2e8f0', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              <input
+                type="text"
+                name="name"
+                value={formData.name}
+                onChange={handleChange}
+                placeholder="Nama Lengkap Penerima"
+                style={{ padding: '0.6rem', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }}
+              />
+              <input
+                type="text"
+                name="phone"
+                value={formData.phone}
+                onChange={handleChange}
+                placeholder="Nomor HP / WhatsApp"
+                style={{ padding: '0.6rem', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }}
+              />
+              <textarea
+                name="address"
+                rows={2}
+                value={formData.address}
+                onChange={handleChange}
+                placeholder="Alamat Lengkap (Jalan, RT/RW, Kec, Kota, Kode Pos)"
+                style={{ padding: '0.6rem', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }}
+              />
+              <button 
+                onClick={() => setEditingAddress(false)}
+                style={{ background: '#00a896', color: '#fff', border: 'none', padding: '0.5rem', borderRadius: '4px', fontWeight: '700', fontSize: '0.82rem', cursor: 'pointer' }}
+              >
+                Simpan Alamat
+              </button>
             </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              
-              <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '1rem', border: `1px solid ${paymentMethod === 'E-Wallet' ? '#0f4c81' : '#cbd5e1'}`, borderRadius: '10px', background: paymentMethod === 'E-Wallet' ? '#f0f9ff' : '#fff', cursor: 'pointer', transition: 'all 0.2s' }}>
-                <input type="radio" name="payment" value="E-Wallet" checked={paymentMethod === 'E-Wallet'} onChange={() => setPaymentMethod('E-Wallet')} style={{ transform: 'scale(1.2)' }} />
-                <div style={{ display: 'flex', flexDirection: 'column' }}>
-                  <span style={{ fontWeight: '700', color: '#0f172a' }}>E-Wallet / Transfer Bank</span>
-                  <span style={{ fontSize: '0.8rem', color: '#64748b' }}>Otomatis via Midtrans (Gopay, QRIS, dll)</span>
-                </div>
-              </label>
-
-              <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '1rem', border: `1px solid ${paymentMethod === 'Cash' ? '#0f4c81' : '#cbd5e1'}`, borderRadius: '10px', background: paymentMethod === 'Cash' ? '#f0f9ff' : '#fff', cursor: 'pointer', transition: 'all 0.2s' }}>
-                <input type="radio" name="payment" value="Cash" checked={paymentMethod === 'Cash'} onChange={() => setPaymentMethod('Cash')} style={{ transform: 'scale(1.2)' }} />
-                <div style={{ display: 'flex', flexDirection: 'column' }}>
-                  <span style={{ fontWeight: '700', color: '#0f172a' }}>Tunai / Cash (Di Toko)</span>
-                  <span style={{ fontSize: '0.8rem', color: '#64748b' }}>Bayar tunai di toko atau kurir COD.</span>
-                </div>
-              </label>
-
-              <div style={{ padding: '1rem', background: '#f8fafc', borderRadius: '10px', border: '1px dashed #cbd5e1', animation: 'fadeIn 0.3s' }}>
-                <label style={{ fontSize: '0.85rem', fontWeight: '700', color: '#475569', display: 'block', marginBottom: '0.75rem' }}>
-                  Metode Penerimaan Barang
-                </label>
-                <div style={{ display: 'flex', gap: '1rem' }}>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
-                    <input type="radio" name="delivery" checked={deliveryMethod === 'pickup'} onChange={() => setDeliveryMethod('pickup')} style={{ transform: 'scale(1.1)' }} />
-                    <span style={{ fontSize: '0.85rem', fontWeight: '600', color: '#1e293b' }}>Ambil di Toko (Gratis Ongkir)</span>
-                  </label>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
-                    <input type="radio" name="delivery" checked={deliveryMethod === 'delivery'} onChange={() => setDeliveryMethod('delivery')} style={{ transform: 'scale(1.1)' }} />
-                    <span style={{ fontSize: '0.85rem', fontWeight: '600', color: '#1e293b' }}>Diantar ke Rumah</span>
-                  </label>
-                </div>
-              </div>
-
-            </div>
-          </div>
-
+          )}
         </div>
 
-        {/* Right Column: Order Summary & Confirmation CTA */}
-        <div className="card" style={{ padding: '1.5rem', borderRadius: '14px', position: 'sticky', top: '90px' }}>
-          <h3 style={{ fontSize: '1.1rem', fontWeight: '800', color: '#1e293b', marginBottom: '1rem', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.75rem' }}>
-            Rincian Barang Belanja
+        {/* Section 2: Toko & Detail Produk */}
+        <div style={{ background: '#fff', borderRadius: '6px', padding: '1rem', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          {/* Merchant Title Header */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.5rem' }}>
+            <span style={{ background: '#ee4d2d', color: '#fff', fontSize: '0.65rem', fontWeight: '800', padding: '2px 5px', borderRadius: '2px' }}>
+              Mall ORI
+            </span>
+            <span style={{ fontWeight: '700', fontSize: '0.88rem', color: '#1e293b' }}>
+              Berkah Pancing Official Shop
+            </span>
+          </div>
+
+          {/* Product Items List */}
+          {cart.map(({ product, qty }) => (
+            <div key={product.id} style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+              <img 
+                src={product.image} 
+                alt={product.name} 
+                style={{ width: '64px', height: '64px', objectFit: 'cover', borderRadius: '4px', border: '1px solid #f1f5f9', flexShrink: 0 }} 
+              />
+              <div style={{ flex: 1 }}>
+                <h4 style={{ fontSize: '0.85rem', fontWeight: '700', color: '#1e293b', margin: 0, lineHeight: 1.3 }}>
+                  {product.name}
+                </h4>
+                <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px' }}>
+                  Kategori: {product.category}
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '4px' }}>
+                  <span style={{ fontSize: '0.85rem', fontWeight: '700', color: '#ee4d2d' }}>
+                    {productService.formatIDR(product.price)}
+                  </span>
+                  <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: '600' }}>
+                    x{qty}
+                  </span>
+                </div>
+              </div>
+            </div>
+          ))}
+
+          {/* Voucher Toko Row */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #f8fafc', paddingTop: '0.75rem', fontSize: '0.85rem' }}>
+            <span style={{ color: '#334155', fontWeight: '600' }}>Voucher Toko</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#ee4d2d', fontWeight: '700' }}>
+              <span style={{ background: '#fef2f2', border: '1px solid #fca5a5', padding: '1px 6px', borderRadius: '2px', fontSize: '0.75rem' }}>Diskon Rp 10.000</span>
+              <ChevronRight size={16} color="#94a3b8" />
+            </div>
+          </div>
+
+          {/* Pesan untuk Penjual */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #f8fafc', paddingTop: '0.75rem', fontSize: '0.85rem' }}>
+            <span style={{ color: '#334155', fontWeight: '600' }}>Pesan untuk Penjual</span>
+            <input 
+              type="text"
+              name="notes"
+              value={formData.notes}
+              onChange={handleChange}
+              placeholder="Tinggalkan pesan >"
+              style={{ border: 'none', textAlign: 'right', fontSize: '0.85rem', color: '#64748b', outline: 'none', background: 'transparent' }}
+            />
+          </div>
+
+          {/* Opsi Pengiriman */}
+          <div style={{ borderTop: '1px solid #f8fafc', paddingTop: '0.75rem', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.85rem' }}>
+              <span style={{ color: '#334155', fontWeight: '600' }}>Opsi Pengiriman</span>
+              <span style={{ color: '#64748b', fontSize: '0.8rem' }}>Lihat Semua &gt;</span>
+            </div>
+            
+            <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', padding: '10px 12px', borderRadius: '6px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '0.82rem', fontWeight: '700', color: '#166534', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  🚚 20 - 22 Ags <span style={{ fontWeight: '400', color: '#475569' }}>| Hemat Kargo</span>
+                </span>
+                <span style={{ fontSize: '0.85rem', fontWeight: '800', color: '#166534' }}>
+                  <span style={{ textDecoration: 'line-through', color: '#94a3b8', fontSize: '0.75rem', marginRight: '4px' }}>Rp 58.500</span> Rp 0
+                </span>
+              </div>
+              <span style={{ fontSize: '0.72rem', color: '#64748b' }}>Voucher s/d Rp 10.000 jika pesanan terlambat.</span>
+            </div>
+          </div>
+
+          {/* Subtotal Item Count */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #f1f5f9', paddingTop: '0.75rem', fontSize: '0.88rem' }}>
+            <span style={{ color: '#64748b' }}>Total {cart.reduce((sum, i) => sum + i.qty, 0)} Produk</span>
+            <span style={{ fontWeight: '800', color: '#ee4d2d', fontSize: '1rem' }}>
+              {productService.formatIDR(subtotal)}
+            </span>
+          </div>
+        </div>
+
+        {/* Section 3: Promos & Voucher Shopee */}
+        <div style={{ background: '#fff', borderRadius: '6px', padding: '1rem', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.85rem' }}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#334155', fontWeight: '600' }}>
+              <Ticket size={18} color="#ee4d2d" /> Voucher
+            </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <span style={{ color: '#00a896', background: '#e6fffa', border: '1px solid #b2f5ea', padding: '2px 8px', borderRadius: '2px', fontSize: '0.75rem', fontWeight: '700' }}>
+                Gratis Ongkir
+              </span>
+              <ChevronRight size={16} color="#94a3b8" />
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #f8fafc', paddingTop: '0.75rem', fontSize: '0.85rem' }}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#334155', fontWeight: '600' }}>
+              <Coins size={18} color="#eab308" /> Koin Berkah
+            </span>
+            <span style={{ color: '#94a3b8', fontSize: '0.8rem' }}>Koin tidak dapat ditukarkan</span>
+          </div>
+        </div>
+
+        {/* Section 4: Metode Pembayaran */}
+        <div style={{ background: '#fff', borderRadius: '6px', padding: '1rem', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.5rem' }}>
+            <h3 style={{ fontSize: '0.92rem', fontWeight: '800', color: '#1e293b', margin: 0 }}>
+              Metode Pembayaran
+            </h3>
+            <span style={{ color: '#64748b', fontSize: '0.8rem' }}>Lihat Semua &gt;</span>
+          </div>
+
+          {/* QRIS Option */}
+          <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem', borderRadius: '6px', border: paymentMethod === 'QRIS' ? '1.5px solid #ee4d2d' : '1px solid #e2e8f0', background: paymentMethod === 'QRIS' ? '#fff5f5' : '#fff', cursor: 'pointer' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <QrCode size={20} color="#ee4d2d" />
+              <div>
+                <div style={{ fontSize: '0.85rem', fontWeight: '700', color: '#1e293b' }}>QRIS (Instant QR)</div>
+                <div style={{ fontSize: '0.72rem', color: '#64748b' }}>DANA, Gopay, BCA Mobile, ShopeePay, dll</div>
+              </div>
+            </div>
+            <input 
+              type="radio" 
+              name="payment" 
+              value="QRIS" 
+              checked={paymentMethod === 'QRIS'} 
+              onChange={() => setPaymentMethod('QRIS')} 
+              style={{ accentColor: '#ee4d2d', transform: 'scale(1.2)' }} 
+            />
+          </label>
+
+          {/* E-Wallet / Midtrans Option */}
+          <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem', borderRadius: '6px', border: paymentMethod === 'Midtrans' ? '1.5px solid #ee4d2d' : '1px solid #e2e8f0', background: paymentMethod === 'Midtrans' ? '#fff5f5' : '#fff', cursor: 'pointer' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <CreditCard size={20} color="#00a896" />
+              <div>
+                <div style={{ fontSize: '0.85rem', fontWeight: '700', color: '#1e293b' }}>Transfer Bank / VA</div>
+                <div style={{ fontSize: '0.72rem', color: '#64748b' }}>BCA, Mandiri, BNI, BRI</div>
+              </div>
+            </div>
+            <input 
+              type="radio" 
+              name="payment" 
+              value="Midtrans" 
+              checked={paymentMethod === 'Midtrans'} 
+              onChange={() => setPaymentMethod('Midtrans')} 
+              style={{ accentColor: '#ee4d2d', transform: 'scale(1.2)' }} 
+            />
+          </label>
+
+          {/* COD Option */}
+          <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem', borderRadius: '6px', border: paymentMethod === 'COD' ? '1.5px solid #ee4d2d' : '1px solid #e2e8f0', background: paymentMethod === 'COD' ? '#fff5f5' : '#fff', cursor: 'pointer' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <Banknote size={20} color="#f77f00" />
+              <div>
+                <div style={{ fontSize: '0.85rem', fontWeight: '700', color: '#1e293b' }}>COD (Bayar di Tempat)</div>
+                <div style={{ fontSize: '0.72rem', color: '#64748b' }}>Bayar tunai saat kurir tiba</div>
+              </div>
+            </div>
+            <input 
+              type="radio" 
+              name="payment" 
+              value="COD" 
+              checked={paymentMethod === 'COD'} 
+              onChange={() => setPaymentMethod('COD')} 
+              style={{ accentColor: '#ee4d2d', transform: 'scale(1.2)' }} 
+            />
+          </label>
+        </div>
+
+        {/* Section 5: Rincian Pembayaran */}
+        <div style={{ background: '#fff', borderRadius: '6px', padding: '1rem', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+          <h3 style={{ fontSize: '0.92rem', fontWeight: '800', color: '#1e293b', margin: '0 0 0.25rem 0' }}>
+            Rincian Pembayaran
           </h3>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', maxHeight: '240px', overflowY: 'auto', paddingRight: '0.3rem', marginBottom: '1.25rem' }}>
-            {cart.map(({ product, qty }) => (
-              <div key={product.id} style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-                <img src={product.image} alt={product.name} style={{ width: '48px', height: '48px', borderRadius: '8px', objectFit: 'cover' }} />
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: '0.85rem', fontWeight: '700', color: '#0f172a', lineHeight: 1.2 }}>{product.name}</div>
-                  <div style={{ fontSize: '0.75rem', color: '#64748b' }}>{qty} x {productService.formatIDR(product.price)}</div>
-                </div>
-                <div style={{ fontSize: '0.85rem', fontWeight: '800', color: '#0f4c81' }}>
-                  {productService.formatIDR(product.price * qty)}
-                </div>
-              </div>
-            ))}
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', color: '#64748b' }}>
+            <span>Subtotal Pesanan</span>
+            <span style={{ fontWeight: '600', color: '#1e293b' }}>{productService.formatIDR(subtotal)}</span>
           </div>
 
-          <div style={{ borderTop: '1px dashed #cbd5e1', paddingTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.6rem', fontSize: '0.88rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', color: '#475569' }}>
-              <span>Subtotal Produk</span>
-              <span style={{ fontWeight: '700', color: '#0f172a' }}>{productService.formatIDR(subtotal)}</span>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', color: '#475569' }}>
-              <span>Ongkos Kirim</span>
-              <span style={{ fontWeight: '700', color: '#0f172a' }}>{productService.formatIDR(shippingFee)}</span>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.5rem', paddingTop: '0.75rem', borderTop: '1px solid #e2e8f0' }}>
-              <span style={{ fontSize: '1rem', fontWeight: '800', color: '#0f172a' }}>Total Tagihan</span>
-              <span style={{ fontSize: '1.35rem', fontWeight: '800', color: '#0f4c81' }}>
-                {productService.formatIDR(total)}
-              </span>
-            </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', color: '#64748b' }}>
+            <span>Subtotal Pengiriman</span>
+            <span style={{ fontWeight: '600', color: '#1e293b' }}>{productService.formatIDR(originalShippingFee)}</span>
           </div>
 
-          <button
-            type="submit"
-            disabled={submitting}
-            style={{
-              width: '100%',
-              padding: '0.9rem',
-              marginTop: '1.5rem',
-              borderRadius: '10px',
-              border: 'none',
-              background: 'linear-gradient(135deg, #00a896 0%, #0284c7 100%)',
-              color: '#fff',
-              fontWeight: '700',
-              fontSize: '0.95rem',
-              cursor: submitting ? 'wait' : 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '0.5rem',
-              boxShadow: '0 4px 15px rgba(0,168,150,0.4)'
-            }}
-          >
-            <CheckCircle2 size={18} /> {submitting ? 'Memproses Pesanan...' : 'Konfirmasi & Buat Pesanan'}
-          </button>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', color: '#64748b' }}>
+            <span>Biaya Layanan</span>
+            <span style={{ fontWeight: '600', color: '#1e293b' }}>{productService.formatIDR(serviceFee)}</span>
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', color: '#ee4d2d' }}>
+            <span>Total Diskon Pengiriman</span>
+            <span style={{ fontWeight: '700' }}>-{productService.formatIDR(discountSavings)}</span>
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #f1f5f9', paddingTop: '0.65rem', marginTop: '0.25rem' }}>
+            <span style={{ fontSize: '0.9rem', fontWeight: '800', color: '#1e293b' }}>Total Pembayaran</span>
+            <span style={{ fontSize: '1.15rem', fontWeight: '800', color: '#ee4d2d' }}>
+              {productService.formatIDR(grandTotal)}
+            </span>
+          </div>
         </div>
 
-      </form>
+        {/* Section 6: Dropshipper Toggle */}
+        <div style={{ background: '#fff', borderRadius: '6px', padding: '0.85rem 1rem', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span style={{ fontSize: '0.85rem', color: '#334155', fontWeight: '600' }}>Kirim sebagai Dropshipper</span>
+          <input 
+            type="checkbox" 
+            checked={isDropshipper} 
+            onChange={(e) => setIsDropshipper(e.target.checked)} 
+            style={{ width: '18px', height: '18px', accentColor: '#ee4d2d', cursor: 'pointer' }} 
+          />
+        </div>
+
+      </div>
+
+      {/* Shopee-style Sticky Bottom Footer */}
+      <div style={{
+        position: 'fixed',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        background: '#fff',
+        boxShadow: '0 -3px 12px rgba(0,0,0,0.1)',
+        zIndex: 1000,
+        padding: '0'
+      }}>
+        <div style={{
+          maxWidth: '800px',
+          margin: '0 auto',
+          padding: '0.65rem 1rem',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center'
+        }}>
+          {/* Left: Total & Savings */}
+          <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+            <div style={{ fontSize: '0.85rem', color: '#1e293b' }}>
+              Total <span style={{ fontSize: '1.2rem', fontWeight: '800', color: '#ee4d2d' }}>{productService.formatIDR(grandTotal)}</span>
+            </div>
+            <div style={{ fontSize: '0.72rem', color: '#ee4d2d' }}>
+              Hemat {productService.formatIDR(discountSavings)}
+            </div>
+          </div>
+
+          {/* Right: Buat Pesanan Button (Pinned Flush Right) */}
+          <button
+            onClick={handleSubmitOrder}
+            disabled={submitting}
+            style={{
+              background: 'linear-gradient(135deg, #ee4d2d 0%, #d03b1e 100%)',
+              color: '#fff',
+              border: 'none',
+              padding: '0.75rem 1.75rem',
+              fontSize: '0.95rem',
+              fontWeight: '800',
+              cursor: submitting ? 'wait' : 'pointer',
+              borderRadius: '4px',
+              boxShadow: '0 4px 14px rgba(238,77,45,0.3)',
+              marginLeft: 'auto',
+              flexShrink: 0
+            }}
+          >
+            {submitting ? 'Memproses...' : 'Buat Pesanan'}
+          </button>
+        </div>
+      </div>
 
     </div>
   );
