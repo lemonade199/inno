@@ -17,7 +17,8 @@ import {
   ExternalLink,
   CheckCircle2,
   Smile,
-  Plus
+  Plus,
+  ArrowLeft
 } from 'lucide-react';
 import { chatService } from '../../services/chatService';
 import { productService } from '../../services/productService';
@@ -28,6 +29,16 @@ const AdminChat = () => {
   const [activeThreadId, setActiveThreadId] = useState('thread-1');
   const [replyInputText, setReplyInputText] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+  const [mobileView, setMobileView] = useState('list'); // 'list' or 'chat'
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Subscribe to live chat updates
   useEffect(() => {
@@ -43,6 +54,7 @@ const AdminChat = () => {
   const handleSelectThread = (threadId) => {
     setActiveThreadId(threadId);
     chatService.markAsRead(threadId);
+    if (isMobile) setMobileView('chat');
   };
 
   const handleAdminReply = (e) => {
@@ -76,14 +88,23 @@ const AdminChat = () => {
     <div style={{ 
       width: '100%', 
       height: 'calc(100vh - 70px)', 
-      display: 'grid', 
-      gridTemplateColumns: '340px 1fr', 
+      display: isMobile ? 'flex' : 'grid', 
+      gridTemplateColumns: isMobile ? '1fr' : '340px 1fr', 
       background: '#ffffff',
       overflow: 'hidden'
     }}>
         
         {/* LEFT PANEL: CUSTOMER THREADS LIST */}
-        <div style={{ borderRight: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', background: '#f8fafc', height: '100%', overflow: 'hidden' }}>
+        {(!isMobile || mobileView === 'list') && (
+        <div style={{ 
+          borderRight: '1px solid #e2e8f0', 
+          display: 'flex', 
+          flexDirection: 'column', 
+          background: '#f8fafc', 
+          height: '100%', 
+          width: isMobile ? '100%' : 'auto',
+          overflow: 'hidden' 
+        }}>
           
           {/* Search Thread Bar */}
           <div style={{ padding: '1rem', borderBottom: '1px solid #e2e8f0', background: '#ffffff' }}>
@@ -156,25 +177,44 @@ const AdminChat = () => {
             })}
           </div>
         </div>
+        )}
 
         {/* RIGHT PANEL: ACTIVE THREAD CONVERSATION STREAM */}
-        {activeThread ? (
-          <div style={{ display: 'flex', flexDirection: 'column', background: '#f1f5f9', height: '100%', overflow: 'hidden' }}>
+        {(!isMobile || mobileView === 'chat') && (activeThread ? (
+          <div style={{ display: 'flex', flexDirection: 'column', background: '#f1f5f9', height: '100%', width: isMobile ? '100%' : 'auto', overflow: 'hidden' }}>
             
             {/* Active Thread Header */}
-            <div style={{ padding: '12px 20px', background: '#ffffff', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: '0 1px 3px rgba(0,0,0,0.03)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <img src={activeThread.customerAvatar} alt={activeThread.customerName} style={{ width: '42px', height: '42px', borderRadius: '50%', objectFit: 'cover' }} />
+            <div style={{ padding: '12px 16px', background: '#ffffff', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: '0 1px 3px rgba(0,0,0,0.03)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                {isMobile && (
+                  <button
+                    onClick={() => setMobileView('list')}
+                    style={{
+                      background: '#f1f5f9',
+                      border: 'none',
+                      borderRadius: '8px',
+                      padding: '6px 8px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      color: '#0f4c81'
+                    }}
+                    title="Kembali ke Daftar Chat"
+                  >
+                    <ArrowLeft size={18} />
+                  </button>
+                )}
+                <img src={activeThread.customerAvatar} alt={activeThread.customerName} style={{ width: '38px', height: '38px', borderRadius: '50%', objectFit: 'cover' }} />
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <h3 style={{ fontSize: '1rem', fontWeight: '800', color: '#0f172a', margin: 0 }}>
+                    <h3 style={{ fontSize: '0.95rem', fontWeight: '800', color: '#0f172a', margin: 0 }}>
                       {activeThread.customerName}
                     </h3>
-                    <span style={{ fontSize: '0.68rem', background: '#dcfce7', color: '#15803d', padding: '1px 6px', borderRadius: '4px', fontWeight: '700' }}>
+                    <span style={{ fontSize: '0.65rem', background: '#dcfce7', color: '#15803d', padding: '1px 6px', borderRadius: '4px', fontWeight: '700' }}>
                       Pelanggan Setia
                     </span>
                   </div>
-                  <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px' }}>
+                  <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '2px' }}>
                     {activeThread.customerEmail}
                   </div>
                 </div>
@@ -287,7 +327,7 @@ const AdminChat = () => {
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}>
             Pilih percakapan pelanggan untuk mulai membalas chat.
           </div>
-        )}
+        ))}
 
     </div>
   );

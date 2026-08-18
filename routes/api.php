@@ -6,13 +6,15 @@ use App\Http\Controllers\AuthController;
 
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\ProductController;
+use App\Http\Controllers\CategoryController;
 
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/register', [AuthController::class, 'register']);
 
-// Public Products APIs
+// Public APIs
 Route::get('/products', [ProductController::class, 'index']);
 Route::get('/products/{id}', [ProductController::class, 'show']);
+Route::get('/categories', [CategoryController::class, 'index']);
 
 // Webhooks
 Route::post('/payment/notification', [PaymentController::class, 'handleWebhook']);
@@ -23,6 +25,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user', function (Request $request) {
         return $request->user();
     });
+    Route::post('/user/profile', [AuthController::class, 'updateProfile']);
+    Route::put('/user/profile', [AuthController::class, 'updateProfile']);
 
     // Orders (Customer facing)
     Route::post('/payment/create', [PaymentController::class, 'createPayment']);
@@ -39,4 +43,9 @@ Route::middleware(['auth:sanctum', 'role:admin'])->group(function () {
     Route::put('/admin/products/{id}', [ProductController::class, 'update']);
     Route::delete('/admin/products/{id}', [ProductController::class, 'destroy']);
     Route::get('/admin/orders', [PaymentController::class, 'getOrders']);
+
+    // Categories CRUD
+    Route::post('/admin/categories', [CategoryController::class, 'store']);
+    Route::put('/admin/categories/{id}', [CategoryController::class, 'update']);
+    Route::delete('/admin/categories/{id}', [CategoryController::class, 'destroy']);
 });

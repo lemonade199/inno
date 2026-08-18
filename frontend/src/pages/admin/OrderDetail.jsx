@@ -57,7 +57,7 @@ const AdminOrderDetail = () => {
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '1.5rem' }}>
+      <div className="admin-order-detail-grid">
         {/* Left Column: Items */}
         <div className="card">
           <h3 style={{ fontSize: '1.1rem', fontWeight: '700', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -90,7 +90,7 @@ const AdminOrderDetail = () => {
           </div>
 
           {/* Price Calculation */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', width: '280px', marginLeft: 'auto', background: '#f8fafc', padding: '1rem', borderRadius: '10px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', width: '100%', maxWidth: '320px', marginLeft: 'auto', background: '#f8fafc', padding: '1rem', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}>
               <span>Subtotal Produk:</span>
               <span style={{ fontWeight: '600' }}>{productService.formatIDR(order.subtotal)}</span>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { 
   User, 
@@ -33,12 +33,21 @@ import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import { reviewService } from '../services/reviewService';
 import { productService } from '../services/productService';
+import api from '../services/api';
+import Avatar from '../components/Avatar';
+import ImageCropperModal from '../components/ImageCropperModal';
 
 const Profile = () => {
   const { user, updateUserProfile, logout } = useAuth();
   const { addToCart } = useCart();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const fileInputRef = useRef(null);
+  const sidebarMenuRef = useRef(null);
+
+  const [showAvatarMenu, setShowAvatarMenu] = useState(false);
+  const [showCropper, setShowCropper] = useState(false);
+  const [rawImageSrc, setRawImageSrc] = useState(null);
 
   const tabFromUrl = searchParams.get('tab') || 'biodata';
   const [activeTab, setActiveTab] = useState(tabFromUrl);
@@ -47,6 +56,17 @@ const Profile = () => {
     const t = searchParams.get('tab');
     if (t) setActiveTab(t);
   }, [searchParams]);
+
+  // Close avatar popup on outside click
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (sidebarMenuRef.current && !sidebarMenuRef.current.contains(e.target)) {
+        setShowAvatarMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   // Collapsible sidebar accordion states
   const [isKotakMasukOpen, setIsKotakMasukOpen] = useState(true);
@@ -65,6 +85,46 @@ const Profile = () => {
   });
 
   const [savedSuccess, setSavedSuccess] = useState(false);
+
+  const handleFileSelect = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      setRawImageSrc(reader.result);
+      setShowCropper(true);
+      setShowAvatarMenu(false);
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
+
+  const handleCropComplete = async (croppedDataUrl) => {
+    updateUserProfile({ avatar: croppedDataUrl });
+    setShowCropper(false);
+    setSavedSuccess(true);
+    setTimeout(() => setSavedSuccess(false), 3000);
+
+    try {
+      await api.post('/user/profile', { avatar: croppedDataUrl });
+    } catch (err) {
+      // Handled
+    }
+  };
+
+  const handleDeleteAvatar = async () => {
+    updateUserProfile({ avatar: null });
+    setShowAvatarMenu(false);
+    setSavedSuccess(true);
+    setTimeout(() => setSavedSuccess(false), 3000);
+
+    try {
+      await api.post('/user/profile', { avatar: null });
+    } catch (err) {
+      // Handled
+    }
+  };
 
   // Helper for displaying date in Indonesian format (e.g. 15 Juli 1998)
   const formatIndonesianDate = (dateString) => {
@@ -248,11 +308,110 @@ const Profile = () => {
           
           {/* User Mini Profile Card (Cleaned without Saldo/Koin) */}
           <div style={{ background: '#fff', borderRadius: '8px', padding: '1.25rem', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <img 
-              src={user?.avatar || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80'} 
-              alt={user?.name}
-              style={{ width: '48px', height: '48px', borderRadius: '50%', objectFit: 'cover', border: '2px solid #00AB99' }}
-            />
+            <div style={{ position: 'relative', width: '52px', height: '52px', flexShrink: 0 }} ref={sidebarMenuRef}>
+              <Avatar 
+                src={user?.avatar} 
+                name={user?.name || 'User'} 
+                size={52} 
+                style={{ border: '2px solid #00AB99' }}
+              />
+              <button
+                type="button"
+                onClick={() => setShowAvatarMenu(!showAvatarMenu)}
+                title="Kelola Foto Profil"
+                style={{
+                  position: 'absolute',
+                  bottom: '-2px',
+                  right: '-2px',
+                  width: '22px',
+                  height: '22px',
+                  borderRadius: '50%',
+                  background: '#00AB99',
+                  color: '#ffffff',
+                  border: '2px solid #ffffff',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  boxShadow: '0 1px 4px rgba(0,0,0,0.2)',
+                  transition: 'transform 0.2s ease',
+                  zIndex: 2
+                }}
+                onMouseOver={(e) => e.currentTarget.style.transform = 'scale(1.1)'}
+                onMouseOut={(e) => e.currentTarget.style.transform = 'scale(1.0)'}
+              >
+                <Camera size={11} />
+              </button>
+
+              {/* Avatar Action Popover */}
+              {showAvatarMenu && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: '56px',
+                    left: '0',
+                    background: '#ffffff',
+                    borderRadius: '10px',
+                    boxShadow: '0 10px 25px rgba(0,0,0,0.15), 0 0 0 1px rgba(0,0,0,0.05)',
+                    width: '170px',
+                    zIndex: 50,
+                    overflow: 'hidden',
+                    padding: '4px',
+                  }}
+                >
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowAvatarMenu(false);
+                      fileInputRef.current?.click();
+                    }}
+                    style={{
+                      width: '100%',
+                      padding: '8px 10px',
+                      background: 'none',
+                      border: 'none',
+                      borderRadius: '6px',
+                      textAlign: 'left',
+                      fontSize: '0.8rem',
+                      fontWeight: '700',
+                      color: '#1e293b',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                    }}
+                    onMouseOver={(e) => (e.currentTarget.style.background = '#f1f5f9')}
+                    onMouseOut={(e) => (e.currentTarget.style.background = 'none')}
+                  >
+                    <Camera size={14} color="#00AB99" /> Pilih Foto Baru
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleDeleteAvatar}
+                    style={{
+                      width: '100%',
+                      padding: '8px 10px',
+                      background: 'none',
+                      border: 'none',
+                      borderRadius: '6px',
+                      textAlign: 'left',
+                      fontSize: '0.8rem',
+                      fontWeight: '700',
+                      color: '#ef4444',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                    }}
+                    onMouseOver={(e) => (e.currentTarget.style.background = '#fee2e2')}
+                    onMouseOut={(e) => (e.currentTarget.style.background = 'none')}
+                  >
+                    <Trash2 size={14} color="#ef4444" /> Hapus Foto
+                  </button>
+                </div>
+              )}
+            </div>
             <div style={{ overflow: 'hidden' }}>
               <h3 style={{ fontSize: '0.95rem', fontWeight: '800', color: '#1e293b', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {user?.name || 'Juli Anto'}
@@ -422,15 +581,40 @@ const Profile = () => {
           {/* Tab 1: BIODATA DIRI */}
           {activeTab === 'biodata' && (
             <div style={{ padding: '1.5rem', display: 'grid', gridTemplateColumns: '220px 1fr', gap: '2rem', alignItems: 'flex-start' }}>
-              <div style={{ border: '1px solid #f1f5f9', borderRadius: '8px', padding: '1rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem', boxShadow: '0 1px 3px rgba(0,0,0,0.03)' }}>
-                <div style={{ width: '170px', height: '170px', borderRadius: '8px', overflow: 'hidden', border: '1px solid #e2e8f0', background: '#fafafa' }}>
-                  <img src={user?.avatar || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300'} alt="Foto Profil" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              <div style={{ border: '1px solid #f1f5f9', borderRadius: '12px', padding: '1.25rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.85rem', boxShadow: '0 1px 3px rgba(0,0,0,0.03)' }}>
+                <div style={{ width: '150px', height: '150px', borderRadius: '50%', overflow: 'hidden', border: '3px solid #00AB99', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#fafafa' }}>
+                  <Avatar src={user?.avatar} name={user?.name || 'User'} size={150} />
                 </div>
-                <button style={{ width: '100%', background: '#fff', border: '1px solid #cbd5e1', color: '#334155', padding: '8px', borderRadius: '6px', fontSize: '0.82rem', fontWeight: '700', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
-                  <Camera size={15} /> Pilih Foto
-                </button>
+
+                <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <button 
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    style={{ width: '100%', background: '#00AB99', color: '#ffffff', border: 'none', padding: '8px', borderRadius: '6px', fontSize: '0.82rem', fontWeight: '700', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', transition: 'all 0.2s', boxShadow: '0 2px 6px rgba(0,171,153,0.25)' }}
+                  >
+                    <Camera size={15} /> Pilih & Potong Foto
+                  </button>
+
+                  {user?.avatar && (
+                    <button 
+                      type="button"
+                      onClick={handleDeleteAvatar}
+                      style={{ width: '100%', background: '#fee2e2', color: '#ef4444', border: 'none', padding: '7px', borderRadius: '6px', fontSize: '0.8rem', fontWeight: '700', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', transition: 'all 0.2s' }}
+                    >
+                      <Trash2 size={13} /> Hapus Foto
+                    </button>
+                  )}
+                </div>
+
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  accept="image/*"
+                  onChange={handleFileSelect}
+                  style={{ display: 'none' }}
+                />
                 <p style={{ fontSize: '0.7rem', color: '#94a3b8', textAlign: 'center', lineHeight: 1.4, margin: 0 }}>
-                  Format gambar: .JPG .JPEG .PNG (Maks 10MB)
+                  Format gambar: .JPG .JPEG .PNG (Maks 8MB)
                 </p>
               </div>
 
@@ -926,6 +1110,15 @@ const Profile = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Image Cropper Modal */}
+      {showCropper && rawImageSrc && (
+        <ImageCropperModal
+          imageSrc={rawImageSrc}
+          onCropComplete={handleCropComplete}
+          onClose={() => setShowCropper(false)}
+        />
       )}
 
     </div>

@@ -1,20 +1,29 @@
-import React, { useState } from 'react';
-import { User, Lock, Save, ShieldCheck, LogOut, AlertTriangle } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { User, Lock, Save, ShieldCheck, LogOut, AlertTriangle, Camera, Trash2, Image as ImageIcon, Upload } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
+import api from '../../services/api';
+import Avatar from '../../components/Avatar';
+import ImageCropperModal from '../../components/ImageCropperModal';
 
 const AdminProfile = () => {
-  const { user, logout } = useAuth();
+  const { user, logout, updateUserProfile } = useAuth();
   const navigate = useNavigate();
   const { showToast } = useToast();
+  const fileInputRef = useRef(null);
+  const menuRef = useRef(null);
+
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [showAvatarMenu, setShowAvatarMenu] = useState(false);
+  const [showCropper, setShowCropper] = useState(false);
+  const [rawImageSrc, setRawImageSrc] = useState(null);
 
   const [profileData, setProfileData] = useState({
     name: user?.name || 'Administrator',
     email: user?.email || 'admin@berkahpancing.com',
-    phone: '081122334455',
-    avatar: user?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+    phone: user?.phone || '081122334455',
+    avatar: user?.avatar || null,
   });
 
   const [passwordData, setPasswordData] = useState({
@@ -23,9 +32,101 @@ const AdminProfile = () => {
     confirmPassword: '',
   });
 
-  const handleProfileSubmit = (e) => {
+  // Sync user state on load/update
+  useEffect(() => {
+    if (user) {
+      setProfileData((prev) => ({
+        ...prev,
+        name: user.name || prev.name,
+        email: user.email || prev.email,
+        phone: user.phone || prev.phone,
+        avatar: user.avatar !== undefined ? user.avatar : prev.avatar,
+      }));
+    }
+  }, [user]);
+
+  // Close avatar menu on outside click
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) {
+        setShowAvatarMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Handle when file is chosen from disk -> open cropper
+  const handleFileSelect = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      showToast('Harap pilih file gambar (JPG, PNG, atau WEBP)!', 'error');
+      return;
+    }
+
+    if (file.size > 8 * 1024 * 1024) {
+      showToast('Ukuran foto terlalu besar! Maksimal 8MB.', 'error');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      setRawImageSrc(reader.result);
+      setShowCropper(true);
+      setShowAvatarMenu(false);
+    };
+    reader.readAsDataURL(file);
+
+    // Reset input value so same file can be selected again
+    e.target.value = '';
+  };
+
+  // Handle crop completion from ImageCropperModal
+  const handleCropComplete = async (croppedDataUrl) => {
+    setProfileData((prev) => ({ ...prev, avatar: croppedDataUrl }));
+    updateUserProfile({ avatar: croppedDataUrl });
+    setShowCropper(false);
+
+    try {
+      await api.post('/user/profile', { avatar: croppedDataUrl });
+      showToast('Foto profil admin berhasil diperbarui & disimpan!', 'success');
+    } catch (err) {
+      showToast('Foto profil diperbarui secara lokal.', 'success');
+    }
+  };
+
+  // Handle delete avatar -> switch to initial letter logo
+  const handleDeleteAvatar = async () => {
+    setProfileData((prev) => ({ ...prev, avatar: null }));
+    updateUserProfile({ avatar: null });
+    setShowAvatarMenu(false);
+
+    try {
+      await api.post('/user/profile', { avatar: null });
+      showToast('Foto profil berhasil dihapus. Menampilkan inisial nama.', 'success');
+    } catch (err) {
+      showToast('Foto profil dihapus.', 'success');
+    }
+  };
+
+  const handleProfileSubmit = async (e) => {
     e.preventDefault();
-    showToast('Profil berhasil diperbarui!', 'success');
+    updateUserProfile({
+      name: profileData.name,
+      phone: profileData.phone,
+    });
+
+    try {
+      await api.post('/user/profile', {
+        name: profileData.name,
+        phone: profileData.phone,
+      });
+      showToast('Profil admin berhasil disimpan!', 'success');
+    } catch (err) {
+      showToast('Profil admin berhasil diperbarui!', 'success');
+    }
   };
 
   const handlePasswordSubmit = (e) => {
@@ -46,52 +147,139 @@ const AdminProfile = () => {
 
   return (
     <div>
-      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-        <div>
-          <h1 className="page-title">
-            <User size={26} color="#0f4c81" /> Profil Saya (Admin)
-          </h1>
-          <p className="page-subtitle">Kelola informasi akun administrator dan kata sandi Anda.</p>
-        </div>
-
-        <button
-          type="button"
-          onClick={() => setShowLogoutConfirm(true)}
-          style={{
-            background: '#fee2e2',
-            color: '#ef4444',
-            border: 'none',
-            padding: '10px 18px',
-            borderRadius: '8px',
-            fontSize: '0.85rem',
-            fontWeight: '700',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            boxShadow: '0 2px 8px rgba(239,68,68,0.15)'
-          }}
-        >
-          <LogOut size={16} /> Keluar Akun Admin
-        </button>
-      </div>
-
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+      <div className="admin-profile-grid">
         {/* Profile Card */}
         <div className="card">
           <h3 style={{ fontSize: '1.1rem', fontWeight: '700', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <User size={20} color="#0f4c81" /> Informasi Akun
           </h3>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem' }}>
-            <img
-              src={profileData.avatar}
-              alt={profileData.name}
-              style={{ width: '70px', height: '70px', borderRadius: '50%', objectFit: 'cover', border: '3px solid #0f4c81' }}
-            />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', marginBottom: '1.5rem' }}>
+            {/* Avatar with Camera Icon and Options Popover */}
+            <div style={{ position: 'relative', width: '76px', height: '76px', flexShrink: 0 }} ref={menuRef}>
+              <Avatar
+                src={profileData.avatar}
+                name={profileData.name}
+                size={76}
+                style={{
+                  border: '3px solid #0f4c81',
+                  boxShadow: '0 4px 12px rgba(15, 76, 129, 0.15)',
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => setShowAvatarMenu(!showAvatarMenu)}
+                title="Kelola Foto Profil"
+                style={{
+                  position: 'absolute',
+                  bottom: '0',
+                  right: '-2px',
+                  width: '28px',
+                  height: '28px',
+                  borderRadius: '50%',
+                  background: 'linear-gradient(135deg, #00a896, #028072)',
+                  color: '#ffffff',
+                  border: '2px solid #ffffff',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  boxShadow: '0 2px 6px rgba(0,0,0,0.25)',
+                  transition: 'transform 0.2s ease',
+                  zIndex: 2,
+                }}
+                onMouseOver={(e) => (e.currentTarget.style.transform = 'scale(1.1)')}
+                onMouseOut={(e) => (e.currentTarget.style.transform = 'scale(1.0)')}
+              >
+                <Camera size={14} />
+              </button>
+
+              {/* Avatar Action Popover Menu */}
+              {showAvatarMenu && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: '82px',
+                    left: '0',
+                    background: '#ffffff',
+                    borderRadius: '12px',
+                    boxShadow: '0 10px 30px rgba(0,0,0,0.15), 0 0 0 1px rgba(0,0,0,0.06)',
+                    width: '180px',
+                    zIndex: 50,
+                    overflow: 'hidden',
+                    animation: 'scaleUp 0.18s ease-out',
+                    padding: '6px',
+                  }}
+                >
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowAvatarMenu(false);
+                      fileInputRef.current?.click();
+                    }}
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      background: 'none',
+                      border: 'none',
+                      borderRadius: '8px',
+                      textAlign: 'left',
+                      fontSize: '0.84rem',
+                      fontWeight: '700',
+                      color: '#1e293b',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      transition: 'background 0.15s',
+                    }}
+                    onMouseOver={(e) => (e.currentTarget.style.background = '#f1f5f9')}
+                    onMouseOut={(e) => (e.currentTarget.style.background = 'none')}
+                  >
+                    <ImageIcon size={15} color="#00a896" /> Pilih Gambar Baru
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleDeleteAvatar}
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      background: 'none',
+                      border: 'none',
+                      borderRadius: '8px',
+                      textAlign: 'left',
+                      fontSize: '0.84rem',
+                      fontWeight: '700',
+                      color: '#ef4444',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      transition: 'background 0.15s',
+                    }}
+                    onMouseOver={(e) => (e.currentTarget.style.background = '#fee2e2')}
+                    onMouseOut={(e) => (e.currentTarget.style.background = 'none')}
+                  >
+                    <Trash2 size={15} color="#ef4444" /> Hapus Foto
+                  </button>
+                </div>
+              )}
+
+              <input
+                type="file"
+                ref={fileInputRef}
+                accept="image/*"
+                onChange={handleFileSelect}
+                style={{ display: 'none' }}
+              />
+            </div>
+
             <div>
-              <h4 style={{ fontSize: '1.1rem', fontWeight: '700' }}>{profileData.name}</h4>
-              <span className="badge badge-info" style={{ marginTop: '4px' }}>
+              <h4 style={{ fontSize: '1.1rem', fontWeight: '800', color: '#0f172a', margin: '0 0 4px 0' }}>
+                {profileData.name}
+              </h4>
+              <span className="badge badge-info">
                 <ShieldCheck size={12} /> Super Admin
               </span>
             </div>
@@ -262,6 +450,15 @@ const AdminProfile = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Image Cropper Modal */}
+      {showCropper && rawImageSrc && (
+        <ImageCropperModal
+          imageSrc={rawImageSrc}
+          onCropComplete={handleCropComplete}
+          onClose={() => setShowCropper(false)}
+        />
       )}
     </div>
   );

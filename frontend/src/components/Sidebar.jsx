@@ -59,8 +59,6 @@ const Sidebar = ({ collapsed, toggleSidebar, style = {}, className = '' }) => {
     { title: 'Produk', path: '/admin/products', icon: Package, badge: productCount > 0 ? String(productCount) : null },
     { title: 'Kategori', path: '/admin/categories', icon: FolderTree },
     { title: 'Pesanan', path: '/admin/orders', icon: ShoppingBag, badge: pendingOrderCount > 0 ? String(pendingOrderCount) : null, badgeColor: 'bg-amber-500' },
-    { title: 'Notifikasi', path: '/admin/notifications', icon: Bell, badge: notifUnreadCount > 0 ? notifUnreadCount : null, badgeColor: 'bg-red-500' },
-    { title: 'Profil Admin', path: '/admin/profile', icon: User },
   ];
 
   return (
@@ -76,16 +74,22 @@ const Sidebar = ({ collapsed, toggleSidebar, style = {}, className = '' }) => {
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
           <div style={{
-            width: '38px',
-            height: '38px',
-            borderRadius: '10px',
-            background: 'linear-gradient(135deg, #00a896, #0f4c81)',
+            width: '42px',
+            height: '42px',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'center',
-            boxShadow: '0 4px 10px rgba(0, 168, 150, 0.3)'
+            justifyContent: 'center'
           }}>
-            <img src="/logo.jpg" alt="Berkah Pancing Logo" style={{ width: '38px', height: '38px', borderRadius: '8px', objectFit: 'cover' }} />
+            <img 
+              src="/logo.png" 
+              alt="Berkah Pancing Logo" 
+              style={{ 
+                width: '42px', 
+                height: '42px', 
+                objectFit: 'contain',
+                filter: 'drop-shadow(0 2px 8px rgba(0, 168, 150, 0.4))'
+              }} 
+            />
           </div>
           {!collapsed && (
             <div>

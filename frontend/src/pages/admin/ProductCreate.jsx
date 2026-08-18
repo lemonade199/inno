@@ -63,7 +63,7 @@ const AdminProductCreate = () => {
             />
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
+          <div className="admin-form-3col">
             <div className="form-group">
               <label className="form-label">Kategori *</label>
               <select name="category" className="form-select" value={formData.category} onChange={handleChange}>

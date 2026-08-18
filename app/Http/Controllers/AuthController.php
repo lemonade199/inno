@@ -66,4 +66,42 @@ class AuthController extends Controller
             'message' => 'Berhasil logout'
         ]);
     }
+
+    public function updateProfile(Request $request)
+    {
+        $user = $request->user();
+
+        $request->validate([
+            'name' => 'sometimes|string|max:255',
+            'phone' => 'nullable|string|max:30',
+            'address' => 'nullable|string',
+            'avatar' => 'nullable',
+        ]);
+
+        if ($request->hasFile('avatar_file')) {
+            $file = $request->file('avatar_file');
+            $filename = 'avatar_' . $user->id . '_' . time() . '.' . $file->getClientOriginalExtension();
+            $file->move(public_path('uploads/avatars'), $filename);
+            $user->avatar = '/uploads/avatars/' . $filename;
+        } elseif ($request->filled('avatar')) {
+            $user->avatar = $request->avatar;
+        }
+
+        if ($request->filled('name')) {
+            $user->name = $request->name;
+        }
+        if ($request->has('phone')) {
+            $user->phone = $request->phone;
+        }
+        if ($request->has('address')) {
+            $user->address = $request->address;
+        }
+
+        $user->save();
+
+        return response()->json([
+            'message' => 'Profil berhasil diperbarui',
+            'user' => $user
+        ]);
+    }
 }

@@ -570,21 +570,24 @@ const AdminDashboard = () => {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.75rem', paddingBottom: '3.5rem' }}>
       
-      {/* 1. TOP HEADER & OPERATIONAL PULSE */}
-      <div style={{
-        background: 'linear-gradient(135deg, #0b192c 0%, #1e293b 100%)',
-        borderRadius: '20px',
-        padding: '1.75rem 2rem',
-        color: '#ffffff',
-        boxShadow: 'var(--shadow-lg)',
-        position: 'relative',
-        overflow: 'hidden',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        flexWrap: 'wrap',
-        gap: '1.25rem'
-      }}>
+      {/* 1. HERO HEADER BANNER (Control Center Overview) */}
+      <div 
+        className="hero-banner admin-hero-banner"
+        style={{
+          background: 'linear-gradient(135deg, #0b192c 0%, #1e293b 100%)',
+          borderRadius: '20px',
+          padding: '1.75rem 2rem',
+          color: '#ffffff',
+          boxShadow: 'var(--shadow-lg)',
+          position: 'relative',
+          overflow: 'hidden',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: '1.25rem'
+        }}
+      >
         {/* Subtle Decorative Ambient Lighting */}
         <div style={{
           position: 'absolute',
@@ -682,11 +685,7 @@ const AdminDashboard = () => {
       </div>
 
       {/* 2. EXECUTIVE 6-KPI GRID (Comprehensive Essential Metrics) */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
-        gap: '1.25rem',
-      }}>
+      <div className="admin-kpi-grid">
         
         {/* KPI 1: Total Revenue (Omzet) */}
         <div style={{
@@ -959,11 +958,7 @@ const AdminDashboard = () => {
           )}
         </div>
 
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-          gap: '1rem',
-        }}>
+        <div className="admin-kpi-grid">
           {/* Status 1: Menunggu Bayar */}
           <div
             onClick={() => setOrderTab(orderTab === 'Menunggu Pembayaran' ? 'Semua' : 'Menunggu Pembayaran')}
@@ -1092,11 +1087,7 @@ const AdminDashboard = () => {
       </div>
 
       {/* 4. ANALYTICS & VISUAL INSIGHTS (Dual Cards: Sales Trend + Category Breakdown) */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'minmax(0, 1.8fr) minmax(0, 1.2fr)',
-        gap: '1.5rem',
-      }}>
+      <div className="admin-dashboard-dual-grid">
         
         {/* Left: Interactive Sales Trend Visualizer */}
         <div style={{
@@ -1190,34 +1181,41 @@ const AdminDashboard = () => {
           </div>
 
           {/* Quick Summary Pill above Chart */}
-          <div style={{ display: 'flex', gap: '1.25rem', marginBottom: '1.25rem', padding: '0.75rem 1rem', background: '#f8fafc', borderRadius: '10px', border: '1px solid #f1f5f9' }}>
+          <div style={{ 
+            display: 'grid', 
+            gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', 
+            gap: '0.75rem', 
+            marginBottom: '1.25rem', 
+            padding: '0.85rem 1rem', 
+            background: '#f8fafc', 
+            borderRadius: '12px', 
+            border: '1px solid #e2e8f0' 
+          }}>
             <div>
               <span style={{ fontSize: '0.72rem', color: '#64748b', display: 'block' }}>Total Periode Ini</span>
-              <strong style={{ fontSize: '0.95rem', color: '#0f4c81' }}>
+              <strong style={{ fontSize: '0.92rem', color: '#0f4c81' }}>
                 {chartMetric === 'revenue' ? productService.formatIDR(chartData.totalRev) : `${chartData.totalOrd} Pesanan`}
               </strong>
             </div>
-            <div style={{ width: '1px', background: '#e2e8f0' }} />
             <div>
               <span style={{ fontSize: '0.72rem', color: '#64748b', display: 'block' }}>Rata-rata Harian</span>
-              <strong style={{ fontSize: '0.95rem', color: '#1e293b' }}>
+              <strong style={{ fontSize: '0.92rem', color: '#1e293b' }}>
                 {chartMetric === 'revenue' 
                   ? productService.formatIDR(Math.round(chartData.totalRev / chartData.points.length)) 
                   : `${(chartData.totalOrd / chartData.points.length).toFixed(1)} / hari`}
               </strong>
             </div>
-            <div style={{ width: '1px', background: '#e2e8f0' }} />
             <div>
               <span style={{ fontSize: '0.72rem', color: '#64748b', display: 'block' }}>Puncak Tertinggi</span>
-              <strong style={{ fontSize: '0.95rem', color: '#16a34a' }}>
+              <strong style={{ fontSize: '0.92rem', color: '#16a34a' }}>
                 {chartMetric === 'revenue' ? productService.formatIDR(chartData.maxVal) : `${chartData.maxVal} Pesanan`}
               </strong>
             </div>
           </div>
 
           {/* SVG Area / Line Chart - using viewBox for pixel-accurate path coords */}
-          <div style={{ width: '100%', height: '220px', position: 'relative', marginTop: '0.5rem' }}>
-            <svg viewBox="0 0 700 220" width="100%" height="100%" preserveAspectRatio="none" style={{ overflow: 'visible' }}>
+          <div style={{ width: '100%', height: '220px', position: 'relative', marginTop: '0.5rem', overflow: 'hidden' }}>
+            <svg viewBox="0 0 700 220" width="100%" height="100%" preserveAspectRatio="none" style={{ overflow: 'hidden', display: 'block' }}>
               <defs>
                 <linearGradient id="dashboardChartGrad" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%" stopColor={chartMetric === 'revenue' ? '#0f4c81' : '#00a896'} stopOpacity="0.35" />
@@ -1416,11 +1414,7 @@ const AdminDashboard = () => {
       </div>
 
       {/* 5. MAIN OPERATIONAL GRID (Orders Feed on Left, Critical Modules on Right) */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'minmax(0, 2fr) minmax(0, 1.1fr)',
-        gap: '1.5rem',
-      }}>
+      <div className="admin-dashboard-ops-grid">
         
         {/* LEFT COLUMN: LIVE RECENT TRANSACTIONS TABLE */}
         <div style={{
@@ -1698,30 +1692,88 @@ const AdminDashboard = () => {
             padding: '1.35rem',
             border: stats.criticalProducts.length > 0 ? '1px solid #fecaca' : '1px solid #e2e8f0',
             boxShadow: 'var(--shadow-sm)',
+            transition: 'all 0.2s ease',
           }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.85rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem', gap: '8px' }}>
               <div>
-                <h3 style={{ fontSize: '0.98rem', fontWeight: '800', color: '#dc2626', margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <AlertTriangle size={17} color="#dc2626" /> Peringatan Stok Kritis
+                <h3 style={{
+                  fontSize: '0.98rem',
+                  fontWeight: '800',
+                  color: stats.criticalProducts.length > 0 ? '#dc2626' : '#1e293b',
+                  margin: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}>
+                  {stats.criticalProducts.length > 0 ? (
+                    <AlertTriangle size={18} color="#dc2626" />
+                  ) : (
+                    <ShieldCheck size={18} color="#16a34a" />
+                  )}
+                  {stats.criticalProducts.length > 0 ? 'Peringatan Stok Kritis' : 'Monitoring Stok Produk'}
                 </h3>
-                <span style={{ fontSize: '0.74rem', color: '#64748b' }}>Item persediaan menipis (≤5) atau habis</span>
+                <span style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '2px', display: 'block' }}>
+                  {stats.criticalProducts.length > 0
+                    ? 'Item persediaan menipis (≤5) atau habis'
+                    : 'Semua persediaan produk terpantau aman'}
+                </span>
               </div>
+
               <span style={{
-                background: '#fee2e2',
-                color: '#dc2626',
-                padding: '2px 8px',
+                background: stats.criticalProducts.length > 0 ? '#fee2e2' : '#f0fdf4',
+                color: stats.criticalProducts.length > 0 ? '#dc2626' : '#166534',
+                border: `1px solid ${stats.criticalProducts.length > 0 ? '#fca5a5' : '#bbf7d0'}`,
+                padding: '3px 10px',
                 borderRadius: '100px',
                 fontSize: '0.72rem',
-                fontWeight: '800',
+                fontWeight: '700',
+                whiteSpace: 'nowrap',
+                flexShrink: 0,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '5px'
               }}>
-                {stats.criticalProducts.length} Produk
+                <span style={{
+                  width: '6px',
+                  height: '6px',
+                  borderRadius: '50%',
+                  background: stats.criticalProducts.length > 0 ? '#ef4444' : '#22c55e'
+                }} />
+                {stats.criticalProducts.length > 0 ? `${stats.criticalProducts.length} Perlu Restock` : 'Stok Aman'}
               </span>
             </div>
 
             {stats.criticalProducts.length === 0 ? (
-              <div style={{ padding: '1rem', background: '#f0fdf4', borderRadius: '10px', textAlign: 'center', color: '#15803d', fontSize: '0.78rem', fontWeight: '600' }}>
-                <CheckCircle2 size={20} style={{ margin: '0 auto 4px auto' }} />
-                Semua stok produk dalam kondisi aman & melimpah!
+              <div style={{
+                padding: '1.1rem 1rem',
+                background: 'linear-gradient(135deg, #f0fdf4 0%, #f7fee7 100%)',
+                borderRadius: '12px',
+                border: '1px solid #dcfce7',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px'
+              }}>
+                <div style={{
+                  width: '36px',
+                  height: '36px',
+                  borderRadius: '50%',
+                  background: '#dcfce7',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                  color: '#16a34a'
+                }}>
+                  <CheckCircle2 size={20} />
+                </div>
+                <div>
+                  <div style={{ fontSize: '0.84rem', fontWeight: '700', color: '#166534' }}>
+                    Semua Stok Aman & Melimpah!
+                  </div>
+                  <div style={{ fontSize: '0.74rem', color: '#15803d', marginTop: '2px', lineHeight: 1.4 }}>
+                    Tidak ada produk yang habis atau mencapai batas kritis (≤5).
+                  </div>
+                </div>
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>

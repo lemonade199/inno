@@ -20,6 +20,13 @@ const AdminLayout = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  // Auto close mobile drawer on route change
+  useEffect(() => {
+    if (isMobile) {
+      setMobileOpen(false);
+    }
+  }, [location.pathname, isMobile]);
+
   const toggleSidebar = () => {
     if (isMobile) {
       setMobileOpen(prev => !prev);
@@ -37,7 +44,8 @@ const AdminLayout = () => {
           style={{
             position: 'fixed',
             inset: 0,
-            background: 'rgba(0,0,0,0.5)',
+            background: 'rgba(15, 23, 42, 0.6)',
+            backdropFilter: 'blur(3px)',
             zIndex: 998,
           }}
         />
@@ -47,11 +55,11 @@ const AdminLayout = () => {
         collapsed={isMobile ? false : collapsed}
         toggleSidebar={toggleSidebar}
         className={isMobile && mobileOpen ? 'mobile-open' : ''}
-        style={isMobile ? { transform: mobileOpen ? 'translateX(0)' : 'translateX(-260px)', transition: 'transform 0.3s ease', zIndex: 999 } : {}}
+        style={isMobile ? { transform: mobileOpen ? 'translateX(0)' : 'translateX(-100%)', transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)', zIndex: 999 } : {}}
       />
       <div className={`admin-main ${!isMobile && collapsed ? 'collapsed' : ''}`}>
         <Navbar isAdminView={true} toggleSidebar={toggleSidebar} />
-        <main className="admin-content" style={{ padding: isAdminChat ? 0 : '1.75rem 2rem' }}>
+        <main className="admin-content" style={isAdminChat ? { padding: 0 } : {}}>
           <Outlet />
         </main>
       </div>

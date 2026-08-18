@@ -110,12 +110,12 @@ const AdminNotifications = () => {
             ))}
           </div>
 
-          <div style={{ position: 'relative', width: '250px' }}>
+          <div style={{ position: 'relative', flex: 1, minWidth: '200px' }}>
              <Search size={16} color="#94a3b8" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
              <input
                type="text"
                className="form-input"
-               style={{ paddingLeft: '2.5rem', height: '2.2rem', fontSize: '0.8rem' }}
+               style={{ paddingLeft: '2.5rem', height: '2.4rem', fontSize: '0.82rem' }}
                placeholder="Cari notifikasi..."
                value={search}
                onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
