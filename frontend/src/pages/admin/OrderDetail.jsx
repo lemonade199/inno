@@ -155,7 +155,7 @@ const AdminOrderDetail = () => {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span style={{ fontSize: '0.85rem' }}>Metode:</span>
               <span className="badge badge-info">
-                {order.paymentMethod === 'COD' ? 'COD (Ambil di Tempat)' : order.paymentMethod}
+                {order.paymentMethod === 'COD' ? 'COD (Ambil di Tempat)' : (order.paymentMethod === 'Midtrans' ? 'Pembayaran Online' : order.paymentMethod)}
               </span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.5rem' }}>

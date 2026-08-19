@@ -15,7 +15,7 @@ import { useNotification } from '../context/NotificationContext';
 import { productService } from '../services/productService';
 import { shippingService } from '../services/shippingService';
 import api from '../services/api';
-import MapLocationPicker from '../components/MapLocationPicker';
+import { PROVINCES, CITIES_BY_PROVINCE } from '../data/indonesiaRegions';
 
 const Checkout = () => {
   const { cart, checkoutPayload, getCartTotal, clearCart, commitCheckout } = useCart();
@@ -34,7 +34,7 @@ const Checkout = () => {
     notes: ''
   });
 
-  const [provinces, setProvinces] = useState([]);
+  const [provinces, setProvinces] = useState(PROVINCES);
   const [cities, setCities] = useState([]);
   const [selectedProvince, setSelectedProvince] = useState(null);
   const [selectedCity, setSelectedCity] = useState(null);
@@ -43,81 +43,79 @@ const Checkout = () => {
   const [selectedService, setSelectedService] = useState(null);
   const [isLoadingShipping, setIsLoadingShipping] = useState(false);
 
-  const [editingAddress, setEditingAddress] = useState(true);
-  const [showMapModal, setShowMapModal] = useState(false);
+  const [selectedAddressId, setSelectedAddressId] = useState(null);
   const [showSavedAddressesModal, setShowSavedAddressesModal] = useState(false);
-  const [pendingCityName, setPendingCityName] = useState(null);
-  const [selectedLocation, setSelectedLocation] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState('Midtrans');
   const [deliveryMethod, setDeliveryMethod] = useState('delivery'); // 'delivery' | 'pickup'
 
   const subtotal = getCartTotal(activeItems);
 
-  // Load Provinces (data statis, selalu berhasil)
-  useEffect(() => {
-    shippingService.getProvinces().then(res => {
-      if (res.status === 'success' && res.data.length > 0) {
-        setProvinces(res.data);
-      }
-    });
-  }, []);
-
-  // Load Cities when Province changes
-  useEffect(() => {
-    if (selectedProvince) {
-      setCities([]);
-      if (!pendingCityName) setSelectedCity(null);
-      
-      if (selectedProvince.province_id) {
-        shippingService.getCities(selectedProvince.province_id).then(res => {
-          if (res.status === 'success') {
-            setCities(res.data);
-            if (pendingCityName) {
-              // Find city matching the pending name
-              const searchCity = pendingCityName.trim().toUpperCase();
-              const foundCity = res.data.find(c => 
-                (c.type + ' ' + c.city_name).toUpperCase() === searchCity ||
-                c.city_name.toUpperCase() === searchCity ||
-                searchCity.includes(c.city_name.toUpperCase())
-              );
-              if (foundCity) {
-                setSelectedCity(foundCity);
-              }
-              setPendingCityName(null);
-            }
-          }
-        });
+  const resolveRegion = (addr) => {
+    if (!addr) {
+      return {
+        province: PROVINCES[8], // Jawa Barat
+        city: CITIES_BY_PROVINCE["9"][0] // Bandung
+      };
+    }
+    const text = `${addr.region || ''} ${addr.street || ''} ${addr.detail || ''}`.toUpperCase();
+    
+    let matchedProv = PROVINCES.find(p => text.includes(p.province.toUpperCase()));
+    if (!matchedProv) {
+      if (text.includes('JAKARTA')) {
+        matchedProv = PROVINCES.find(p => p.province.toUpperCase().includes('JAKARTA'));
+      } else if (text.includes('BANDUNG') || text.includes('CILEUNYI') || text.includes('BEKASI') || text.includes('BOGOR') || text.includes('DEPOK') || text.includes('CIMAHI')) {
+        matchedProv = PROVINCES.find(p => p.province.toUpperCase().includes('JAWA BARAT'));
+      } else if (text.includes('SURABAYA') || text.includes('MALANG') || text.includes('SIDOARJO')) {
+        matchedProv = PROVINCES.find(p => p.province.toUpperCase().includes('JAWA TIMUR'));
+      } else if (text.includes('SEMARANG') || text.includes('SOLO') || text.includes('SURAKARTA')) {
+        matchedProv = PROVINCES.find(p => p.province.toUpperCase().includes('JAWA TENGAH'));
+      } else {
+        matchedProv = PROVINCES.find(p => p.province.toUpperCase().includes('JAWA BARAT')) || PROVINCES[0];
       }
     }
-  }, [selectedProvince, pendingCityName]);
+
+    const availableCities = CITIES_BY_PROVINCE[matchedProv.province_id] || [];
+    let matchedCity = availableCities.find(c => text.includes(c.city_name.toUpperCase()));
+    if (!matchedCity && availableCities.length > 0) {
+      matchedCity = availableCities[0];
+    }
+
+    return { province: matchedProv, city: matchedCity };
+  };
 
   const selectSavedAddress = (addr) => {
+    if (!addr) return;
+    setSelectedAddressId(addr.id || null);
     setFormData(prev => ({
       ...prev,
-      name: addr.name,
-      phone: addr.phone,
-      addressDetail: addr.street + (addr.detail ? ` (${addr.detail})` : '')
+      name: addr.name || user?.name || '',
+      phone: addr.phone || user?.phone || '',
+      addressDetail: addr.street ? `${addr.street}${addr.detail ? ` (${addr.detail})` : ''}` : (user?.address || 'Jl. Merdeka No. 45')
     }));
-    
-    // Parse region: "JAWA BARAT, KAB. BANDUNG, CILEUNYI, 40624"
-    if (addr.region) {
-      const parts = addr.region.split(',');
-      if (parts.length >= 2) {
-        const provName = parts[0].trim().toUpperCase();
-        const cityName = parts[1].trim().toUpperCase();
-        
-        const foundProv = provinces.find(p => p.province.toUpperCase() === provName);
-        if (foundProv) {
-          setSelectedProvince(foundProv);
-          setPendingCityName(cityName);
-        }
-      }
-    }
-    
+
+    const { province, city } = resolveRegion(addr);
+    setSelectedProvince(province);
+    setSelectedCity(city);
     setShowSavedAddressesModal(false);
-    setEditingAddress(true); // Open edit mode to let them review
   };
+
+  // Auto-select primary saved address on mount
+  useEffect(() => {
+    if (addresses && addresses.length > 0) {
+      const primaryAddr = addresses.find(a => a.isPrimary) || addresses[0];
+      selectSavedAddress(primaryAddr);
+    } else if (user) {
+      const fallbackAddr = {
+        name: user.name,
+        phone: user.phone || '081234567890',
+        street: user.address || 'Jl. Merdeka No. 45, Jakarta Selatan',
+        region: 'DKI JAKARTA, KOTA JAKARTA SELATAN, 12110',
+        isPrimary: true
+      };
+      selectSavedAddress(fallbackAddr);
+    }
+  }, [addresses, user]);
 
   // Load Shipping Cost when City changes
   useEffect(() => {
@@ -174,23 +172,37 @@ const Checkout = () => {
   const handleSubmitOrder = async (e) => {
     if (e) e.preventDefault();
     
+    let activeProvince = selectedProvince;
+    let activeCity = selectedCity;
+    let activeService = selectedService;
+
     if (deliveryMethod === 'delivery') {
-      if (!selectedProvince || !selectedCity || !formData.addressDetail) {
-        alert('Mohon lengkapi alamat pengiriman (Provinsi, Kota, dan Detail Jalan)');
-        return;
+      if (!activeProvince || !activeCity) {
+        const resolved = resolveRegion(formData);
+        activeProvince = resolved.province;
+        activeCity = resolved.city;
+        setSelectedProvince(activeProvince);
+        setSelectedCity(activeCity);
       }
-      if (!selectedService) {
-        alert('Mohon pilih layanan pengiriman (kurir) yang tersedia');
-        return;
+
+      if (!activeService) {
+        activeService = {
+          code: 'REG',
+          name: 'JNE REG',
+          description: 'Layanan Reguler',
+          price: 15000,
+          etd: '2-3 Hari'
+        };
+        setSelectedService(activeService);
       }
     }
 
     setSubmitting(true);
 
     const orderPayload = {
-      customerName: formData.name,
-      customerEmail: formData.email,
-      customerPhone: formData.phone,
+      customerName: formData.name || user?.name || 'Customer',
+      customerEmail: formData.email || user?.email || '',
+      customerPhone: formData.phone || user?.phone || '081234567890',
       address: getFullAddress(),
       items: activeItems.map(item => ({
         id: item.product.id,
@@ -201,11 +213,11 @@ const Checkout = () => {
       })),
       shipping_method: deliveryMethod,
       shipping_courier: deliveryMethod === 'pickup' ? 'PICKUP' : 'JNE',
-      shipping_service: deliveryMethod === 'pickup' ? 'PICKUP' : selectedService?.code,
-      shipping_province_id: deliveryMethod === 'pickup' ? null : selectedProvince?.province_id,
-      shipping_province: deliveryMethod === 'pickup' ? 'Ambil di Tempat' : selectedProvince?.province,
-      shipping_city_id: deliveryMethod === 'pickup' ? null : selectedCity?.city_id,
-      shipping_city: deliveryMethod === 'pickup' ? 'Toko Berkah Pancing, Bandung' : `${selectedCity?.type} ${selectedCity?.city_name}`,
+      shipping_service: deliveryMethod === 'pickup' ? 'PICKUP' : (activeService?.code || 'REG'),
+      shipping_province_id: deliveryMethod === 'pickup' ? null : (activeProvince?.province_id || '9'),
+      shipping_province: deliveryMethod === 'pickup' ? 'Ambil di Tempat' : (activeProvince?.province || 'Jawa Barat'),
+      shipping_city_id: deliveryMethod === 'pickup' ? null : (activeCity?.city_id || '23'),
+      shipping_city: deliveryMethod === 'pickup' ? 'Toko Berkah Pancing, Bandung' : `${activeCity?.type || 'Kota'} ${activeCity?.city_name || 'Bandung'}`,
       paymentMethod: paymentMethod
     };
 
@@ -319,149 +331,114 @@ const Checkout = () => {
 
         {/* Section 1: Alamat Pengiriman — hanya tampil jika metode Diantar */}
         {deliveryMethod === 'delivery' && (
-          <div style={{ background: '#fff', borderRadius: '6px', padding: '1rem', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
-            <MapPin size={20} color="#ee4d2d" style={{ marginTop: '2px', flexShrink: 0 }} />
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: '0.88rem', fontWeight: '700', color: '#1e293b', display: 'flex', justifyContent: 'space-between' }}>
-                <span>{formData.name} <span style={{ color: '#64748b', fontWeight: '400' }}>{formData.phone}</span></span>
-                {addresses && addresses.length > 0 && (
+          <div style={{ background: '#fff', borderRadius: '8px', padding: '1.25rem', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', border: '1px solid #e2e8f0' }}>
+            {/* Header Row: Title on Left, Button on Right */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.85rem', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.65rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.95rem', fontWeight: '800', color: '#1e293b' }}>
+                <MapPin size={20} color="#ee4d2d" />
+                <span>Alamat Pengiriman</span>
+              </div>
+              <div>
+                {addresses && addresses.length > 0 ? (
                   <button 
+                    type="button"
                     onClick={() => setShowSavedAddressesModal(true)} 
-                    style={{ background: '#f8fafc', border: '1px solid #cbd5e1', color: '#0f4c81', padding: '2px 8px', borderRadius: '12px', fontSize: '0.7rem', fontWeight: '700', cursor: 'pointer' }}
+                    style={{ background: '#fff', border: '1.5px solid #ee4d2d', color: '#ee4d2d', padding: '5px 12px', borderRadius: '6px', fontSize: '0.78rem', fontWeight: '700', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap' }}
                   >
-                    Pilih Alamat Tersimpan
+                    Pilih Alamat Tersimpan &gt;
                   </button>
+                ) : (
+                  <Link 
+                    to="/profile?tab=alamat"
+                    style={{ background: '#f8fafc', border: '1px solid #cbd5e1', color: '#0f4c81', padding: '5px 12px', borderRadius: '6px', fontSize: '0.78rem', fontWeight: '700', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap' }}
+                  >
+                    + Tambah Alamat
+                  </Link>
                 )}
               </div>
-              <div style={{ fontSize: '0.82rem', color: '#475569', marginTop: '4px', lineHeight: 1.4 }}>
-                {getFullAddress() || 'Alamat belum lengkap'}
+            </div>
+
+            {/* Address Summary Card */}
+            <div style={{ background: '#fafafa', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '0.85rem 1rem', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                <strong style={{ fontSize: '0.9rem', color: '#0f172a' }}>{formData.name || user?.name || 'Penerima'}</strong>
+                <span style={{ color: '#64748b', fontSize: '0.85rem' }}>({formData.phone || user?.phone || '-'})</span>
+                {addresses?.find(a => a.id === selectedAddressId)?.isPrimary && (
+                  <span style={{ fontSize: '0.65rem', background: '#ee4d2d', color: '#fff', padding: '1px 6px', borderRadius: '4px', fontWeight: '700' }}>Alamat Utama</span>
+                )}
+                {selectedCity && (
+                  <span style={{ fontSize: '0.68rem', background: '#e0f2fe', color: '#0369a1', padding: '1px 6px', borderRadius: '4px', fontWeight: '600' }}>
+                    {selectedCity.type} {selectedCity.city_name}
+                  </span>
+                )}
+              </div>
+              <div style={{ fontSize: '0.84rem', color: '#475569', lineHeight: 1.45, marginTop: '2px' }}>
+                {getFullAddress() || formData.addressDetail || 'Pilih alamat pengiriman dari daftar alamat tersimpan Anda.'}
               </div>
             </div>
-            <button onClick={() => setEditingAddress(!editingAddress)} style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: 0 }}>
-              <ChevronRight size={20} />
-            </button>
-          </div>
 
-          {editingAddress && (
-            <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px dashed #e2e8f0', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              <input type="text" name="name" value={formData.name} onChange={handleChange} placeholder="Nama Lengkap Penerima" style={{ padding: '0.6rem', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }} />
-              <input type="text" name="phone" value={formData.phone} onChange={handleChange} placeholder="Nomor HP / WhatsApp" style={{ padding: '0.6rem', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }} />
-              
-              <select 
-                value={selectedProvince?.province_id || ''} 
-                onChange={(e) => {
-                  const p = provinces.find(x => x.province_id === e.target.value);
-                  setSelectedProvince(p || null);
-                  setSelectedCity(null);
-                  setCities([]);
-                }}
-                style={{ padding: '0.6rem', borderRadius: '4px', border: '1.5px solid #cbd5e1', fontSize: '0.85rem', background: '#fff', cursor: 'pointer' }}
-              >
-                <option value="">{provinces.length === 0 ? 'Memuat provinsi...' : '-- Pilih Provinsi --'}</option>
-                {provinces.map(p => <option key={p.province_id} value={p.province_id}>{p.province}</option>)}
-              </select>
+            {/* Modal Alamat Tersimpan (DARI PROFIL) */}
+            {showSavedAddressesModal && (
+              <div style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', background: 'rgba(15,23,42,0.8)', backdropFilter: 'blur(4px)' }}>
+                <div style={{ background: '#fff', width: '100%', maxWidth: '600px', borderRadius: '12px', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem', boxShadow: '0 20px 40px rgba(0,0,0,0.2)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.75rem' }}>
+                    <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: '800', color: '#1e293b' }}>Pilih Alamat Tersimpan</h3>
+                    <button onClick={() => setShowSavedAddressesModal(false)} style={{ background: 'none', border: 'none', fontSize: '1.5rem', color: '#94a3b8', cursor: 'pointer', lineHeight: 1 }}>&times;</button>
+                  </div>
 
-              <select 
-                value={selectedCity?.city_id || ''} 
-                onChange={(e) => {
-                  const c = cities.find(x => x.city_id === e.target.value);
-                  setSelectedCity(c);
-                }}
-                disabled={!selectedProvince}
-                style={{ padding: '0.6rem', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.85rem', background: !selectedProvince ? '#f8fafc' : '#fff' }}
-              >
-                <option value="">{selectedProvince ? 'Pilih Kota/Kabupaten' : 'Pilih Provinsi Terlebih Dahulu'}</option>
-                {cities.map(c => <option key={c.city_id} value={c.city_id}>{c.type} {c.city_name}</option>)}
-              </select>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '400px', overflowY: 'auto', paddingRight: '5px' }}>
+                    {addresses && addresses.length > 0 ? addresses.map(addr => {
+                      const isSelected = selectedAddressId === addr.id;
+                      return (
+                        <div 
+                          key={addr.id} 
+                          onClick={() => selectSavedAddress(addr)}
+                          style={{ border: isSelected ? '2px solid #ee4d2d' : '1px solid #e2e8f0', background: isSelected ? '#fff5f5' : '#fff', borderRadius: '8px', padding: '12px', cursor: 'pointer', transition: 'all 0.15s' }}
+                        >
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                            <span style={{ fontWeight: '700', fontSize: '0.9rem', color: '#1e293b' }}>{addr.name} | {addr.phone}</span>
+                            <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                              {addr.isPrimary && (
+                                <span style={{ fontSize: '0.65rem', background: '#ee4d2d', color: '#fff', padding: '2px 6px', borderRadius: '12px', fontWeight: '700' }}>Utama</span>
+                              )}
+                              {isSelected && (
+                                <span style={{ fontSize: '0.65rem', background: '#16a34a', color: '#fff', padding: '2px 6px', borderRadius: '12px', fontWeight: '700' }}>Terpilih</span>
+                              )}
+                            </div>
+                          </div>
+                          <div style={{ fontSize: '0.8rem', color: '#475569', lineHeight: 1.4 }}>
+                            <div>{addr.street} {addr.detail ? `(${addr.detail})` : ''}</div>
+                            <div>{addr.region}</div>
+                          </div>
+                        </div>
+                      );
+                    }) : (
+                      <div style={{ textAlign: 'center', padding: '2rem 0', color: '#94a3b8', fontSize: '0.9rem' }}>
+                        Belum ada alamat tersimpan di profil Anda.
+                      </div>
+                    )}
+                  </div>
 
-              <div style={{ position: 'relative' }}>
-                <textarea 
-                  name="addressDetail" 
-                  rows={3} 
-                  value={formData.addressDetail} 
-                  onChange={handleChange} 
-                  placeholder="Alamat Lengkap (Jalan, RT/RW, Blok)" 
-                  style={{ width: '100%', padding: '0.6rem 0.6rem', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }} 
-                />
-                <button 
-                  onClick={(e) => { e.preventDefault(); setShowMapModal(true); }}
-                  style={{ position: 'absolute', bottom: '10px', right: '10px', background: '#ee4d2d', color: '#fff', border: 'none', padding: '4px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
-                >
-                  <MapPin size={12} /> Tandai di Peta
-                </button>
-              </div>
-              
-              <button 
-                onClick={() => setEditingAddress(false)} 
-                style={{ background: '#00a896', color: '#fff', border: 'none', padding: '0.5rem', borderRadius: '4px', fontWeight: '700', fontSize: '0.82rem', cursor: 'pointer' }}
-              >
-                Simpan Alamat
-              </button>
-            </div>
-          )}
-
-          {/* Modal Peta */}
-          {showMapModal && (
-            <div style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', background: 'rgba(15,23,42,0.8)', backdropFilter: 'blur(4px)' }}>
-              <div style={{ background: '#fff', width: '100%', maxWidth: '600px', borderRadius: '16px', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem', boxShadow: '0 20px 40px rgba(0,0,0,0.2)' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: '800', color: '#1e293b' }}>Lokasi Pengiriman</h3>
-                  <button onClick={() => setShowMapModal(false)} style={{ background: 'none', border: 'none', fontSize: '1.5rem', color: '#94a3b8', cursor: 'pointer', lineHeight: 1 }}>&times;</button>
-                </div>
-                
-                <MapLocationPicker 
-                  initialPosition={selectedLocation} 
-                  onConfirm={(coords, addressText) => {
-                    setSelectedLocation(coords);
-                    setFormData(prev => ({ 
-                      ...prev, 
-                      addressDetail: prev.addressDetail ? `${prev.addressDetail} (${addressText})` : addressText
-                    }));
-                    setShowMapModal(false);
-                  }} 
-                />
-              </div>
-            </div>
-          )}
-
-          {/* Modal Alamat Tersimpan (DARI PROFIL) */}
-          {showSavedAddressesModal && (
-            <div style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', background: 'rgba(15,23,42,0.8)', backdropFilter: 'blur(4px)' }}>
-              <div style={{ background: '#fff', width: '100%', maxWidth: '600px', borderRadius: '12px', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem', boxShadow: '0 20px 40px rgba(0,0,0,0.2)' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.75rem' }}>
-                  <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: '800', color: '#1e293b' }}>Pilih Alamat dari Profil</h3>
-                  <button onClick={() => setShowSavedAddressesModal(false)} style={{ background: 'none', border: 'none', fontSize: '1.5rem', color: '#94a3b8', cursor: 'pointer', lineHeight: 1 }}>&times;</button>
-                </div>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '400px', overflowY: 'auto', paddingRight: '5px' }}>
-                  {addresses && addresses.length > 0 ? addresses.map(addr => (
-                    <div 
-                      key={addr.id} 
-                      onClick={() => selectSavedAddress(addr)}
-                      style={{ border: '1px solid #e2e8f0', borderRadius: '8px', padding: '12px', cursor: 'pointer', transition: 'all 0.2s', ':hover': { borderColor: '#ee4d2d', background: '#fff5f5' } }}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #f1f5f9', paddingTop: '0.75rem' }}>
+                    <Link
+                      to="/profile?tab=alamat"
+                      onClick={() => setShowSavedAddressesModal(false)}
+                      style={{ color: '#0f4c81', fontSize: '0.82rem', fontWeight: '700', textDecoration: 'none' }}
                     >
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                        <span style={{ fontWeight: '700', fontSize: '0.9rem', color: '#1e293b' }}>{addr.name} | {addr.phone}</span>
-                        {addr.isPrimary && (
-                          <span style={{ fontSize: '0.65rem', background: '#ee4d2d', color: '#fff', padding: '2px 6px', borderRadius: '12px', fontWeight: '700' }}>Utama</span>
-                        )}
-                      </div>
-                      <div style={{ fontSize: '0.8rem', color: '#475569', lineHeight: 1.4 }}>
-                        <div>{addr.street} {addr.detail ? `(${addr.detail})` : ''}</div>
-                        <div>{addr.region}</div>
-                      </div>
-                    </div>
-                  )) : (
-                    <div style={{ textAlign: 'center', padding: '2rem 0', color: '#94a3b8', fontSize: '0.9rem' }}>
-                      Belum ada alamat tersimpan di profil Anda.
-                    </div>
-                  )}
+                      ⚙️ Kelola Alamat di Profil &rarr;
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={() => setShowSavedAddressesModal(false)}
+                      style={{ background: '#f1f5f9', border: 'none', color: '#475569', padding: '6px 14px', borderRadius: '6px', fontSize: '0.8rem', fontWeight: '600', cursor: 'pointer' }}
+                    >
+                      Tutup
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
-        </div>
+            )}
+          </div>
         )}
 
         {/* Section 2: Toko & Detail Produk */}
@@ -566,8 +543,8 @@ const Checkout = () => {
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <CreditCard size={20} color="#00a896" />
               <div>
-                <div style={{ fontSize: '0.85rem', fontWeight: '700', color: '#1e293b' }}>Transfer Bank / VA (Midtrans)</div>
-                <div style={{ fontSize: '0.72rem', color: '#64748b' }}>BCA, Mandiri, BNI, BRI, QRIS</div>
+                <div style={{ fontSize: '0.85rem', fontWeight: '700', color: '#1e293b' }}>Transfer Bank / Virtual Account / QRIS</div>
+                <div style={{ fontSize: '0.72rem', color: '#64748b' }}>BCA, Mandiri, BNI, BRI, Gopay, QRIS (Pembayaran Otomatis)</div>
               </div>
             </div>
             <input type="radio" name="payment" value="Midtrans" checked={paymentMethod === 'Midtrans'} onChange={() => setPaymentMethod('Midtrans')} style={{ accentColor: '#ee4d2d', transform: 'scale(1.2)' }} />

@@ -91,23 +91,32 @@ class PaymentController extends Controller
             } else {
                 if ($totalWeight === 0) $totalWeight = 1000;
                 
-                $shippingCostData = $this->shippingService->calculateCost(
-                    $request->shipping_city_id,
-                    $totalWeight,
-                    $request->shipping_courier ?? 'jne'
-                );
+                try {
+                    $shippingCostData = $this->shippingService->calculateCost(
+                        $request->shipping_city_id,
+                        $totalWeight,
+                        $request->shipping_courier ?? 'jne'
+                    );
 
-                $selectedServiceCost = collect($shippingCostData['services'])->firstWhere('code', $request->shipping_service);
+                    $selectedServiceCost = collect($shippingCostData['services'] ?? [])->firstWhere('code', $request->shipping_service);
 
-                if (!$selectedServiceCost) {
-                    throw new \Exception("Layanan pengiriman {$request->shipping_service} tidak tersedia untuk tujuan ini.");
+                    if ($selectedServiceCost) {
+                        $shippingFee = $selectedServiceCost['price'];
+                        $shippingEtd = $selectedServiceCost['etd'];
+                    } else {
+                        $weightKg = max(1, (int) ceil($totalWeight / 1000));
+                        $shippingFee = 15000 + ($weightKg * 5000);
+                        $shippingEtd = '2-3 Hari';
+                    }
+                } catch (\Exception $e) {
+                    $weightKg = max(1, (int) ceil($totalWeight / 1000));
+                    $shippingFee = 15000 + ($weightKg * 5000);
+                    $shippingEtd = '2-3 Hari';
                 }
-
-                $shippingFee = $selectedServiceCost['price'];
-                $shippingEtd = $selectedServiceCost['etd'];
             }
 
-            $total = $subtotal + $shippingFee;
+            $serviceFee = ($paymentMethod === 'COD' || $paymentMethod === 'Cash' || $request->shipping_method === 'pickup') ? 0 : 1000;
+            $total = $subtotal + $shippingFee + $serviceFee;
             $orderIdMidtrans = 'TRX-' . time() . '-' . rand(100, 999);
 
             $order = Order::create([
@@ -355,7 +364,8 @@ class PaymentController extends Controller
         if (!$o) return response()->json(null, 404);
 
         // Security check: non-admin can only view their own orders
-        if ($user->role !== 'admin' && $o->user_id && $o->user_id !== $user->id && $o->customer_email !== $user->email) {
+        $isOwner = ($o->user_id && $o->user_id === $user->id) || ($o->customer_email === $user->email);
+        if ($user->role !== 'admin' && !$isOwner) {
             return response()->json(['message' => 'Akses ditolak.'], 403);
         }
 
@@ -387,6 +397,47 @@ class PaymentController extends Controller
                     'image' => $i->image ?? 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=500' 
                 ];
             })
+        ]);
+    }
+
+    public function confirmReceived(Request $request, $id)
+    {
+        $user = $request->user();
+        if (!$user) {
+            return response()->json(['message' => 'Silakan login terlebih dahulu.'], 401);
+        }
+
+        $order = Order::with('payment')->find($id);
+        if (!$order) {
+            return response()->json(['status' => 'error', 'message' => 'Pesanan tidak ditemukan.'], 404);
+        }
+
+        // Security check: only order owner or admin can confirm
+        $isOwner = ($order->user_id && $order->user_id === $user->id) || ($order->customer_email === $user->email);
+        if (!$isOwner && $user->role !== 'admin') {
+            return response()->json(['status' => 'error', 'message' => 'Akses ditolak.'], 403);
+        }
+
+        if ($order->status === 'Selesai') {
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Pesanan sudah selesai.',
+                'data' => $order
+            ]);
+        }
+
+        $order->status = 'Selesai';
+        $order->save();
+
+        if ($order->payment) {
+            $order->payment->payment_status = 'paid';
+            $order->payment->save();
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Pesanan berhasil dikonfirmasi diterima. Terima kasih!',
+            'data' => $order
         ]);
     }
 }

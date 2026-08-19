@@ -32,6 +32,9 @@ class MidtransService
                 'email' => $order->customer_email,
                 'phone' => $order->customer_phone,
             ],
+            'callbacks' => [
+                'finish' => (env('FRONTEND_URL') ?? env('APP_URL') ?? 'http://localhost:5173') . '/orders/' . $order->id,
+            ],
         ];
 
         try {

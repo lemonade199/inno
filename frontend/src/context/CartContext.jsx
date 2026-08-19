@@ -49,32 +49,37 @@ export const CartProvider = ({ children }) => {
       return false;
     }
 
+    const qtyToAdd = Math.max(1, Number(quantity) || 1);
+
     setCart((prevCart) => {
-      const existingIndex = prevCart.findIndex((item) => item.product.id === product.id);
+      const existingIndex = prevCart.findIndex((item) => String(item.product.id) === String(product.id));
       if (existingIndex > -1) {
-        const newCart = [...prevCart];
-        newCart[existingIndex].qty += quantity;
-        return newCart;
+        return prevCart.map((item, index) =>
+          index === existingIndex
+            ? { ...item, qty: item.qty + qtyToAdd }
+            : item
+        );
       }
-      return [...prevCart, { product, qty: quantity }];
+      return [...prevCart, { product, qty: qtyToAdd }];
     });
     return true;
   };
 
   const removeFromCart = (productId) => {
     if (!user) return;
-    setCart((prevCart) => prevCart.filter((item) => item.product.id !== productId));
+    setCart((prevCart) => prevCart.filter((item) => String(item.product.id) !== String(productId)));
   };
 
   const updateQuantity = (productId, qty) => {
     if (!user) return;
-    if (qty <= 0) {
+    const newQty = Number(qty);
+    if (newQty <= 0) {
       removeFromCart(productId);
       return;
     }
     setCart((prevCart) =>
       prevCart.map((item) =>
-        item.product.id === productId ? { ...item, qty } : item
+        String(item.product.id) === String(productId) ? { ...item, qty: newQty } : item
       )
     );
   };

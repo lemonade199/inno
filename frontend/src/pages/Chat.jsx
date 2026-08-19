@@ -111,12 +111,13 @@ const Chat = () => {
   return (
     <div style={{ 
       background: '#f3f4f6', 
-      maxWidth: '520px', 
+      width: '100%',
+      maxWidth: '850px', 
       margin: '0 auto', 
       minHeight: '100vh', 
       display: 'flex', 
       flexDirection: 'column',
-      boxShadow: '0 4px 25px rgba(0,0,0,0.1)',
+      boxShadow: '0 2px 16px rgba(0,0,0,0.06)',
       position: 'relative',
       fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif'
     }}>
@@ -346,7 +347,7 @@ const Chat = () => {
         left: '50%', 
         transform: 'translateX(-50%)', 
         width: '100%', 
-        maxWidth: '520px', 
+        maxWidth: '850px', 
         background: '#ffffff', 
         borderTop: '1px solid #e5e7eb', 
         zIndex: 30 
@@ -481,7 +482,7 @@ const Chat = () => {
             onClick={(e) => e.stopPropagation()}
             style={{
               background: '#ffffff',
-              maxWidth: '520px',
+              maxWidth: '850px',
               width: '100%',
               maxHeight: '75vh',
               borderTopLeftRadius: '20px',

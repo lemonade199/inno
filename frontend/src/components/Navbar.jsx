@@ -20,7 +20,9 @@ import {
   AlertTriangle,
   Bell,
   CheckCircle2,
-  CheckSquare
+  CheckSquare,
+  MessageSquare,
+  MessageCircle
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
@@ -654,6 +656,148 @@ const Navbar = ({ isAdminView = false, toggleSidebar }) => {
         {/* Cart Icon & User Actions */}
         {!isCartPage && (
           <div className="navbar-user-actions" style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', flexShrink: 0 }}>
+            {/* Live Chat Icon Button */}
+            <button 
+              onClick={() => {
+                if (!user) {
+                  requireAuth(() => navigate('/chat'), 'Silakan login terlebih dahulu untuk mengakses fitur live chat.');
+                } else {
+                  navigate('/chat');
+                }
+              }}
+              style={{ position: 'relative', color: '#fff', background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', flexShrink: 0 }}
+              title="Live Chat Penjual"
+            >
+              <MessageSquare size={22} />
+            </button>
+
+            {/* Notification Bell Button */}
+            <div style={{ position: 'relative', flexShrink: 0 }} ref={notifRef}>
+              <button
+                onClick={() => setShowNotifDropdown(!showNotifDropdown)}
+                style={{ position: 'relative', color: '#fff', background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', flexShrink: 0 }}
+                title="Notifikasi"
+              >
+                <Bell size={22} />
+                {unreadCount > 0 && (
+                  <span style={{ position: 'absolute', top: '-6px', right: '-6px', background: '#ef4444', color: '#fff', fontSize: '0.62rem', fontWeight: '800', width: '17px', height: '17px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid #0f4c81' }}>
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
+                )}
+              </button>
+
+              {/* Notification Popover Menu for User */}
+              {showNotifDropdown && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    right: '-40px',
+                    top: '40px',
+                    background: '#ffffff',
+                    borderRadius: '14px',
+                    boxShadow: '0 20px 40px -15px rgba(0,0,0,0.25), 0 0 0 1px rgba(0,0,0,0.08)',
+                    width: 'min(350px, calc(100vw - 32px))',
+                    zIndex: 2000,
+                    overflow: 'hidden'
+                  }}
+                >
+                  <div
+                    style={{
+                      padding: '0.85rem 1.1rem',
+                      borderBottom: '1px solid #f1f5f9',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      background: '#f8fafc',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <Bell size={16} color="#0f4c81" />
+                      <span style={{ fontSize: '0.9rem', fontWeight: '800', color: '#0f172a' }}>
+                        Notifikasi ({unreadCount})
+                      </span>
+                    </div>
+                    {unreadCount > 0 && (
+                      <button
+                        onClick={() => markAllAsRead()}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          fontSize: '0.75rem',
+                          fontWeight: '700',
+                          color: '#00a896',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px'
+                        }}
+                      >
+                        <CheckSquare size={13} /> Tandai dibaca
+                      </button>
+                    )}
+                  </div>
+
+                  <div style={{ maxHeight: '340px', overflowY: 'auto' }}>
+                    {adminNotifications.length === 0 ? (
+                      <div style={{ padding: '2rem 1rem', textAlign: 'center', color: '#64748b', fontSize: '0.85rem' }}>
+                        Tidak ada notifikasi saat ini.
+                      </div>
+                    ) : (
+                      adminNotifications.map((notif) => (
+                        <div
+                          key={notif.id}
+                          onClick={() => {
+                            if (!notif.is_read) markAsRead(notif.id);
+                            if (notif.action_url) {
+                              navigate(notif.action_url);
+                              setShowNotifDropdown(false);
+                            }
+                          }}
+                          style={{
+                            padding: '0.85rem 1.1rem',
+                            borderBottom: '1px solid #f8fafc',
+                            background: notif.is_read ? '#ffffff' : '#f0fdfa',
+                            display: 'flex',
+                            gap: '10px',
+                            alignItems: 'flex-start',
+                            cursor: notif.action_url ? 'pointer' : 'default',
+                            transition: 'background 0.2s'
+                          }}
+                          onMouseOver={(e) => { e.currentTarget.style.background = notif.is_read ? '#f8fafc' : '#ccfbf1'; }}
+                          onMouseOut={(e) => { e.currentTarget.style.background = notif.is_read ? '#ffffff' : '#f0fdfa'; }}
+                        >
+                          <div
+                            style={{
+                              width: '8px',
+                              height: '8px',
+                              borderRadius: '50%',
+                              background: notif.type === 'promo' ? '#f59e0b' : notif.type === 'order' ? '#0f4c81' : '#10b981',
+                              marginTop: '6px',
+                              flexShrink: 0
+                            }}
+                          />
+                          <div style={{ flex: 1 }}>
+                            <div style={{ fontSize: '0.83rem', fontWeight: '700', color: notif.is_read ? '#475569' : '#0f172a' }}>
+                              {notif.title}
+                            </div>
+                            <div style={{ fontSize: '0.78rem', color: notif.is_read ? '#94a3b8' : '#64748b', marginTop: '2px', lineHeight: 1.4 }}>
+                              {notif.message}
+                            </div>
+                            <div style={{ fontSize: '0.7rem', color: '#94a3b8', marginTop: '4px' }}>
+                              {notif.created_at}
+                            </div>
+                          </div>
+                          {!notif.is_read && (
+                            <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#00a896', alignSelf: 'center' }} />
+                          )}
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
             <button 
               onClick={() => {
                 if (!user) {

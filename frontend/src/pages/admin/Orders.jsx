@@ -156,7 +156,9 @@ const AdminOrders = () => {
                   </td>
                   <td style={{ fontSize: '0.82rem', color: '#64748b' }}>{order.date}</td>
                   <td>
-                    <span className="badge badge-info">{order.paymentMethod}</span>
+                    <span className="badge badge-info">
+                      {order.paymentMethod === 'Midtrans' ? 'Pembayaran Online' : order.paymentMethod}
+                    </span>
                   </td>
                   <td style={{ fontWeight: '800', color: '#1e293b' }}>
                     {productService.formatIDR(order.total)}

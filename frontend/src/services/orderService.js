@@ -43,4 +43,14 @@ export const orderService = {
       return null;
     }
   },
+  confirmOrderReceived: async (id) => {
+    try {
+      const res = await api.put(`/orders/${id}/confirm-received`);
+      return res.data;
+    } catch (e) {
+      console.error(e);
+      const message = e.response?.data?.message || 'Gagal mengonfirmasi pesanan.';
+      throw new Error(message);
+    }
+  },
 };

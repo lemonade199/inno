@@ -9,21 +9,63 @@ import {
   Truck, 
   CreditCard,
   Clock,
-  ChevronRight
+  ChevronRight,
+  MessageCircle
 } from 'lucide-react';
 
 const UserLayout = () => {
   const location = useLocation();
   const isChatPage = location.pathname === '/chat';
-  const hideFooter = location.pathname.startsWith('/products') || location.pathname === '/cart' || isChatPage;
+  const isCheckoutPage = location.pathname.startsWith('/checkout');
+  const isProductDetailPage = location.pathname.startsWith('/products/');
+  const hideNavbar = isChatPage || isCheckoutPage;
+  const hideFooter = location.pathname.startsWith('/products') || location.pathname === '/cart' || isCheckoutPage || isChatPage;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', background: '#f8fafc' }}>
-      {!isChatPage && <Navbar isAdminView={false} />}
+      {!hideNavbar && <Navbar isAdminView={false} />}
       
       <main style={{ flex: 1, maxWidth: isChatPage ? '100%' : '1200px', width: '100%', margin: '0 auto', padding: isChatPage ? 0 : '1.5rem 1rem' }}>
         <Outlet />
       </main>
+
+      {/* Global Floating Chat Button (Visible across all main user pages) */}
+      {!isChatPage && !isCheckoutPage && !isProductDetailPage && (
+        <Link
+          to="/chat"
+          style={{
+            position: 'fixed',
+            bottom: '22px',
+            right: '22px',
+            zIndex: 999,
+            background: 'linear-gradient(135deg, #00a896 0%, #028090 100%)',
+            color: '#fff',
+            padding: '10px 18px',
+            borderRadius: '50px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            boxShadow: '0 8px 24px rgba(0, 168, 150, 0.45)',
+            textDecoration: 'none',
+            fontWeight: '700',
+            fontSize: '0.88rem',
+            border: '2px solid rgba(255,255,255,0.3)',
+            transition: 'transform 0.2s, box-shadow 0.2s'
+          }}
+          onMouseOver={(e) => {
+            e.currentTarget.style.transform = 'translateY(-3px)';
+            e.currentTarget.style.boxShadow = '0 12px 28px rgba(0, 168, 150, 0.55)';
+          }}
+          onMouseOut={(e) => {
+            e.currentTarget.style.transform = 'translateY(0)';
+            e.currentTarget.style.boxShadow = '0 8px 24px rgba(0, 168, 150, 0.45)';
+          }}
+          title="Tanya Penjual / Live Chat"
+        >
+          <MessageCircle size={20} />
+          <span>Chat</span>
+        </Link>
+      )}
 
       {!hideFooter && (
         <footer style={{ background: 'linear-gradient(180deg, #07172b 0%, #05101f 100%)', color: '#94a3b8', borderTop: '1px solid #0f2d4a', marginTop: 'auto' }}>
@@ -75,7 +117,7 @@ const UserLayout = () => {
                     <Truck size={16} color="#00a896" /> Pengiriman Cepat ke Seluruh Nusantara
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.8rem', color: '#e2e8f0', fontWeight: '600' }}>
-                    <CreditCard size={16} color="#00a896" /> Pembayaran Aman & Otomatis (Midtrans)
+                    <CreditCard size={16} color="#00a896" /> Pembayaran Aman & Otomatis (Transfer Bank & QRIS)
                   </div>
                 </div>
               </div>

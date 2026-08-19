@@ -46,6 +46,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/payment/sync/{order_id_db}', [PaymentController::class, 'syncPayment']);
     Route::get('/orders', [PaymentController::class, 'getOrders']);
     Route::get('/orders/{id}', [PaymentController::class, 'getOrderById']);
+    Route::put('/orders/{id}/confirm-received', [PaymentController::class, 'confirmReceived']);
 });
 
 // Admin Only Endpoints

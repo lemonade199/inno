@@ -9,8 +9,8 @@ const Login = () => {
   const { login } = useAuth();
   
   const [roleMode, setRoleMode] = useState('user'); // 'user' or 'admin'
-  const [email, setEmail] = useState('user@gmail.com');
-  const [password, setPassword] = useState('password123');
+  const [email, setEmail] = useState('julianto@gmail.com');
+  const [password, setPassword] = useState('password');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
@@ -61,13 +61,12 @@ const Login = () => {
         
         {/* Logo & Title */}
         <div style={{ textAlign: 'center', marginBottom: '1.75rem' }}>
-          <div style={{
-            width: '60px', height: '60px', borderRadius: '16px',
-            background: 'linear-gradient(135deg, #00a896, #0f4c81)',
-            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-            marginBottom: '0.75rem', boxShadow: '0 8px 20px rgba(0, 168, 150, 0.4)'
-          }}>
-            <Anchor size={34} color="#fff" />
+          <div style={{ marginBottom: '0.75rem' }}>
+            <img
+              src="/logo.png"
+              alt="Berkah Pancing"
+              style={{ width: '72px', height: '72px', objectFit: 'contain', borderRadius: '16px', boxShadow: '0 8px 20px rgba(0, 168, 150, 0.3)' }}
+            />
           </div>
           <h2 style={{ fontSize: '1.6rem', fontWeight: '800', color: '#0f172a', letterSpacing: '0.5px' }}>BERKAH PANCING</h2>
           <p style={{ fontSize: '0.85rem', color: '#64748b', marginTop: '4px' }}>Masuk ke akun Anda untuk melanjutkannya</p>

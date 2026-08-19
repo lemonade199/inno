@@ -18,6 +18,7 @@ class ProductController extends Controller
                 'category' => $p->category,
                 'price' => $p->price,
                 'stock' => $p->stock,
+                'weight' => $p->weight ?? 500,
                 'status' => $p->stock > 5 ? 'Tersedia' : ($p->stock > 0 ? 'Stok Menipis' : 'Habis'),
                 'image' => $p->image ?: 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=500',
                 'description' => $p->description,
@@ -38,6 +39,7 @@ class ProductController extends Controller
             'category' => $p->category,
             'price' => $p->price,
             'stock' => $p->stock,
+            'weight' => $p->weight ?? 500,
             'status' => $p->stock > 5 ? 'Tersedia' : ($p->stock > 0 ? 'Stok Menipis' : 'Habis'),
             'image' => $p->image ?: 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=500',
             'description' => $p->description,
@@ -47,41 +49,91 @@ class ProductController extends Controller
 
     public function store(Request $request)
     {
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'category' => 'required|string|max:255',
+            'price' => 'required|numeric|min:0',
+            'stock' => 'required|integer|min:0',
+            'weight' => 'nullable|integer|min:1',
+            'description' => 'nullable|string',
+            'image' => 'nullable',
+        ]);
+
         $imagePath = null;
         if ($request->hasFile('image')) {
+            $request->validate([
+                'image' => 'image|mimes:jpeg,png,jpg,webp|max:2048'
+            ]);
             $imagePath = $request->file('image')->store('products', 'public');
             $imagePath = '/storage/' . $imagePath;
+        } elseif ($request->filled('image') && is_string($request->image) && !str_starts_with($request->image, 'data:')) {
+            $imagePath = $request->image;
         }
 
         $p = Product::create([
-            'name' => $request->name,
-            'category' => $request->category,
-            'price' => $request->price,
-            'stock' => $request->stock,
+            'name' => $validated['name'],
+            'category' => $validated['category'],
+            'price' => $validated['price'],
+            'stock' => $validated['stock'],
+            'weight' => !empty($validated['weight']) ? (int)$validated['weight'] : 500,
             'image' => $imagePath,
-            'description' => $request->description,
+            'description' => $validated['description'] ?? null,
         ]);
-        return response()->json(['id' => $p->id]);
+
+        return response()->json([
+            'message' => 'Produk berhasil ditambahkan',
+            'id' => $p->id,
+            'product' => $p
+        ], 201);
     }
 
     public function update(Request $request, $id)
     {
         $p = Product::find($id);
-        if ($p) {
-            $data = $request->only(['name', 'category', 'price', 'stock', 'description']);
-            if ($request->hasFile('image')) {
-                $imagePath = $request->file('image')->store('products', 'public');
-                $data['image'] = '/storage/' . $imagePath;
-            }
-            $p->update($data);
+        if (!$p) {
+            return response()->json(['message' => 'Produk tidak ditemukan.'], 404);
         }
-        return response()->json(['success' => true]);
+
+        $validated = $request->validate([
+            'name' => 'sometimes|required|string|max:255',
+            'category' => 'sometimes|required|string|max:255',
+            'price' => 'sometimes|required|numeric|min:0',
+            'stock' => 'sometimes|required|integer|min:0',
+            'weight' => 'nullable|integer|min:1',
+            'description' => 'nullable|string',
+            'image' => 'nullable',
+        ]);
+
+        $data = $request->only(['name', 'category', 'price', 'stock', 'weight', 'description']);
+        
+        if ($request->has('weight')) {
+            $data['weight'] = !empty($request->weight) ? (int)$request->weight : 500;
+        }
+
+        if ($request->hasFile('image')) {
+            $request->validate([
+                'image' => 'image|mimes:jpeg,png,jpg,webp|max:2048'
+            ]);
+            $imagePath = $request->file('image')->store('products', 'public');
+            $data['image'] = '/storage/' . $imagePath;
+        }
+
+        $p->update($data);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Produk berhasil diperbarui',
+            'product' => $p
+        ]);
     }
 
     public function destroy($id)
     {
         $p = Product::find($id);
-        if ($p) $p->delete();
-        return response()->json(['success' => true]);
+        if (!$p) {
+            return response()->json(['message' => 'Produk tidak ditemukan.'], 404);
+        }
+        $p->delete();
+        return response()->json(['success' => true, 'message' => 'Produk berhasil dihapus']);
     }
 }

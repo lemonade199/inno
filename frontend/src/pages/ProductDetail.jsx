@@ -149,7 +149,7 @@ const ProductDetail = () => {
       rating: modalRating,
       variant: selectedVariant,
       comment: modalComment,
-      images: modalImages.length > 0 ? modalImages : ['https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=500&auto=format&fit=crop&q=80']
+      images: modalImages.length > 0 ? modalImages : []
     });
     fetchReviews();
     setShowReviewModal(false);
@@ -713,20 +713,21 @@ const ProductDetail = () => {
         </div>
       </div>
 
-      {/* ================= TOKOPEDIA-STYLE ULASAN PEMBELI / REVIEWS ================= */}
+      {/* ================= ULASAN PEMBELI / REVIEWS ================= */}
       <div style={{ 
         background: '#fff', 
-        borderRadius: '3px', 
+        borderRadius: '8px', 
         padding: '1.25rem', 
         boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
         display: 'flex',
         flexDirection: 'column',
-        gap: '1rem'
+        gap: '1rem',
+        border: '1px solid #e2e8f0'
       }}>
-        {/* Header Row: Ulasan pembeli (Left) & Lihat Semua / Tulis Ulasan (Right) */}
+        {/* Header Row: Ulasan pembeli (Left) & Tulis Ulasan (Right) */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h3 style={{ fontSize: '1.15rem', fontWeight: '800', color: '#1e293b', margin: 0 }}>
-            Ulasan pembeli
+          <h3 style={{ fontSize: '1.1rem', fontWeight: '800', color: '#1e293b', margin: 0 }}>
+            Ulasan Pembeli
           </h3>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <button 
@@ -735,86 +736,74 @@ const ProductDetail = () => {
                 background: 'none', 
                 border: 'none', 
                 color: '#00a896', 
-                fontSize: '0.88rem', 
+                fontSize: '0.85rem', 
                 fontWeight: '700', 
                 cursor: 'pointer' 
               }}
             >
-              Tulis Ulasan / Lihat Semua
+              + Tulis Ulasan
             </button>
           </div>
         </div>
 
-        {/* Rating Subheader */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.88rem', color: '#475569' }}>
-          <span style={{ color: '#f59e0b', fontSize: '1.1rem' }}>⭐</span>
-          <span style={{ fontWeight: '800', color: '#1e293b', fontSize: '1rem' }}>4.9</span>
-          <span style={{ color: '#64748b' }}>108,3 rb rating • 25,2 rb ulasan</span>
-        </div>
-
-
-
-        {/* Horizontal Photo Thumbnail Gallery Strip (Vertical Rectangular Images) */}
-        <div className="single-line-tabs hide-scrollbar" style={{ display: 'flex', gap: '10px', overflowX: 'auto', padding: '4px 0' }}>
-          {[
-            'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=300&auto=format&fit=crop&q=80',
-            'https://images.unsplash.com/photo-1509198397868-475647b2a1e5?w=300&auto=format&fit=crop&q=80',
-            'https://images.unsplash.com/photo-1611095790444-1dfa35e37b52?w=300&auto=format&fit=crop&q=80',
-            'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=300&auto=format&fit=crop&q=80'
-          ].map((imgUrl, idx) => (
-            <div key={idx} style={{ width: '70px', height: '95px', borderRadius: '6px', overflow: 'hidden', flexShrink: 0, border: '1px solid #e2e8f0' }}>
-              <img src={imgUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-            </div>
-          ))}
-        </div>
-
-        {reviewSubmitted && (
-          <div style={{ background: '#dcfce7', color: '#15803d', padding: '0.75rem 1rem', borderRadius: '4px', fontSize: '0.85rem', fontWeight: '700' }}>
-            ✓ Terima kasih! Ulasan produk Anda telah berhasil dipublikasikan.
+        {reviews.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '2.5rem 1rem', color: '#64748b', fontSize: '0.9rem', background: '#fafafa', borderRadius: '8px', border: '1px dashed #cbd5e1' }}>
+            <div style={{ fontSize: '1.75rem', marginBottom: '6px' }}>💬</div>
+            <div style={{ fontWeight: '700', color: '#1e293b', fontSize: '0.95rem', marginBottom: '3px' }}>Belum ada ulasan</div>
+            <div style={{ fontSize: '0.82rem', color: '#94a3b8' }}>Produk ini belum memiliki ulasan dari pembeli.</div>
           </div>
-        )}
-
-        {/* Individual Buyer Reviews List */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', marginTop: '0.5rem' }}>
-          {filteredReviews.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '1.5rem', color: '#64748b', fontSize: '0.85rem' }}>
-              Belum ada ulasan untuk filter ini.
+        ) : (
+          <>
+            {/* Rating Subheader */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.88rem', color: '#475569' }}>
+              <span style={{ color: '#f59e0b', fontSize: '1.1rem' }}>⭐</span>
+              <span style={{ fontWeight: '800', color: '#1e293b', fontSize: '1rem' }}>{ratingSummary.average || 5.0}</span>
+              <span style={{ color: '#64748b' }}>({reviews.length} ulasan)</span>
             </div>
-          ) : (
-            filteredReviews.map((rev) => (
-              <div 
-                key={rev.id} 
-                style={{ 
-                  borderBottom: '1px solid #f1f5f9', 
-                  paddingBottom: '1.25rem', 
-                  display: 'flex', 
-                  flexDirection: 'column', 
-                  gap: '8px' 
-                }}
-              >
-                {/* Avatar + Masked Name */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '700', color: '#64748b', fontSize: '0.8rem' }}>
-                    👤
-                  </div>
-                  <span style={{ fontSize: '0.88rem', fontWeight: '800', color: '#1e293b' }}>
-                    {rev.userName.length > 3 ? `${rev.userName.charAt(0)}***${rev.userName.charAt(rev.userName.length - 1)}` : rev.userName}
-                  </span>
-                </div>
 
-                {/* Stars */}
-                <div style={{ color: '#f59e0b', fontSize: '0.9rem', letterSpacing: '1px' }}>
-                  ★★★★★
-                </div>
-
-                {/* Comment Text */}
-                <p style={{ fontSize: '0.85rem', color: '#1e293b', lineHeight: 1.5, margin: 0 }}>
-                  {rev.comment}
-                </p>
+            {reviewSubmitted && (
+              <div style={{ background: '#dcfce7', color: '#15803d', padding: '0.75rem 1rem', borderRadius: '4px', fontSize: '0.85rem', fontWeight: '700' }}>
+                ✓ Terima kasih! Ulasan produk Anda telah berhasil dipublikasikan.
               </div>
-            ))
-          )}
-        </div>
+            )}
+
+            {/* Individual Buyer Reviews List */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', marginTop: '0.5rem' }}>
+              {filteredReviews.map((rev) => (
+                <div 
+                  key={rev.id} 
+                  style={{ 
+                    borderBottom: '1px solid #f1f5f9', 
+                    paddingBottom: '1.25rem', 
+                    display: 'flex', 
+                    flexDirection: 'column', 
+                    gap: '8px' 
+                  }}
+                >
+                  {/* Avatar + Masked Name */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '700', color: '#64748b', fontSize: '0.8rem' }}>
+                      👤
+                    </div>
+                    <span style={{ fontSize: '0.88rem', fontWeight: '800', color: '#1e293b' }}>
+                      {rev.userName.length > 3 ? `${rev.userName.charAt(0)}***${rev.userName.charAt(rev.userName.length - 1)}` : rev.userName}
+                    </span>
+                  </div>
+
+                  {/* Stars */}
+                  <div style={{ color: '#f59e0b', fontSize: '0.9rem', letterSpacing: '1px' }}>
+                    {'★'.repeat(rev.rating || 5)}
+                  </div>
+
+                  {/* Comment Text */}
+                  <p style={{ fontSize: '0.85rem', color: '#1e293b', lineHeight: 1.5, margin: 0 }}>
+                    {rev.comment}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
       </div>
 
       {/* ================= WRITE REVIEW MODAL ================= */}
@@ -997,8 +986,14 @@ const ProductDetail = () => {
 
       {/* Tokopedia Mobile Sticky Bottom Bar (Chat, + Keranjang, Beli Sekarang) */}
       <div className="tokopedia-mobile-bottom-bar">
-        <button onClick={handleChatClick} className="tokopedia-btn-chat" title="Chat Seller">
-          <MessageSquare size={20} color="#475569" />
+        <button 
+          onClick={handleChatClick} 
+          className="tokopedia-btn-chat" 
+          title="Chat Penjual"
+          style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '2px', background: '#f0fdf4', border: '1.5px solid #00a896', borderRadius: '8px', padding: '4px 10px', cursor: 'pointer', flexShrink: 0 }}
+        >
+          <MessageCircle size={19} color="#00a896" />
+          <span style={{ fontSize: '0.68rem', fontWeight: '800', color: '#00a896', lineHeight: 1 }}>Chat</span>
         </button>
         <button 
           onClick={handleAddToCart} 

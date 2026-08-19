@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { ArrowLeft, Package, MapPin, CreditCard, Clock, CheckCircle2, Truck, ShieldCheck } from 'lucide-react';
 import { orderService } from '../services/orderService';
 import { productService } from '../services/productService';
+import api from '../services/api';
 import Loading from '../components/Loading';
 
 const OrderDetail = () => {
@@ -27,9 +28,13 @@ const OrderDetail = () => {
     if (!isSilent) setLoading(false);
   };
 
-  const handleUpdateStatus = async (newStatus, paymentStatus) => {
-    await orderService.updateOrderStatus(id, newStatus, paymentStatus);
-    fetchOrderDetail();
+  const handleConfirmReceived = async () => {
+    try {
+      await orderService.confirmOrderReceived(id);
+      fetchOrderDetail();
+    } catch (err) {
+      alert(err.message || 'Gagal mengonfirmasi pesanan.');
+    }
   };
 
   if (loading) return <Loading text="Memuat rincian pesanan..." />;
@@ -255,7 +260,7 @@ const OrderDetail = () => {
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <span>Metode:</span>
                 <strong style={{ color: '#0f172a' }}>
-                  {order.paymentMethod === 'COD' ? 'COD (Ambil di Tempat)' : order.paymentMethod}
+                  {order.paymentMethod === 'COD' ? 'COD (Ambil di Tempat)' : (order.paymentMethod === 'Midtrans' ? 'Pembayaran Online (Transfer Bank / QRIS)' : order.paymentMethod)}
                 </strong>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
@@ -279,20 +284,20 @@ const OrderDetail = () => {
                 onClick={() => {
                   window.snap.pay(order.snap_token, {
                     onSuccess: async function(result){
-                      await fetch(`/api/payment/sync/${order.id}`);
+                      try { await api.get(`/payment/sync/${order.id}`); } catch(e){}
                       fetchOrderDetail();
                     },
                     onPending: async function(result){
-                      await fetch(`/api/payment/sync/${order.id}`);
+                      try { await api.get(`/payment/sync/${order.id}`); } catch(e){}
                       fetchOrderDetail();
                     },
                     onError: async function(result){
-                      await fetch(`/api/payment/sync/${order.id}`);
+                      try { await api.get(`/payment/sync/${order.id}`); } catch(e){}
                       fetchOrderDetail();
                       alert('Pembayaran gagal/ditolak oleh bank.');
                     },
                     onClose: async function(){
-                      await fetch(`/api/payment/sync/${order.id}`);
+                      try { await api.get(`/payment/sync/${order.id}`); } catch(e){}
                       fetchOrderDetail();
                     }
                   })
@@ -315,7 +320,7 @@ const OrderDetail = () => {
 
             {order.status === 'Dikirim' && (
               <button
-                onClick={() => handleUpdateStatus('Selesai', 'Lunas')}
+                onClick={handleConfirmReceived}
                 style={{
                   width: '100%',
                   padding: '0.8rem',
@@ -334,7 +339,7 @@ const OrderDetail = () => {
 
             {order.paymentMethod === 'COD' && order.status === 'Diproses' && (
               <button
-                onClick={() => handleUpdateStatus('Selesai', 'Lunas')}
+                onClick={handleConfirmReceived}
                 style={{
                   width: '100%',
                   padding: '0.8rem',

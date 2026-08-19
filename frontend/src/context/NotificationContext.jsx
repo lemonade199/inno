@@ -8,7 +8,7 @@ export const NotificationProvider = ({ children }) => {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
 
-  // Initialize notifications from logical storage or API
+  // Initialize notifications from logical storage or defaults
   useEffect(() => {
     const saved = localStorage.getItem('berkah_admin_notifications');
     if (saved) {
@@ -20,18 +20,29 @@ export const NotificationProvider = ({ children }) => {
         console.error('Failed to parse notifications', e);
       }
     } else {
-      // Default initial mock notifications
+      // Default initial notifications
       const defaults = [
         {
-          id: Date.now() - 100000,
+          id: Date.now() - 3600000,
+          title: 'Selamat Datang di Berkah Pancing! 🎣',
+          message: 'Pusat belanja alat pancing terlengkap & original. Nikmati promo & gratis ongkir untuk setiap pesanan.',
+          type: 'promo',
+          entity_type: 'promo',
+          entity_id: 0,
+          action_url: '/products',
+          is_read: false,
+          created_at: 'Hari ini'
+        },
+        {
+          id: Date.now() - 7200000,
           title: 'Sistem Terhubung',
-          message: 'Notification Center berhasil diinisialisasi.',
+          message: 'Notification Center & Layanan Berkah Pancing siap melayani pesanan Anda.',
           type: 'system',
           entity_type: 'system',
           entity_id: 0,
-          action_url: '/admin/dashboard',
-          is_read: false,
-          created_at: 'Baru saja'
+          action_url: '/orders',
+          is_read: true,
+          created_at: 'Kemarin'
         }
       ];
       setNotifications(defaults);
@@ -48,19 +59,19 @@ export const NotificationProvider = ({ children }) => {
     }
   }, [notifications]);
 
-  // Polling simulation (Check for external updates via localStorage changes from other tabs or mock backend)
+  // Polling simulation (Check for external updates via localStorage changes)
   useEffect(() => {
     const tick = setInterval(() => {
       const saved = localStorage.getItem('berkah_admin_notifications');
       if (saved) {
         try {
           const parsed = JSON.parse(saved);
-          if (parsed.length !== notifications.length || parsed.filter(n=>!n.is_read).length !== unreadCount) {
+          if (parsed.length !== notifications.length || parsed.filter(n => !n.is_read).length !== unreadCount) {
              setNotifications(parsed);
           }
         } catch(e) {}
       }
-    }, 5000); // Poll every 5 seconds
+    }, 3000);
     return () => clearInterval(tick);
   }, [notifications, unreadCount]);
 
@@ -68,7 +79,7 @@ export const NotificationProvider = ({ children }) => {
    * Add a new notification
    * @param {Object} notif 
    */
-  const addNotification = useCallback(({ title, message, type = 'info', entity_type = 'system', entity_id = 0, action_url = '/admin/dashboard' }) => {
+  const addNotification = useCallback(({ title, message, type = 'order', entity_type = 'order', entity_id = 0, action_url = '/orders' }) => {
     const newNotif = {
       id: Date.now(),
       title,
@@ -78,7 +89,7 @@ export const NotificationProvider = ({ children }) => {
       entity_id,
       action_url,
       is_read: false,
-      created_at: 'Baru saja' // In a real app, use timestamp and format it relatively
+      created_at: 'Baru saja'
     };
     
     setNotifications(prev => [newNotif, ...prev]);
@@ -107,9 +118,9 @@ export const NotificationProvider = ({ children }) => {
       unreadCount, 
       addNotification, 
       markAsRead, 
-      markAllAsRead,
-      deleteNotification,
-      clearAll
+      markAllAsRead, 
+      deleteNotification, 
+      clearAll 
     }}>
       {children}
     </NotificationContext.Provider>

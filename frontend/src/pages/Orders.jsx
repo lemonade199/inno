@@ -27,9 +27,13 @@ const Orders = () => {
     if (!isSilent) setLoading(false);
   };
 
-  const handleUpdateStatus = async (orderId, newStatus, paymentStatus) => {
-    await orderService.updateOrderStatus(orderId, newStatus, paymentStatus);
-    fetchOrders();
+  const handleConfirmReceived = async (orderId) => {
+    try {
+      await orderService.confirmOrderReceived(orderId);
+      fetchOrders();
+    } catch (err) {
+      alert(err.message || 'Gagal mengonfirmasi pesanan.');
+    }
   };
 
   const filteredOrders = orders.filter((o) => {
@@ -150,7 +154,9 @@ const Orders = () => {
               {/* Order Card Bottom: Total Payment & Action Buttons */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', borderTop: '1px solid #f1f5f9', paddingTop: '1rem' }}>
                 <div>
-                  <span style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block' }}>Total Pembayaran ({order.paymentMethod})</span>
+                  <span style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block' }}>
+                    Total Pembayaran ({order.paymentMethod === 'Midtrans' ? 'Pembayaran Online' : (order.paymentMethod || 'Pembayaran Online')})
+                  </span>
                   <span style={{ fontSize: '1.15rem', fontWeight: '800', color: '#0f4c81' }}>
                     {productService.formatIDR(order.total)}
                   </span>
@@ -158,17 +164,17 @@ const Orders = () => {
 
                 <div style={{ display: 'flex', gap: '0.6rem' }}>
                   {order.status === 'Menunggu Pembayaran' && (
-                    <button
-                      onClick={() => handleUpdateStatus(order.id, 'Diproses', 'Lunas')}
-                      style={{ padding: '0.5rem 1rem', borderRadius: '8px', border: 'none', background: '#00a896', color: '#fff', fontSize: '0.8rem', fontWeight: '700', cursor: 'pointer' }}
+                    <Link
+                      to={`/orders/${order.id}`}
+                      style={{ padding: '0.5rem 1rem', borderRadius: '8px', border: 'none', background: '#00a896', color: '#fff', fontSize: '0.8rem', fontWeight: '700', textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}
                     >
                       Bayar Sekarang
-                    </button>
+                    </Link>
                   )}
 
                   {order.status === 'Dikirim' && (
                     <button
-                      onClick={() => handleUpdateStatus(order.id, 'Selesai', 'Lunas')}
+                      onClick={() => handleConfirmReceived(order.id)}
                       style={{ padding: '0.5rem 1rem', borderRadius: '8px', border: 'none', background: '#16a34a', color: '#fff', fontSize: '0.8rem', fontWeight: '700', cursor: 'pointer' }}
                     >
                       Konfirmasi Selesai
