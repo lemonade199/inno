@@ -13,6 +13,8 @@ export const CartProvider = ({ children }) => {
     return saved ? JSON.parse(saved) : [];
   });
 
+  const [checkoutPayload, setCheckoutPayload] = useState([]);
+
   // Sync cart when user authentication changes
   useEffect(() => {
     if (user) {
@@ -85,9 +87,9 @@ export const CartProvider = ({ children }) => {
     }
   };
 
-  const getCartTotal = () => {
-    if (!user) return 0;
-    return cart.reduce((total, item) => total + item.product.price * item.qty, 0);
+  const getCartTotal = (items = cart) => {
+    if (!user && items === cart) return 0;
+    return (items || []).reduce((total, item) => total + item.product.price * item.qty, 0);
   };
 
   const getCartCount = () => {
@@ -95,16 +97,31 @@ export const CartProvider = ({ children }) => {
     return cart.reduce((count, item) => count + item.qty, 0);
   };
 
+  // Set items for direct checkout (Buy Now or Cart Selection)
+  const setCheckoutItems = (items) => {
+    setCheckoutPayload(items);
+  };
+
+  // Finish checkout: remove purchased items from main cart and clear checkout payload
+  const commitCheckout = () => {
+    const purchasedIds = checkoutPayload.map(item => item.product.id);
+    setCart(prev => prev.filter(item => !purchasedIds.includes(item.product.id)));
+    setCheckoutPayload([]);
+  };
+
   return (
     <CartContext.Provider
       value={{
         cart,
+        checkoutPayload,
         addToCart,
         removeFromCart,
         updateQuantity,
         clearCart,
         getCartTotal,
         getCartCount,
+        setCheckoutItems,
+        commitCheckout
       }}
     >
       {children}

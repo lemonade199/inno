@@ -58,7 +58,7 @@ const Sidebar = ({ collapsed, toggleSidebar, style = {}, className = '' }) => {
   const confirmLogout = () => {
     setShowLogoutConfirm(false);
     logout();
-    navigate('/login');
+    navigate('/login', { replace: true });
   };
 
   const menuItems = [

@@ -13,7 +13,7 @@ import { useCart } from '../context/CartContext';
 import { productService } from '../services/productService';
 
 const Cart = () => {
-  const { cart, updateQuantity, removeFromCart, clearCart } = useCart();
+  const { cart, updateQuantity, removeFromCart, clearCart, setCheckoutItems } = useCart();
   const { user, requireAuth } = useAuth();
   const navigate = useNavigate();
   
@@ -114,6 +114,10 @@ const Cart = () => {
       requireAuth(() => navigate('/checkout'), 'Silakan login terlebih dahulu untuk melakukan checkout.');
       return;
     }
+    
+    // Build array of selected items to pass to checkout
+    const itemsToCheckout = cart.filter(item => selectedIds.includes(item.product.id));
+    setCheckoutItems(itemsToCheckout);
     navigate('/checkout');
   };
 

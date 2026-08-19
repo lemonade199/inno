@@ -7,6 +7,40 @@ const AuthContext = createContext();
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [addresses, setAddresses] = useState([]);
+
+  // Load addresses from local storage when user changes
+  useEffect(() => {
+    if (user) {
+      const stored = localStorage.getItem(`addresses_${user.email}`);
+      if (stored) {
+        setAddresses(JSON.parse(stored));
+      } else {
+        // Init with default based on user
+        const defaultArr = [{
+          id: 1,
+          name: user.name,
+          phone: user.phone || '081234567890',
+          region: 'JAWA BARAT, KAB. BANDUNG, CILEUNYI, 40624',
+          street: user.address || 'Jln,cibiru hilir rt02 rw03 desa cibiru hilir kecamatan cileunyi kabupaten bandung',
+          detail: 'Rumah Utama',
+          tag: 'Rumah',
+          isPrimary: true
+        }];
+        setAddresses(defaultArr);
+        localStorage.setItem(`addresses_${user.email}`, JSON.stringify(defaultArr));
+      }
+    } else {
+      setAddresses([]);
+    }
+  }, [user]);
+
+  const saveAddresses = (newAddresses) => {
+    setAddresses(newAddresses);
+    if (user) {
+      localStorage.setItem(`addresses_${user.email}`, JSON.stringify(newAddresses));
+    }
+  };
 
   // Global Auth Modal State
   const [modalState, setModalState] = useState({
@@ -112,6 +146,8 @@ export const AuthProvider = ({ children }) => {
         register,
         logout,
         updateUserProfile,
+        addresses,
+        saveAddresses,
         isAdmin: user?.role === 'admin',
         openAuthModal,
         closeAuthModal,
