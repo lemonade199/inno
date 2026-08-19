@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { User, Lock, Save, ShieldCheck, LogOut, AlertTriangle, Camera, Trash2, Image as ImageIcon, Upload } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
@@ -370,7 +371,7 @@ const AdminProfile = () => {
       </div>
 
       {/* Admin Logout Confirmation Modal */}
-      {showLogoutConfirm && (
+      {showLogoutConfirm && createPortal(
         <div style={{
           position: 'fixed',
           inset: 0,
@@ -449,7 +450,8 @@ const AdminProfile = () => {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Image Cropper Modal */}

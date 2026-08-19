@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { Anchor, Lock, Mail, ArrowRight, ShieldCheck, User } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 const Login = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { login } = useAuth();
   
   const [roleMode, setRoleMode] = useState('user'); // 'user' or 'admin'
@@ -12,6 +13,12 @@ const Login = () => {
   const [password, setPassword] = useState('password123');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+
+  // Determine return target path
+  const fromLocation = location.state?.from;
+  const returnPath = typeof fromLocation === 'string' 
+    ? fromLocation 
+    : (fromLocation?.pathname ? (fromLocation.pathname + (fromLocation.search || '')) : '/');
 
   const handleRoleToggle = (role) => {
     setRoleMode(role);
@@ -30,9 +37,9 @@ const Login = () => {
     try {
       const loggedInUser = await login(email, password);
       if (loggedInUser.role === 'admin') {
-        navigate('/admin/dashboard');
+        navigate('/admin/dashboard', { replace: true });
       } else {
-        navigate('/');
+        navigate(returnPath, { replace: true });
       }
     } catch (err) {
       setError(err.message);
@@ -173,7 +180,7 @@ const Login = () => {
         </form>
 
         <div style={{ textAlign: 'center', marginTop: '1.5rem', fontSize: '0.85rem', color: '#64748b' }}>
-          Belum punya akun? <Link to="/register" style={{ color: '#00a896', fontWeight: '700', textDecoration: 'none' }}>Daftar Akun Baru</Link>
+          Belum punya akun? <Link to="/register" state={{ from: fromLocation }} style={{ color: '#00a896', fontWeight: '700', textDecoration: 'none' }}>Daftar Akun Baru</Link>
         </div>
       </div>
     </div>

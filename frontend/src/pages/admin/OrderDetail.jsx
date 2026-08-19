@@ -97,7 +97,9 @@ const AdminOrderDetail = () => {
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}>
               <span>Ongkos Kirim:</span>
-              <span style={{ fontWeight: '600' }}>{productService.formatIDR(order.shippingFee)}</span>
+              <span style={{ fontWeight: '600', color: order.paymentMethod === 'COD' || order.shippingFee === 0 ? '#16a34a' : 'inherit' }}>
+                {order.paymentMethod === 'COD' || order.shippingFee === 0 ? 'Rp 0 (Ambil di Tempat)' : productService.formatIDR(order.shippingFee)}
+              </span>
             </div>
             <hr style={{ borderColor: '#e2e8f0' }} />
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.05rem', fontWeight: '800', color: '#0f4c81' }}>
@@ -122,11 +124,21 @@ const AdminOrderDetail = () => {
           {/* Address */}
           <div className="card">
             <h4 style={{ fontSize: '0.95rem', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', marginBottom: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <MapPin size={18} color="#0f4c81" /> Alamat Pengiriman
+              <MapPin size={18} color="#0f4c81" /> {order.paymentMethod === 'COD' ? 'Metode Pengambilan' : 'Alamat Pengiriman'}
             </h4>
-            <p style={{ fontSize: '0.88rem', color: '#334155', lineHeight: 1.5 }}>
-              {order.address}
-            </p>
+            {order.paymentMethod === 'COD' ? (
+              <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', padding: '0.75rem', borderRadius: '6px', fontSize: '0.85rem', color: '#166534' }}>
+                <strong>🏬 Ambil di Toko / Tempat (COD):</strong>
+                <p style={{ margin: '4px 0 0', color: '#334155' }}>
+                  Pelanggan akan mengambil barang langsung di toko Berkah Pancing & bayar tunai di tempat. (Tanpa Ongkir)
+                </p>
+                <div style={{ marginTop: '6px', fontSize: '0.78rem', color: '#64748b' }}>Catatan / Detail: {order.address}</div>
+              </div>
+            ) : (
+              <p style={{ fontSize: '0.88rem', color: '#334155', lineHeight: 1.5 }}>
+                {order.address}
+              </p>
+            )}
             {order.trackingNumber && (
               <div style={{ marginTop: '0.75rem', padding: '0.5rem', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '6px' }}>
                 <span style={{ fontSize: '0.75rem', fontWeight: '700', color: '#166534', display: 'block' }}>NOMOR RESI KURIR:</span>
@@ -142,7 +154,9 @@ const AdminOrderDetail = () => {
             </h4>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span style={{ fontSize: '0.85rem' }}>Metode:</span>
-              <span className="badge badge-info">{order.paymentMethod}</span>
+              <span className="badge badge-info">
+                {order.paymentMethod === 'COD' ? 'COD (Ambil di Tempat)' : order.paymentMethod}
+              </span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.5rem' }}>
               <span style={{ fontSize: '0.85rem' }}>Status Bayar:</span>

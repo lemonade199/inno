@@ -174,11 +174,13 @@ const OrderDetail = () => {
           <div style={{ borderTop: '1px dashed #cbd5e1', marginTop: '1.5rem', paddingTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.6rem', fontSize: '0.88rem' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', color: '#475569' }}>
               <span>Subtotal Produk</span>
-              <span style={{ fontWeight: '700', color: '#0f172a' }}>{productService.formatIDR(order.subtotal || order.total - 20000)}</span>
+              <span style={{ fontWeight: '700', color: '#0f172a' }}>{productService.formatIDR(order.subtotal || order.total)}</span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', color: '#475569' }}>
               <span>Ongkos Kirim</span>
-              <span style={{ fontWeight: '700', color: '#0f172a' }}>{productService.formatIDR(order.shippingFee || 20000)}</span>
+              <span style={{ fontWeight: '700', color: order.paymentMethod === 'COD' || order.shippingFee === 0 ? '#16a34a' : '#0f172a' }}>
+                {order.paymentMethod === 'COD' || order.shippingFee === 0 ? 'Rp 0 (Ambil di Toko)' : productService.formatIDR(order.shippingFee)}
+              </span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.5rem', paddingTop: '0.75rem', borderTop: '1px solid #e2e8f0' }}>
               <span style={{ fontSize: '1.05rem', fontWeight: '800', color: '#0f172a' }}>Total Pembayaran</span>
@@ -196,13 +198,26 @@ const OrderDetail = () => {
           <div className="card" style={{ padding: '1.5rem', borderRadius: '14px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem', color: '#0f4c81' }}>
               <MapPin size={20} />
-              <h3 style={{ fontSize: '1rem', fontWeight: '800', color: '#1e293b', margin: 0 }}>Alamat Pengiriman</h3>
+              <h3 style={{ fontSize: '1rem', fontWeight: '800', color: '#1e293b', margin: 0 }}>
+                {order.paymentMethod === 'COD' ? 'Lokasi Pengambilan (Ambil di Tempat)' : 'Alamat Pengiriman'}
+              </h3>
             </div>
-            <div style={{ fontSize: '0.9rem', color: '#334155', lineHeight: 1.5 }}>
-              <div style={{ fontWeight: '700', color: '#0f172a' }}>{order.customerName}</div>
-              <div style={{ color: '#64748b' }}>{order.customerPhone}</div>
-              <div style={{ marginTop: '0.4rem', color: '#475569' }}>{order.address}</div>
-            </div>
+            
+            {order.paymentMethod === 'COD' ? (
+              <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '0.85rem', fontSize: '0.88rem', color: '#334155', lineHeight: 1.5 }}>
+                <div style={{ fontWeight: '800', color: '#0f4c81', marginBottom: '2px' }}>🏬 Toko Berkah Pancing (Pusat)</div>
+                <div style={{ color: '#475569', fontSize: '0.82rem' }}>Jl. Dermaga No. 12, Pelabuhan Ratu, Sukabumi (Buka: 08.00 - 21.00 WIB)</div>
+                <div style={{ borderTop: '1px dashed #cbd5e1', marginTop: '8px', paddingTop: '6px', fontSize: '0.82rem', color: '#64748b' }}>
+                  <strong>Pemesan:</strong> {order.customerName} ({order.customerPhone})
+                </div>
+              </div>
+            ) : (
+              <div style={{ fontSize: '0.9rem', color: '#334155', lineHeight: 1.5 }}>
+                <div style={{ fontWeight: '700', color: '#0f172a' }}>{order.customerName}</div>
+                <div style={{ color: '#64748b' }}>{order.customerPhone}</div>
+                <div style={{ marginTop: '0.4rem', color: '#475569' }}>{order.address}</div>
+              </div>
+            )}
             
             {order.trackingNumber && (
               <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px dashed #cbd5e1' }}>
@@ -239,7 +254,9 @@ const OrderDetail = () => {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', fontSize: '0.88rem', color: '#475569', marginBottom: '1.25rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <span>Metode:</span>
-                <strong style={{ color: '#0f172a' }}>{order.paymentMethod}</strong>
+                <strong style={{ color: '#0f172a' }}>
+                  {order.paymentMethod === 'COD' ? 'COD (Ambil di Tempat)' : order.paymentMethod}
+                </strong>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <span>Status Bayar:</span>
@@ -249,8 +266,15 @@ const OrderDetail = () => {
               </div>
             </div>
 
-            {/* Quick Action Button */}
-            {order.status === 'Menunggu Pembayaran' && order.snap_token && (
+            {/* COD Notice */}
+            {order.paymentMethod === 'COD' && order.status !== 'Selesai' && (
+              <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '8px', padding: '0.75rem', fontSize: '0.82rem', color: '#92400e', marginBottom: '1rem', lineHeight: 1.4 }}>
+                <strong>📍 Bayar di Kasir Toko:</strong> Silakan ambil pesanan Anda di toko Berkah Pancing dan lakukan pembayaran tunai di kasir tanpa ongkir (Rp 0).
+              </div>
+            )}
+
+            {/* Quick Action Button for Midtrans */}
+            {order.status === 'Menunggu Pembayaran' && order.paymentMethod !== 'COD' && order.snap_token && (
               <button
                 onClick={() => {
                   window.snap.pay(order.snap_token, {
@@ -305,6 +329,25 @@ const OrderDetail = () => {
                 }}
               >
                 Konfirmasi Pesanan Diterima
+              </button>
+            )}
+
+            {order.paymentMethod === 'COD' && order.status === 'Diproses' && (
+              <button
+                onClick={() => handleUpdateStatus('Selesai', 'Lunas')}
+                style={{
+                  width: '100%',
+                  padding: '0.8rem',
+                  borderRadius: '8px',
+                  border: 'none',
+                  background: '#00a896',
+                  color: '#fff',
+                  fontWeight: '700',
+                  fontSize: '0.9rem',
+                  cursor: 'pointer'
+                }}
+              >
+                Konfirmasi Sudah Diambil & Bayar
               </button>
             )}
 

@@ -1,11 +1,19 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import api from '../services/api';
+import AuthModal from '../components/AuthModal';
 
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+
+  // Global Auth Modal State
+  const [modalState, setModalState] = useState({
+    isOpen: false,
+    message: 'Silakan login terlebih dahulu untuk menggunakan fitur ini.',
+    returnLocation: null,
+  });
 
   useEffect(() => {
     const token = localStorage.getItem('berkah_token');
@@ -74,6 +82,27 @@ export const AuthProvider = ({ children }) => {
     setUser((prev) => ({ ...prev, ...updatedData }));
   };
 
+  const openAuthModal = (message = 'Silakan login terlebih dahulu untuk menggunakan fitur ini.', returnLocation = null) => {
+    setModalState({
+      isOpen: true,
+      message,
+      returnLocation,
+    });
+  };
+
+  const closeAuthModal = () => {
+    setModalState((prev) => ({ ...prev, isOpen: false }));
+  };
+
+  const requireAuth = (actionCallback, message = 'Silakan login terlebih dahulu untuk menggunakan fitur ini.', returnLocation = null) => {
+    if (user) {
+      if (typeof actionCallback === 'function') actionCallback();
+      return true;
+    }
+    openAuthModal(message, returnLocation);
+    return false;
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -84,9 +113,18 @@ export const AuthProvider = ({ children }) => {
         logout,
         updateUserProfile,
         isAdmin: user?.role === 'admin',
+        openAuthModal,
+        closeAuthModal,
+        requireAuth,
       }}
     >
       {!loading && children}
+      <AuthModal
+        isOpen={modalState.isOpen}
+        onClose={closeAuthModal}
+        message={modalState.message}
+        returnLocation={modalState.returnLocation}
+      />
     </AuthContext.Provider>
   );
 };

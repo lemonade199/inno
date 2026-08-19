@@ -57,16 +57,21 @@ function App() {
 
                   {/* User Customer Routes */}
                   <Route path="/" element={<UserLayout />}>
+                    {/* Public Routes: Browsing products, search, and homepage */}
                     <Route index element={<Home />} />
                     <Route path="products" element={<UserProducts />} />
                     <Route path="products/:id" element={<UserProductDetail />} />
-                    <Route path="cart" element={<UserCart />} />
-                    <Route path="checkout" element={<UserCheckout />} />
-                    <Route path="orders" element={<UserOrders />} />
-                    <Route path="orders/:id" element={<UserOrderDetail />} />
-                    <Route path="profile" element={<UserProfile />} />
                     <Route path="search" element={<UserSearch />} />
-                    <Route path="chat" element={<UserChat />} />
+
+                    {/* Protected Customer Routes */}
+                    <Route element={<ProtectedRoute />}>
+                      <Route path="cart" element={<UserCart />} />
+                      <Route path="checkout" element={<UserCheckout />} />
+                      <Route path="orders" element={<UserOrders />} />
+                      <Route path="orders/:id" element={<UserOrderDetail />} />
+                      <Route path="profile" element={<UserProfile />} />
+                      <Route path="chat" element={<UserChat />} />
+                    </Route>
 
                     {/* Backward compatibility redirects */}
                     <Route path="user/dashboard" element={<Navigate to="/" replace />} />
@@ -85,19 +90,21 @@ function App() {
                   <Route path="/keranjang" element={<Navigate to="/cart" replace />} />
                   <Route path="/pesanan" element={<Navigate to="/orders" replace />} />
 
-                  {/* Admin Routes */}
-                  <Route path="/admin" element={<AdminLayout />}>
-                    <Route index element={<Navigate to="/admin/dashboard" replace />} />
-                    <Route path="dashboard" element={<AdminDashboard />} />
-                    <Route path="chat" element={<AdminChat />} />
-                    <Route path="products" element={<AdminProducts />} />
-                    <Route path="products/create" element={<AdminProductCreate />} />
-                    <Route path="products/edit/:id" element={<AdminProductEdit />} />
-                    <Route path="categories" element={<AdminCategories />} />
-                    <Route path="orders" element={<AdminOrders />} />
-                    <Route path="orders/:id" element={<AdminOrderDetail />} />
-                    <Route path="profile" element={<AdminProfile />} />
-                    <Route path="notifications" element={<AdminNotifications />} />
+                  {/* Admin Routes (Admin Only Protected) */}
+                  <Route path="/admin" element={<ProtectedRoute adminOnly={true} />}>
+                    <Route element={<AdminLayout />}>
+                      <Route index element={<Navigate to="/admin/dashboard" replace />} />
+                      <Route path="dashboard" element={<AdminDashboard />} />
+                      <Route path="chat" element={<AdminChat />} />
+                      <Route path="products" element={<AdminProducts />} />
+                      <Route path="products/create" element={<AdminProductCreate />} />
+                      <Route path="products/edit/:id" element={<AdminProductEdit />} />
+                      <Route path="categories" element={<AdminCategories />} />
+                      <Route path="orders" element={<AdminOrders />} />
+                      <Route path="orders/:id" element={<AdminOrderDetail />} />
+                      <Route path="profile" element={<AdminProfile />} />
+                      <Route path="notifications" element={<AdminNotifications />} />
+                    </Route>
                   </Route>
 
                   {/* Fallback Redirect */}
