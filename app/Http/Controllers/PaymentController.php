@@ -23,6 +23,11 @@ class PaymentController extends Controller
 
     public function createPayment(Request $request)
     {
+        $user = $request->user();
+        if (!$user) {
+            return response()->json(['message' => 'Silakan login terlebih dahulu untuk melakukan checkout.'], 401);
+        }
+
         $request->validate([
             'customerName' => 'required',
             'customerEmail' => 'required',
@@ -36,12 +41,12 @@ class PaymentController extends Controller
             'shipping_city_id' => 'required_if:shipping_method,delivery',
         ]);
 
+        DB::beginTransaction();
         try {
-            DB::beginTransaction();
-
-            $subtotal = 0;
+            $paymentMethod = $request->paymentMethod ?? 'Midtrans';
             $itemsData = [];
             $totalWeight = 0;
+            $subtotal = 0;
 
             // Sort product IDs to prevent deadlock
             $productIds = collect($request->items)->pluck('id')->sort()->values()->all();
@@ -81,7 +86,7 @@ class PaymentController extends Controller
             $shippingFee = 0;
             $shippingEtd = null;
 
-            if ($request->shipping_method === 'pickup') {
+            if ($paymentMethod === 'COD' || $paymentMethod === 'Cash' || $request->shipping_method === 'pickup') {
                 $shippingFee = 0;
             } else {
                 if ($totalWeight === 0) $totalWeight = 1000;
@@ -103,15 +108,17 @@ class PaymentController extends Controller
             }
 
             $total = $subtotal + $shippingFee;
-            $paymentMethod = $request->paymentMethod ?? 'Midtrans';
             $orderIdMidtrans = 'TRX-' . time() . '-' . rand(100, 999);
 
             $order = Order::create([
                 'order_id_midtrans' => $orderIdMidtrans,
+                'user_id' => $user->id,
                 'customer_name' => $request->customerName,
                 'customer_email' => $request->customerEmail,
                 'customer_phone' => $request->customerPhone ?? '-',
-                'address' => $request->address ?? '-',
+                'address' => ($paymentMethod === 'COD' || $paymentMethod === 'Cash')
+                    ? ($request->address ? $request->address . ' (Ambil di Toko / COD)' : 'Ambil di Toko Berkah Pancing')
+                    : ($request->address ?? '-'),
                 'subtotal' => $subtotal,
                 'shipping_fee' => $shippingFee,
                 'total' => $total,
@@ -141,7 +148,7 @@ class PaymentController extends Controller
                 $data['model']->decrement('stock', $data['qty']);
             }
 
-            if ($paymentMethod === 'Cash') {
+            if ($paymentMethod === 'Cash' || $paymentMethod === 'COD') {
                 Payment::create([
                     'order_id_db' => $order->id,
                     'order_id_midtrans' => $orderIdMidtrans,
@@ -285,10 +292,23 @@ class PaymentController extends Controller
 
     public function getOrders(Request $request)
     {
+        $user = $request->user();
+        if (!$user) {
+            return response()->json(['message' => 'Silakan login terlebih dahulu.'], 401);
+        }
+
         $query = Order::with(['payment', 'items']);
-        if ($request->email) {
+        
+        // If not admin, restrict to user's orders only
+        if ($user->role !== 'admin') {
+            $query->where(function($q) use ($user) {
+                $q->where('user_id', $user->id)
+                  ->orWhere('customer_email', $user->email);
+            });
+        } elseif ($request->email) {
             $query->where('customer_email', $request->email);
         }
+
         $orders = $query->orderBy('created_at', 'desc')->get()->map(function($o) {
             $statusMap = ['pending' => 'Menunggu Pembayaran', 'paid' => 'Diproses', 'expired' => 'Dibatalkan', 'cancelled' => 'Dibatalkan', 'failed' => 'Dibatalkan'];
             $paymentStatus = $o->payment ? ($o->payment->payment_status === 'paid' ? 'Lunas' : 'Belum Bayar') : 'Belum Bayar';
@@ -324,10 +344,20 @@ class PaymentController extends Controller
         return response()->json($orders);
     }
 
-    public function getOrderById($id)
+    public function getOrderById(Request $request, $id)
     {
+        $user = $request->user();
+        if (!$user) {
+            return response()->json(['message' => 'Silakan login terlebih dahulu.'], 401);
+        }
+
         $o = Order::with(['payment', 'items'])->find($id);
-        if (!$o) return response()->json(null);
+        if (!$o) return response()->json(null, 404);
+
+        // Security check: non-admin can only view their own orders
+        if ($user->role !== 'admin' && $o->user_id && $o->user_id !== $user->id && $o->customer_email !== $user->email) {
+            return response()->json(['message' => 'Akses ditolak.'], 403);
+        }
 
         $statusMap = ['pending' => 'Menunggu Pembayaran', 'paid' => 'Diproses', 'expired' => 'Dibatalkan', 'cancelled' => 'Dibatalkan', 'failed' => 'Dibatalkan'];
         $paymentStatus = $o->payment ? ($o->payment->payment_status === 'paid' ? 'Lunas' : 'Belum Bayar') : 'Belum Bayar';

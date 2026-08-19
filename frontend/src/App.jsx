@@ -1,6 +1,6 @@
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider } from './context/AuthContext';
+import React, { useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
+import { AuthProvider, useAuth } from './context/AuthContext';
 import { CartProvider } from './context/CartContext';
 import { ToastProvider } from './context/ToastContext';
 import { NotificationProvider } from './context/NotificationContext';
@@ -42,6 +42,17 @@ import AdminProfile from './pages/admin/Profile';
 import AdminChat from './pages/admin/Chat';
 import AdminNotifications from './pages/admin/Notifications';
 
+// Bridge: registers router hooks into AuthContext so AuthModal can navigate
+function AuthModalBridge() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { _registerNavigate } = useAuth();
+  useEffect(() => {
+    _registerNavigate(navigate, location);
+  }, [navigate, location]);
+  return null;
+}
+
 function App() {
   return (
     <AuthProvider>
@@ -49,6 +60,7 @@ function App() {
         <ToastProvider>
           <NotificationProvider>
             <Router>
+              <AuthModalBridge />
               <ErrorBoundary>
                 <Routes>
                   {/* Public Auth Routes */}
@@ -57,14 +69,15 @@ function App() {
 
                   {/* User Customer Routes */}
                   <Route path="/" element={<UserLayout />}>
+                    {/* Public Routes: Browsing products, search, and homepage */}
                     <Route index element={<Home />} />
                     <Route path="products" element={<UserProducts />} />
                     <Route path="products/:id" element={<UserProductDetail />} />
-                    <Route path="cart" element={<UserCart />} />
                     <Route path="search" element={<UserSearch />} />
 
-                    {/* Protected User Routes */}
+                    {/* Protected Customer Routes */}
                     <Route element={<ProtectedRoute />}>
+                      <Route path="cart" element={<UserCart />} />
                       <Route path="checkout" element={<UserCheckout />} />
                       <Route path="orders" element={<UserOrders />} />
                       <Route path="orders/:id" element={<UserOrderDetail />} />
@@ -89,7 +102,7 @@ function App() {
                   <Route path="/keranjang" element={<Navigate to="/cart" replace />} />
                   <Route path="/pesanan" element={<Navigate to="/orders" replace />} />
 
-                  {/* Admin Routes */}
+                  {/* Admin Routes (Admin Only Protected) */}
                   <Route path="/admin" element={<ProtectedRoute adminOnly={true} />}>
                     <Route element={<AdminLayout />}>
                       <Route index element={<Navigate to="/admin/dashboard" replace />} />

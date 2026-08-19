@@ -151,16 +151,19 @@ const Checkout = () => {
   };
 
   const getShippingFee = () => {
-    if (deliveryMethod === 'pickup') return 0; // Ambil di tempat: gratis ongkir
+    if (deliveryMethod === 'pickup' || paymentMethod === 'COD') return 0; // Ambil di tempat / COD: gratis ongkir (Rp 0)
     if (selectedService) return selectedService.price;
     return 0;
   };
 
   const shippingFee = getShippingFee();
-  const serviceFee = 1000;
+  const serviceFee = paymentMethod === 'COD' ? 0 : 1000; // Tanpa biaya layanan / ongkir untuk COD ambil di tempat
   const grandTotal = subtotal + shippingFee + serviceFee;
 
   const getFullAddress = () => {
+    if (deliveryMethod === 'pickup') {
+      return 'Ambil Langsung di Toko Berkah Pancing (Jln. Cibiru Hilir RT02/RW03, Cileunyi, Kab. Bandung)';
+    }
     const fragments = [formData.addressDetail];
     if (selectedCity) fragments.push(`${selectedCity.type} ${selectedCity.city_name}`);
     if (selectedProvince) fragments.push(selectedProvince.province);
@@ -292,12 +295,12 @@ const Checkout = () => {
 
             {/* Ambil di Tempat */}
             <button
-              onClick={() => setDeliveryMethod('pickup')}
+              onClick={() => { setDeliveryMethod('pickup'); setPaymentMethod('COD'); }}
               style={{ padding: '0.85rem', borderRadius: '8px', border: deliveryMethod === 'pickup' ? '2px solid #16a34a' : '1.5px solid #e2e8f0', background: deliveryMethod === 'pickup' ? '#f0fdf4' : '#fafafa', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', transition: 'all 0.15s' }}
             >
               <span style={{ fontSize: '1.5rem' }}>🏪</span>
               <span style={{ fontSize: '0.82rem', fontWeight: '700', color: deliveryMethod === 'pickup' ? '#16a34a' : '#1e293b' }}>Ambil di Tempat</span>
-              <span style={{ fontSize: '0.7rem', color: '#64748b', textAlign: 'center' }}>Gratis Ongkir • Ambil langsung di toko</span>
+              <span style={{ fontSize: '0.7rem', color: '#64748b', textAlign: 'center' }}>Gratis Ongkir (Rp 0) • Ambil langsung di toko</span>
             </button>
           </div>
 
@@ -308,7 +311,7 @@ const Checkout = () => {
               <div>
                 <strong>Toko Berkah Pancing</strong><br />
                 Jln. Cibiru Hilir RT02/RW03, Desa Cibiru Hilir, Kec. Cileunyi, Kab. Bandung, 40624<br />
-                <span style={{ color: '#64748b', marginTop: '2px', display: 'block' }}>Jam buka: Senin–Sabtu, 08.00–17.00 WIB</span>
+                <span style={{ color: '#64748b', marginTop: '2px', display: 'block' }}>Jam buka: Setiap Hari, 08.00–21.00 WIB</span>
               </div>
             </div>
           )}
@@ -486,44 +489,62 @@ const Checkout = () => {
             </div>
           ))}
 
-          {/* Opsi Pengiriman (JNE) */}
+          {/* Opsi Pengiriman */}
           <div style={{ borderTop: '1px solid #f8fafc', paddingTop: '0.75rem', display: 'flex', flexDirection: 'column', gap: '10px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.85rem' }}>
               <span style={{ color: '#334155', fontWeight: '600' }}>Opsi Pengiriman</span>
-              <span style={{ color: '#ee4d2d', fontSize: '0.8rem', fontWeight: '600' }}>JNE</span>
+              <span style={{ color: deliveryMethod === 'pickup' ? '#16a34a' : '#ee4d2d', fontSize: '0.8rem', fontWeight: '700' }}>
+                {deliveryMethod === 'pickup' ? 'Ambil di Toko' : 'JNE Courier'}
+              </span>
             </div>
             
-            <div>
-              {isLoadingShipping && <div style={{ fontSize: '0.8rem', color: '#64748b' }}>Menghitung ongkos kirim JNE...</div>}
-              
-              {!isLoadingShipping && !selectedCity && (
-                <div style={{ fontSize: '0.8rem', color: '#ef4444' }}>Silakan lengkapi alamat pengiriman untuk melihat ongkos kirim.</div>
-              )}
-              
-              {!isLoadingShipping && shippingCostData && shippingCostData.shipping.services.length > 0 && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                   <div style={{ fontSize: '0.75rem', color: '#64748b', marginBottom: '4px' }}>Total Berat: {shippingCostData.weight}gr</div>
-                  {shippingCostData.shipping.services.map(srv => (
-                    <label key={srv.code} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem', borderRadius: '6px', border: selectedService?.code === srv.code ? '1px solid #ee4d2d' : '1px solid #e2e8f0', background: selectedService?.code === srv.code ? '#fff5f5' : '#fff', cursor: 'pointer' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <input type="radio" name="shippingService" value={srv.code} checked={selectedService?.code === srv.code} onChange={() => setSelectedService(srv)} style={{ accentColor: '#ee4d2d' }} />
-                        <div>
-                          <div style={{ fontSize: '0.85rem', fontWeight: '700', color: '#1e293b' }}>{srv.name}</div>
-                          <div style={{ fontSize: '0.72rem', color: '#64748b' }}>Estimasi {srv.etd} hari</div>
-                        </div>
-                      </div>
-                      <span style={{ fontSize: '0.85rem', fontWeight: '800', color: '#1e293b' }}>
-                        {productService.formatIDR(srv.price)}
-                      </span>
-                    </label>
-                  ))}
+            {deliveryMethod === 'pickup' ? (
+              <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', padding: '10px 12px', borderRadius: '6px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: '0.85rem', fontWeight: '700', color: '#166534', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    🏬 Ambil Langsung di Toko <span style={{ fontWeight: '400', color: '#475569' }}>| Self Pick-up</span>
+                  </span>
+                  <span style={{ fontSize: '0.85rem', fontWeight: '800', color: '#166534' }}>
+                    Rp 0 (Gratis Ongkir)
+                  </span>
                 </div>
-              )}
-              
-              {!isLoadingShipping && shippingCostData && shippingCostData.shipping.services.length === 0 && (
-                <div style={{ fontSize: '0.8rem', color: '#ef4444' }}>Layanan JNE tidak tersedia untuk tujuan ini.</div>
-              )}
-            </div>
+                <span style={{ fontSize: '0.75rem', color: '#15803d' }}>
+                  Pesanan disiapkan langsung di toko fisik Berkah Pancing (Cileunyi, Bandung). Tanpa ongkos kirim.
+                </span>
+              </div>
+            ) : (
+              <div>
+                {isLoadingShipping && <div style={{ fontSize: '0.8rem', color: '#64748b' }}>Menghitung ongkos kirim JNE...</div>}
+                
+                {!isLoadingShipping && !selectedCity && (
+                  <div style={{ fontSize: '0.8rem', color: '#ef4444' }}>Silakan lengkapi alamat pengiriman untuk melihat ongkos kirim.</div>
+                )}
+                
+                {!isLoadingShipping && shippingCostData && shippingCostData.shipping.services.length > 0 && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                     <div style={{ fontSize: '0.75rem', color: '#64748b', marginBottom: '4px' }}>Total Berat: {shippingCostData.weight}gr</div>
+                    {shippingCostData.shipping.services.map(srv => (
+                      <label key={srv.code} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem', borderRadius: '6px', border: selectedService?.code === srv.code ? '1px solid #ee4d2d' : '1px solid #e2e8f0', background: selectedService?.code === srv.code ? '#fff5f5' : '#fff', cursor: 'pointer' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <input type="radio" name="shippingService" value={srv.code} checked={selectedService?.code === srv.code} onChange={() => setSelectedService(srv)} style={{ accentColor: '#ee4d2d' }} />
+                          <div>
+                            <div style={{ fontSize: '0.85rem', fontWeight: '700', color: '#1e293b' }}>{srv.name}</div>
+                            <div style={{ fontSize: '0.72rem', color: '#64748b' }}>Estimasi {srv.etd} hari</div>
+                          </div>
+                        </div>
+                        <span style={{ fontSize: '0.85rem', fontWeight: '800', color: '#1e293b' }}>
+                          {productService.formatIDR(srv.price)}
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                )}
+                
+                {!isLoadingShipping && shippingCostData && shippingCostData.shipping.services.length === 0 && (
+                  <div style={{ fontSize: '0.8rem', color: '#ef4444' }}>Layanan JNE tidak tersedia untuk tujuan ini.</div>
+                )}
+              </div>
+            )}
           </div>
 
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #f1f5f9', paddingTop: '0.75rem', fontSize: '0.88rem' }}>
@@ -538,28 +559,28 @@ const Checkout = () => {
         <div style={{ background: '#fff', borderRadius: '6px', padding: '1rem', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.5rem' }}>
             <h3 style={{ fontSize: '0.92rem', fontWeight: '800', color: '#1e293b', margin: 0 }}>Metode Pembayaran</h3>
+            <span style={{ color: '#64748b', fontSize: '0.8rem' }}>Pilih Metode</span>
           </div>
-
 
           <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem', borderRadius: '6px', border: paymentMethod === 'Midtrans' ? '1.5px solid #ee4d2d' : '1px solid #e2e8f0', background: paymentMethod === 'Midtrans' ? '#fff5f5' : '#fff', cursor: 'pointer' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <CreditCard size={20} color="#00a896" />
               <div>
-                <div style={{ fontSize: '0.85rem', fontWeight: '700', color: '#1e293b' }}>Transfer Bank / VA</div>
-                <div style={{ fontSize: '0.72rem', color: '#64748b' }}>BCA, Mandiri, BNI, BRI</div>
+                <div style={{ fontSize: '0.85rem', fontWeight: '700', color: '#1e293b' }}>Transfer Bank / VA (Midtrans)</div>
+                <div style={{ fontSize: '0.72rem', color: '#64748b' }}>BCA, Mandiri, BNI, BRI, QRIS</div>
               </div>
             </div>
             <input type="radio" name="payment" value="Midtrans" checked={paymentMethod === 'Midtrans'} onChange={() => setPaymentMethod('Midtrans')} style={{ accentColor: '#ee4d2d', transform: 'scale(1.2)' }} />
           </label>
 
-          {/* COD hanya tersedia untuk Ambil di Tempat */}
+          {/* COD hanya untuk Ambil di Tempat */}
           {deliveryMethod === 'pickup' && (
             <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem', borderRadius: '6px', border: paymentMethod === 'COD' ? '1.5px solid #ee4d2d' : '1px solid #e2e8f0', background: paymentMethod === 'COD' ? '#fff5f5' : '#fff', cursor: 'pointer' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <Banknote size={20} color="#f77f00" />
                 <div>
-                  <div style={{ fontSize: '0.85rem', fontWeight: '700', color: '#1e293b' }}>COD (Bayar di Tempat)</div>
-                  <div style={{ fontSize: '0.72rem', color: '#64748b' }}>Bayar tunai saat mengambil barang di toko</div>
+                  <div style={{ fontSize: '0.85rem', fontWeight: '700', color: '#1e293b' }}>COD (Ambil di Toko & Bayar Tunai)</div>
+                  <div style={{ fontSize: '0.72rem', color: '#64748b' }}>Ambil barang langsung di toko Berkah Pancing & bayar di tempat (Tanpa Ongkir / Rp 0)</div>
                 </div>
               </div>
               <input type="radio" name="payment" value="COD" checked={paymentMethod === 'COD'} onChange={() => setPaymentMethod('COD')} style={{ accentColor: '#ee4d2d', transform: 'scale(1.2)' }} />
@@ -576,7 +597,9 @@ const Checkout = () => {
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', color: '#64748b' }}>
             <span>Subtotal Pengiriman</span>
-            <span style={{ fontWeight: '600', color: '#1e293b' }}>{productService.formatIDR(shippingFee)}</span>
+            <span style={{ fontWeight: '600', color: '#1e293b' }}>
+              {deliveryMethod === 'pickup' || paymentMethod === 'COD' ? 'Rp 0 (Ambil di Toko)' : productService.formatIDR(shippingFee)}
+            </span>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', color: '#64748b' }}>
             <span>Biaya Layanan</span>
@@ -587,7 +610,6 @@ const Checkout = () => {
             <span style={{ fontSize: '1.15rem', fontWeight: '800', color: '#ee4d2d' }}>{productService.formatIDR(grandTotal)}</span>
           </div>
         </div>
-
       </div>
 
       {/* Shopee-style Sticky Bottom Footer */}

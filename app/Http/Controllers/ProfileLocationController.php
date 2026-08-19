@@ -22,13 +22,13 @@ class ProfileLocationController extends Controller
      */
     public function show(Request $request)
     {
-        $user = Auth::user() ?? User::first(); // Fallback ke user pertama untuk demonstrasi jika belum ada sesi auth
+        $user = $request->user();
 
         if (!$user) {
             return response()->json([
                 'success' => false,
-                'message' => 'Pengguna tidak ditemukan'
-            ], 404);
+                'message' => 'Pengguna tidak terautentikasi'
+            ], 401);
         }
 
         return response()->json([
@@ -60,7 +60,7 @@ class ProfileLocationController extends Controller
             'longitude.between' => 'Longitude harus bernilai antara -180 hingga 180 derajat.',
         ]);
 
-        $user = Auth::user() ?? User::first();
+        $user = $request->user();
 
         if (!$user) {
             return response()->json([
@@ -102,7 +102,7 @@ class ProfileLocationController extends Controller
             'longitude.between' => 'Longitude harus bernilai antara -180 hingga 180 derajat.',
         ]);
 
-        $user = Auth::user() ?? User::first();
+        $user = $request->user();
 
         if (!$user) {
             return response()->json([

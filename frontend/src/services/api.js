@@ -19,4 +19,18 @@ api.interceptors.request.use((config) => {
   return Promise.reject(error);
 });
 
+// Response Interceptor
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response && error.response.status === 401) {
+      // Token is invalid or expired
+      if (localStorage.getItem('berkah_token')) {
+        localStorage.removeItem('berkah_token');
+      }
+    }
+    return Promise.reject(error);
+  }
+);
+
 export default api;

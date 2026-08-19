@@ -43,9 +43,9 @@ import Loading from '../components/Loading';
 const ProductDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { cartItems, addToCart, setCheckoutItems } = useCart();
-  const { user } = useAuth();
-  const cartCount = cartItems ? cartItems.reduce((acc, item) => acc + item.quantity, 0) : 0;
+  const { cart, addToCart, setCheckoutItems, getCartCount } = useCart();
+  const { user, requireAuth } = useAuth();
+  const cartCount = getCartCount();
 
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -246,6 +246,12 @@ const ProductDetail = () => {
   };
 
   const handleAddToCart = () => {
+    if (!user) {
+      requireAuth(() => {
+        addToCart(product, quantity);
+      }, 'Silakan login terlebih dahulu untuk menambahkan produk ke keranjang belanja.');
+      return;
+    }
     if (product.stock <= 0) return;
     addToCart(product, quantity);
     setAdded(true);
@@ -258,9 +264,36 @@ const ProductDetail = () => {
   };
 
   const handleBuyNow = () => {
+    if (!user) {
+      requireAuth(() => {
+        setCheckoutItems([{ product, qty: quantity }]);
+        navigate('/checkout');
+      }, 'Silakan login terlebih dahulu untuk melakukan pembelian.');
+      return;
+    }
     if (product.stock <= 0) return;
     setCheckoutItems([{ product, qty: quantity }]);
     navigate('/checkout');
+  };
+
+  const handleChatClick = () => {
+    if (!user) {
+      requireAuth(() => {
+        navigate(`/chat?productId=${product.id}`);
+      }, 'Silakan login terlebih dahulu untuk menghubungi penjual.');
+      return;
+    }
+    navigate(`/chat?productId=${product.id}`);
+  };
+
+  const handleOpenReviewModal = () => {
+    if (!user) {
+      requireAuth(() => {
+        setShowReviewModal(true);
+      }, 'Silakan login terlebih dahulu untuk menulis ulasan produk.');
+      return;
+    }
+    setShowReviewModal(true);
   };
 
   // Mock metadata based on product ID
@@ -697,7 +730,7 @@ const ProductDetail = () => {
           </h3>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <button 
-              onClick={() => setShowReviewModal(true)}
+              onClick={handleOpenReviewModal}
               style={{ 
                 background: 'none', 
                 border: 'none', 
@@ -707,7 +740,7 @@ const ProductDetail = () => {
                 cursor: 'pointer' 
               }}
             >
-              Lihat Semua
+              Tulis Ulasan / Lihat Semua
             </button>
           </div>
         </div>
@@ -964,7 +997,7 @@ const ProductDetail = () => {
 
       {/* Tokopedia Mobile Sticky Bottom Bar (Chat, + Keranjang, Beli Sekarang) */}
       <div className="tokopedia-mobile-bottom-bar">
-        <button onClick={() => navigate(`/chat?productId=${product.id}`)} className="tokopedia-btn-chat" title="Chat Seller">
+        <button onClick={handleChatClick} className="tokopedia-btn-chat" title="Chat Seller">
           <MessageSquare size={20} color="#475569" />
         </button>
         <button 

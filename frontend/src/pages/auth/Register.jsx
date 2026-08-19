@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { Anchor, Lock, Mail, User, Phone, MapPin, ArrowRight } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 const Register = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { register } = useAuth();
   
   const [formData, setFormData] = useState({
@@ -17,10 +18,28 @@ const Register = () => {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
+  const fromLocation = location.state?.from;
+  const returnPath = typeof fromLocation === 'string' 
+    ? fromLocation 
+    : (fromLocation?.pathname ? (fromLocation.pathname + (fromLocation.search || '')) : '/');
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    register(formData);
-    navigate('/');
+    setIsLoading(true);
+    setError('');
+
+    try {
+      const registeredUser = await register(formData);
+      if (registeredUser.role === 'admin') {
+        navigate('/admin/dashboard', { replace: true });
+      } else {
+        navigate(returnPath, { replace: true });
+      }
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -158,7 +177,7 @@ const Register = () => {
         </form>
 
         <div style={{ textAlign: 'center', marginTop: '1.5rem', fontSize: '0.85rem', color: '#64748b' }}>
-          Sudah punya akun? <Link to="/login" style={{ color: '#00a896', fontWeight: '700', textDecoration: 'none' }}>Masuk di sini</Link>
+          Sudah punya akun? <Link to="/login" state={{ from: fromLocation }} style={{ color: '#00a896', fontWeight: '700', textDecoration: 'none' }}>Masuk di sini</Link>
         </div>
       </div>
     </div>

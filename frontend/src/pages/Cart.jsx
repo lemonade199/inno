@@ -14,7 +14,7 @@ import { productService } from '../services/productService';
 
 const Cart = () => {
   const { cart, updateQuantity, removeFromCart, clearCart, setCheckoutItems } = useCart();
-  const { user } = useAuth();
+  const { user, requireAuth } = useAuth();
   const navigate = useNavigate();
   
   // Selected items state (by product id)
@@ -111,8 +111,7 @@ const Cart = () => {
   const handleCheckoutClick = () => {
     if (selectedCount === 0) return;
     if (!user) {
-      alert('Silakan login terlebih dahulu untuk melakukan checkout!');
-      navigate('/login');
+      requireAuth(() => navigate('/checkout'), 'Silakan login terlebih dahulu untuk melakukan checkout.');
       return;
     }
     

@@ -3,16 +3,16 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
-
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\ProfileLocationController;
 use App\Http\Controllers\ShippingController;
 
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/register', [AuthController::class, 'register']);
 
-// Public APIs
+// Public APIs - Browsing products & categories without login
 Route::get('/products', [ProductController::class, 'index']);
 Route::get('/products/{id}', [ProductController::class, 'show']);
 Route::get('/categories', [CategoryController::class, 'index']);
@@ -34,7 +34,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/user/profile', [AuthController::class, 'updateProfile']);
     Route::put('/user/profile', [AuthController::class, 'updateProfile']);
 
-    // Orders (Customer facing)
+    // User Location & OpenStreetMap
+    Route::get('/user/location', [ProfileLocationController::class, 'show']);
+    Route::post('/user/location', [ProfileLocationController::class, 'update']);
+    Route::put('/user/location', [ProfileLocationController::class, 'update']);
+    Route::post('/user/location/confirm', [ProfileLocationController::class, 'confirmLocation']);
+
+    // Orders & Payment (Customer facing)
     Route::post('/payment/create', [PaymentController::class, 'createPayment']);
     Route::get('/payment/status/{order_id_db}', [PaymentController::class, 'checkStatus']);
     Route::get('/payment/sync/{order_id_db}', [PaymentController::class, 'syncPayment']);
@@ -55,3 +61,4 @@ Route::middleware(['auth:sanctum', 'role:admin'])->group(function () {
     Route::put('/admin/categories/{id}', [CategoryController::class, 'update']);
     Route::delete('/admin/categories/{id}', [CategoryController::class, 'destroy']);
 });
+

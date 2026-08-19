@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { 
   Search, 
@@ -34,7 +35,7 @@ import {
 import Avatar from './Avatar';
 
 const Navbar = ({ isAdminView = false, toggleSidebar }) => {
-  const { user, logout, isAdmin } = useAuth();
+  const { user, logout, isAdmin, requireAuth } = useAuth();
   const { getCartCount } = useCart();
   const navigate = useNavigate();
   const location = useLocation();
@@ -421,7 +422,7 @@ const Navbar = ({ isAdminView = false, toggleSidebar }) => {
         </div>
 
         {/* Admin Header Logout Confirmation Modal */}
-        {showLogoutConfirm && (
+        {showLogoutConfirm && createPortal(
           <div style={{
             position: 'fixed',
             inset: 0,
@@ -500,7 +501,8 @@ const Navbar = ({ isAdminView = false, toggleSidebar }) => {
                 </button>
               </div>
             </div>
-          </div>
+          </div>,
+          document.body
         )}
       </header>
     );
@@ -652,14 +654,24 @@ const Navbar = ({ isAdminView = false, toggleSidebar }) => {
         {/* Cart Icon & User Actions */}
         {!isCartPage && (
           <div className="navbar-user-actions" style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', flexShrink: 0 }}>
-            <Link to="/cart" style={{ position: 'relative', color: '#fff', display: 'flex', alignItems: 'center', flexShrink: 0 }}>
+            <button 
+              onClick={() => {
+                if (!user) {
+                  requireAuth(() => navigate('/cart'), 'Silakan login terlebih dahulu untuk membuka keranjang belanja.');
+                } else {
+                  navigate('/cart');
+                }
+              }}
+              style={{ position: 'relative', color: '#fff', background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', flexShrink: 0 }}
+              title="Keranjang Belanja"
+            >
               <ShoppingBag size={24} />
               {cartCount > 0 && (
                 <span style={{ position: 'absolute', top: '-8px', right: '-8px', background: '#f77f00', color: '#fff', fontSize: '0.65rem', fontWeight: '800', width: '18px', height: '18px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid #0f4c81' }}>
                   {cartCount}
                 </span>
               )}
-            </Link>
+            </button>
 
             {user ? (
               <div style={{ position: 'relative', flexShrink: 0 }} ref={dropdownRef}>
@@ -768,7 +780,7 @@ const Navbar = ({ isAdminView = false, toggleSidebar }) => {
       </div>
 
       {/* Logout Confirmation Modal */}
-      {showLogoutConfirm && (
+      {showLogoutConfirm && createPortal(
         <div style={{
           position: 'fixed',
           inset: 0,
@@ -847,7 +859,8 @@ const Navbar = ({ isAdminView = false, toggleSidebar }) => {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
     </header>
