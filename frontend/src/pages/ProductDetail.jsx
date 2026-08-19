@@ -43,9 +43,9 @@ import Loading from '../components/Loading';
 const ProductDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { cartItems, addToCart, setCheckoutItems } = useCart();
+  const { cart, addToCart, setCheckoutItems, getCartCount } = useCart();
   const { user, requireAuth } = useAuth();
-  const cartCount = cartItems ? cartItems.reduce((acc, item) => acc + item.quantity, 0) : 0;
+  const cartCount = getCartCount();
 
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -266,7 +266,7 @@ const ProductDetail = () => {
   const handleBuyNow = () => {
     if (!user) {
       requireAuth(() => {
-        addToCart(product, quantity);
+        setCheckoutItems([{ product, qty: quantity }]);
         navigate('/checkout');
       }, 'Silakan login terlebih dahulu untuk melakukan pembelian.');
       return;

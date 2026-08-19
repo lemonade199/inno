@@ -5,6 +5,10 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   envDir: '../',
   plugins: [react()],
+  optimizeDeps: {
+    include: ['leaflet', 'react-leaflet'],
+  },
+  assetsInclude: ['**/*.png', '**/*.jpg', '**/*.svg'],
   server: {
     port: 5173,
     proxy: {

@@ -41,10 +41,12 @@ class PaymentController extends Controller
             'shipping_city_id' => 'required_if:shipping_method,delivery',
         ]);
 
+        DB::beginTransaction();
         try {
             $paymentMethod = $request->paymentMethod ?? 'Midtrans';
             $itemsData = [];
             $totalWeight = 0;
+            $subtotal = 0;
 
             // Sort product IDs to prevent deadlock
             $productIds = collect($request->items)->pluck('id')->sort()->values()->all();

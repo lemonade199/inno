@@ -104,8 +104,12 @@ export const CartProvider = ({ children }) => {
 
   // Finish checkout: remove purchased items from main cart and clear checkout payload
   const commitCheckout = () => {
-    const purchasedIds = checkoutPayload.map(item => item.product.id);
-    setCart(prev => prev.filter(item => !purchasedIds.includes(item.product.id)));
+    if (checkoutPayload && checkoutPayload.length > 0) {
+      const purchasedIds = checkoutPayload.map(item => item.product.id);
+      setCart(prev => prev.filter(item => !purchasedIds.includes(item.product.id)));
+    } else {
+      clearCart();
+    }
     setCheckoutPayload([]);
   };
 

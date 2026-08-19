@@ -1,25 +1,9 @@
 import React from 'react';
 import { createPortal } from 'react-dom';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { Lock, LogIn, UserPlus, X, ShieldAlert, ArrowRight } from 'lucide-react';
+import { Lock, LogIn, UserPlus, X, ArrowRight } from 'lucide-react';
 
-const AuthModal = ({ isOpen, onClose, message = 'Silakan login terlebih dahulu untuk menggunakan fitur ini.', returnLocation }) => {
-  const navigate = useNavigate();
-  const location = useLocation();
-
+const AuthModal = ({ isOpen, onClose, message = 'Silakan login terlebih dahulu untuk menggunakan fitur ini.', onLogin, onRegister }) => {
   if (!isOpen) return null;
-
-  const targetLocation = returnLocation || location;
-
-  const handleLoginClick = () => {
-    onClose();
-    navigate('/login', { state: { from: targetLocation } });
-  };
-
-  const handleRegisterClick = () => {
-    onClose();
-    navigate('/register', { state: { from: targetLocation } });
-  };
 
   return createPortal(
     <div
@@ -123,7 +107,7 @@ const AuthModal = ({ isOpen, onClose, message = 'Silakan login terlebih dahulu u
         {/* Buttons: Login & Register */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
           <button
-            onClick={handleLoginClick}
+            onClick={onLogin}
             style={{
               width: '100%',
               padding: '0.85rem 1.25rem',
@@ -150,7 +134,7 @@ const AuthModal = ({ isOpen, onClose, message = 'Silakan login terlebih dahulu u
           </button>
 
           <button
-            onClick={handleRegisterClick}
+            onClick={onRegister}
             style={{
               width: '100%',
               padding: '0.85rem 1.25rem',
