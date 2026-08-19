@@ -9,6 +9,15 @@ use App\Models\User;
 class ProfileLocationController extends Controller
 {
     /**
+     * Render tampilan Halaman Alamat Profil Pengguna (Blade View).
+     */
+    public function renderView(Request $request)
+    {
+        $user = Auth::user() ?? User::first();
+        return view('profile.address', ['user' => $user]);
+    }
+
+    /**
      * Tampilkan informasi alamat dan lokasi latitude/longitude pengguna yang sedang login.
      */
     public function show(Request $request)

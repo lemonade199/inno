@@ -32,6 +32,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
+import { useToast } from '../context/ToastContext';
 import { reviewService } from '../services/reviewService';
 import { productService } from '../services/productService';
 import api from '../services/api';
@@ -41,6 +42,7 @@ import ImageCropperModal from '../components/ImageCropperModal';
 const Profile = () => {
   const { user, updateUserProfile, logout, addresses, saveAddresses } = useAuth();
   const { addToCart } = useCart();
+  const { showToast } = useToast();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const fileInputRef = useRef(null);
@@ -212,8 +214,12 @@ const Profile = () => {
 
           // Reverse Geocoding Debounced Handler on Map Move
           let reverseTimer;
+          map.on('move', () => {
+            setMapLocationQuery('⏳ Memuat lokasi...');
+          });
           map.on('moveend', () => {
             clearTimeout(reverseTimer);
+            setMapLocationQuery('⏳ Memuat detail alamat...');
             const center = map.getCenter();
             reverseTimer = setTimeout(() => {
               fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${center.lat}&lon=${center.lng}&zoom=18`)
@@ -221,10 +227,14 @@ const Profile = () => {
                 .then(data => {
                   if (data && data.display_name) {
                     setMapLocationQuery(data.display_name);
+                  } else {
+                    setMapLocationQuery(`Lokasi (${center.lat.toFixed(5)}, ${center.lng.toFixed(5)})`);
                   }
                 })
-                .catch(() => {});
-            }, 500);
+                .catch(() => {
+                  setMapLocationQuery(`Lokasi (${center.lat.toFixed(5)}, ${center.lng.toFixed(5)})`);
+                });
+            }, 400);
           });
 
           leafletMapRef.current = map;
@@ -489,7 +499,7 @@ const Profile = () => {
   // Delete address
   const handleDeleteAddress = (id) => {
     if (addresses.length <= 1) {
-      alert('Anda harus memiliki setidaknya satu alamat pengiriman.');
+      showToast('Anda harus memiliki setidaknya satu alamat pengiriman.', 'warning');
       return;
     }
     const filtered = addresses.filter(a => a.id !== id);
@@ -1811,7 +1821,7 @@ const Profile = () => {
                 textOverflow: 'ellipsis',
                 fontWeight: '500'
               }}>
-                📍 Preview: {mapLocationQuery}
+                Preview: {mapLocationQuery}
               </div>
             </div>
 
@@ -2062,7 +2072,7 @@ const Profile = () => {
                     });
                     const data = await res.json();
                     if (data.success) {
-                      alert('✓ Alamat berhasil dikonfirmasi dan disimpan.');
+                      showToast('✓ Alamat berhasil dikonfirmasi dan disimpan.', 'success');
                     }
                   } catch (err) {
                     console.error("Save error:", err);
